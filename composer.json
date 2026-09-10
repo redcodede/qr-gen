@@ -26,10 +26,9 @@
     },
     "require": {
         "php": "^8.0",
-        "statamic/cms": "^3.4"
+        "bacon/bacon-qr-code": "^2.0 || ^3.0"
     },
     "require-dev": {
-        "bacon/bacon-qr-code": "^2.0",
         "phpunit/phpunit": "^9.6"
     },
     "autoload": {

@@ -7,11 +7,10 @@
          failOnRisky="true"
          beStrictAboutOutputDuringTests="true">
     <testsuites>
+        <!-- The Statamic suite is added together with src/Statamic. An empty
+             directory here would fail the run under failOnWarning. -->
         <testsuite name="Qr">
             <directory>tests/Qr</directory>
-        </testsuite>
-        <testsuite name="Statamic">
-            <directory>tests/Statamic</directory>
         </testsuite>
     </testsuites>
     <coverage>

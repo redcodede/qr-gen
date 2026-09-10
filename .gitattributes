@@ -6,6 +6,7 @@
 # Nicht mit ins Composer-Dist
 /.ddev            export-ignore
 /.github          export-ignore
+/demo             export-ignore
 /tests            export-ignore
 /.editorconfig    export-ignore
 /.gitattributes   export-ignore
