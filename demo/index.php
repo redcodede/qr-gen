@@ -18,6 +18,10 @@ use Redcodede\QrGen\Qr\Logo\LogoBox;
 
 require __DIR__ . '/bootstrap.php';
 
+// A development page that changes under the reader's feet. A cached copy showing
+// yesterday's error is worse than a slightly slower reload.
+header('Cache-Control: no-store, must-revalidate');
+
 $input = readInput($_GET);
 $matrix = null;
 $plain = null;

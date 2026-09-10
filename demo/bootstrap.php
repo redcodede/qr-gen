@@ -51,8 +51,27 @@ const DEFAULT_LEVEL = ErrorCorrection::HIGH;
  */
 const LEVEL_AUTO = 'AUTO';
 
-const DEFAULT_LOGO_MODULES = 11;
+/**
+ * Nine modules, not eleven.
+ *
+ * On the demo URL, eleven modules of a 29x29 symbol is 38 % of the width and
+ * 14.4 % of the modules — inside the allowance, but with 4 % of it left over.
+ * Nine is 31 % of the width and 9.6 % of the modules, which leaves 23 % and
+ * sits in the band the field actually uses (10 to 20 % cleared). A default
+ * should be the configuration you would ship, not the largest one that still
+ * technically passes.
+ */
+const DEFAULT_LOGO_MODULES = 9;
 const DEFAULT_LOGO_MARGIN = 1;
+
+/**
+ * Preferred when present: a high-contrast reference mark. If it shows up, the
+ * embedding works — and a pale logo next to it is pale, not broken.
+ */
+const DEFAULT_LOGO = 'contrast-check.svg';
+
+/** Ten pixels per module, so the preview is large enough to judge. */
+const DEFAULT_MODULE_SIZE = 10;
 
 const LOGO_DIR = __DIR__ . '/logos';
 
@@ -109,13 +128,17 @@ function readInput(array $query): array
     $logo = isset($query['logo']) && is_string($query['logo']) ? basename($query['logo']) : '';
 
     if (!in_array($logo, $logos, true)) {
-        $logo = $logos === [] ? '' : $logos[0];
+        if (in_array(DEFAULT_LOGO, $logos, true)) {
+            $logo = DEFAULT_LOGO;
+        } else {
+            $logo = $logos === [] ? '' : $logos[0];
+        }
     }
 
     return [
         'url' => $url,
         'level' => $level,
-        'moduleSize' => clamp($query['moduleSize'] ?? 8, MIN_MODULE_SIZE, MAX_MODULE_SIZE, 8),
+        'moduleSize' => clamp($query['moduleSize'] ?? DEFAULT_MODULE_SIZE, MIN_MODULE_SIZE, MAX_MODULE_SIZE, DEFAULT_MODULE_SIZE),
         'quietZone' => clamp($query['quietZone'] ?? SvgOptions::SPEC_QUIET_ZONE, 0, MAX_QUIET_ZONE, SvgOptions::SPEC_QUIET_ZONE),
         'transparent' => !empty($query['transparent']),
         'logo' => $logo,

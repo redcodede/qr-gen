@@ -205,8 +205,15 @@ final class SvgRenderer implements QrRenderer
             $this->options->lightColor()
         );
 
+        // The root element carries shape-rendering="crispEdges", which is right
+        // for modules: they are axis-aligned squares and anti-aliasing only
+        // softens edges a scanner wants hard. It is wrong for artwork. Curves
+        // drawn without anti-aliasing at this scale — a 500-unit logo squeezed
+        // into nine modules — come out jagged, and thin features drop out
+        // entirely, which looks like the logo failed to render. The group turns
+        // it back on for its subtree.
         return $backdrop . sprintf(
-            '<g transform="translate(%s %s) scale(%s)">%s</g>',
+            '<g transform="translate(%s %s) scale(%s)" shape-rendering="geometricPrecision">%s</g>',
             $this->number($x),
             $this->number($y),
             $this->number($scale),

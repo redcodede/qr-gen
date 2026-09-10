@@ -83,7 +83,7 @@ final class SvgRendererLogoTest extends TestCase
     {
         $svg = (new SvgRenderer($this->options()))->render($this->solidMatrix(33));
 
-        self::assertStringContainsString('<g transform="translate(12 14.25) scale(0.09)">', $svg);
+        self::assertStringContainsString('<g transform="translate(12 14.25) scale(0.09)"', $svg);
     }
 
     public function testASquareLogoFillsTheDrawableAreaExactly(): void
@@ -98,7 +98,7 @@ final class SvgRendererLogoTest extends TestCase
                 ->withLogo($square, LogoBox::square(11, 1))
         ))->render($this->solidMatrix(33));
 
-        self::assertStringContainsString('<g transform="translate(12 12) scale(0.018)">', $svg);
+        self::assertStringContainsString('<g transform="translate(12 12) scale(0.018)"', $svg);
     }
 
     public function testTheQuietZoneShiftsTheLogoWithTheSymbol(): void
@@ -107,6 +107,31 @@ final class SvgRendererLogoTest extends TestCase
 
         self::assertStringContainsString('<rect x="15" y="15" width="11" height="11"', $svg);
         self::assertStringContainsString('translate(16 18.25)', $svg);
+    }
+
+    /**
+     * The root element asks for crispEdges, which is right for modules —
+     * axis-aligned squares that a scanner wants hard-edged — and wrong for
+     * artwork. Inherited by curved paths at this scale, a 500-unit logo
+     * squeezed into nine modules, it drops thin features and jags the curves,
+     * which reads as "the logo did not render". The group has to override it.
+     */
+    public function testTheLogoGroupTurnsAntiAliasingBackOn(): void
+    {
+        $svg = (new SvgRenderer($this->options()))->render($this->solidMatrix(33));
+
+        self::assertStringContainsString('shape-rendering="crispEdges"', $svg, 'The modules keep it.');
+        self::assertStringContainsString(
+            'shape-rendering="geometricPrecision">',
+            $svg,
+            'The logo group has to switch it off for its subtree.'
+        );
+
+        // On the group, not somewhere else.
+        self::assertMatchesRegularExpression(
+            '/<g transform="[^"]*" shape-rendering="geometricPrecision">/',
+            $svg
+        );
     }
 
     public function testTheSanitisedLogoMarkupEndsUpInTheOutput(): void

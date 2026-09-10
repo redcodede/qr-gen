@@ -22,6 +22,34 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 - Raster-Logo als Data-URI, falls kein SVG geliefert wird
 - PNG-Ausgabe ohne `gd`, über `zlib` und `crc32()`
 
+## [0.4.1] - 2026-09-10
+
+### Behoben
+
+- **Das Logo wurde ohne Kantenglättung gezeichnet.** Das Wurzelelement trägt
+  `shape-rendering="crispEdges"`, was für Module richtig ist — achsparallele
+  Quadrate, die ein Scanner hart will — und für Zeichnungen falsch. Geerbt von
+  gekrümmten Pfaden in diesem Maßstab (500 Einheiten in neun Module) fallen
+  feine Formen weg und Kurven zacken, was aussieht wie „das Logo ist nicht
+  gerendert worden". Die Logo-Gruppe setzt jetzt
+  `shape-rendering="geometricPrecision"` für ihren Teilbaum
+- Die Demo-Seite schickt `Cache-Control: no-store`. Eine
+  zwischengespeicherte Kopie, die einen Fehler von gestern zeigt, ist
+  schlimmer als ein etwas langsamerer Neuaufbau
+
+### Geändert
+
+- **Standardkonfiguration, die sichtbar funktioniert.** Kasten **9** statt 11,
+  Modulgröße **10** statt 8. Auf der Demo-URL waren elf Module 38 % der Breite
+  und 14,4 % der Module — innerhalb der Reserve, aber mit 4 % Rest. Neun sind
+  31 % der Breite und 9,6 % der Module, lassen 23 % übrig und liegen in dem
+  Bereich, den die Praxis nutzt (10 bis 20 % freigeräumt). Ein Standard sollte
+  die Konfiguration sein, die man ausliefern würde, nicht die größte, die noch
+  durchgeht
+- `demo/logos/contrast-check.svg` neu und als Standardlogo vorausgewählt: eine
+  kontraststarke Referenzmarke. Ist sie sichtbar, funktioniert die Einbettung —
+  und ein blasses Logo daneben ist blass, nicht kaputt
+
 ## [0.4.0] - 2026-09-10
 
 Die Stufe wird nicht mehr geraten, sondern ausgerechnet.
