@@ -12,6 +12,9 @@
         <testsuite name="Qr">
             <directory>tests/Qr</directory>
         </testsuite>
+        <testsuite name="I18n">
+            <directory>tests/I18n</directory>
+        </testsuite>
     </testsuites>
     <coverage>
         <include>

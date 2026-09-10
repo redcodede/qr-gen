@@ -7,12 +7,18 @@
  * writes nothing: every request encodes and renders from scratch, and the SVG
  * lives only in the response. There is no cache and no output directory, so
  * there is nothing to clean up and nothing to leak.
+ *
+ * Two things are input: the URL and which artwork to use. Everything else comes
+ * from Qr\Preset, because everything else is decided. The eventual Statamic
+ * shell has the same two inputs — a target URL and an asset path — so the demo
+ * exercises the shape the plugin will have rather than a superset of it.
  */
 
 declare(strict_types=1);
 
 namespace Redcodede\QrGen\Demo;
 
+use Redcodede\QrGen\I18n\Translator;
 use Redcodede\QrGen\Qr\Contract\Logo;
 use Redcodede\QrGen\Qr\Encoder\BaconQrEncoder;
 use Redcodede\QrGen\Qr\ErrorCorrection;
@@ -22,7 +28,7 @@ use Redcodede\QrGen\Qr\Logo\LogoFit;
 use Redcodede\QrGen\Qr\Logo\LogoFitResult;
 use Redcodede\QrGen\Qr\Logo\SvgLogo;
 use Redcodede\QrGen\Qr\ModuleMatrix;
-use Redcodede\QrGen\Qr\Render\SvgOptions;
+use Redcodede\QrGen\Qr\Preset;
 use Redcodede\QrGen\Qr\Render\SvgRenderer;
 
 $autoload = dirname(__DIR__) . '/vendor/autoload.php';
@@ -39,61 +45,27 @@ require $autoload;
 const DEFAULT_URL = 'https://www.redcode.de/';
 
 /**
- * H by default, because that is what a logo needs: it clears modules, and the
- * ~30% recovery is what pays for them. It costs a version step — the plain
- * symbol on this page is denser than it would have to be, which is exactly the
- * trade-off worth seeing side by side.
- */
-const DEFAULT_LEVEL = ErrorCorrection::HIGH;
-
-/**
- * Pseudo-level for the select: let LogoFit work out which level survives.
- */
-const LEVEL_AUTO = 'AUTO';
-
-/**
- * Nine modules, not eleven.
- *
- * On the demo URL, eleven modules of a 29x29 symbol is 38 % of the width and
- * 14.4 % of the modules — inside the allowance, but with 4 % of it left over.
- * Nine is 31 % of the width and 9.6 % of the modules, which leaves 23 % and
- * sits in the band the field actually uses (10 to 20 % cleared). A default
- * should be the configuration you would ship, not the largest one that still
- * technically passes.
- */
-const DEFAULT_LOGO_MODULES = 9;
-const DEFAULT_LOGO_MARGIN = 1;
-
-/**
  * Preferred when present: a high-contrast reference mark. If it shows up, the
  * embedding works — and a pale logo next to it is pale, not broken.
  */
 const DEFAULT_LOGO = 'contrast-check.svg';
 
-/** Ten pixels per module, so the preview is large enough to judge. */
-const DEFAULT_MODULE_SIZE = 10;
-
 const LOGO_DIR = __DIR__ . '/logos';
 
 const MAX_URL_LENGTH = 2000;
-const MIN_MODULE_SIZE = 1;
-const MAX_MODULE_SIZE = 64;
-const MAX_QUIET_ZONE = 16;
-const MAX_LOGO_MODULES = 61;
-const MAX_LOGO_MARGIN = 6;
 
 /**
  * Reads and validates the query string.
  *
- * Every value is clamped or rejected here so that neither entry point has to
- * think about it again. Errors are collected rather than thrown: the page stays
- * usable and tells the visitor what is wrong with their input.
+ * Only `url`, `logo` and `lang` are read. The rest of the configuration is not
+ * a query parameter any more, so there is nothing to get into a bad state and
+ * no field for a stray mouse wheel to change.
  *
  * @param array<string, mixed> $query
  *
- * @return array{url: string, level: string, moduleSize: int, quietZone: int, transparent: bool, logo: string, logoModules: int, logoMargin: int, errors: list<string>}
+ * @return array{url: string, logo: string, errors: list<string>}
  */
-function readInput(array $query): array
+function readInput(array $query, Translator $texts): array
 {
     $errors = [];
 
@@ -104,24 +76,13 @@ function readInput(array $query): array
     }
 
     if (strlen($url) > MAX_URL_LENGTH) {
-        $errors[] = sprintf(
-            'The URL is %d bytes long. This demo accepts at most %d.',
-            strlen($url),
-            MAX_URL_LENGTH
-        );
+        $errors[] = $texts->get('error.url.tooLong', [
+            'length' => strlen($url),
+            'max' => MAX_URL_LENGTH,
+        ]);
         $url = substr($url, 0, MAX_URL_LENGTH);
     } elseif (!isHttpUrl($url)) {
-        $errors[] = 'That is not an http or https URL. '
-            . 'The encoder itself takes any string, but stage one is about URLs, so the demo insists on one.';
-    }
-
-    $level = isset($query['level']) && is_string($query['level'])
-        ? strtoupper(trim($query['level']))
-        : LEVEL_AUTO;
-
-    if ($level !== LEVEL_AUTO && !in_array($level, ErrorCorrection::all(), true)) {
-        $errors[] = sprintf('Unknown error correction level, falling back to %s.', DEFAULT_LEVEL);
-        $level = DEFAULT_LEVEL;
+        $errors[] = $texts->get('error.url.notHttp');
     }
 
     $logos = availableLogos();
@@ -135,80 +96,20 @@ function readInput(array $query): array
         }
     }
 
-    return [
-        'url' => $url,
-        'level' => $level,
-        'moduleSize' => clamp($query['moduleSize'] ?? DEFAULT_MODULE_SIZE, MIN_MODULE_SIZE, MAX_MODULE_SIZE, DEFAULT_MODULE_SIZE),
-        'quietZone' => clamp($query['quietZone'] ?? SvgOptions::SPEC_QUIET_ZONE, 0, MAX_QUIET_ZONE, SvgOptions::SPEC_QUIET_ZONE),
-        'transparent' => !empty($query['transparent']),
-        'logo' => $logo,
-        'logoModules' => clamp($query['logoModules'] ?? DEFAULT_LOGO_MODULES, 3, MAX_LOGO_MODULES, DEFAULT_LOGO_MODULES),
-        'logoMargin' => clamp($query['logoMargin'] ?? DEFAULT_LOGO_MARGIN, 0, MAX_LOGO_MARGIN, DEFAULT_LOGO_MARGIN),
-        'allowAlignment' => !empty($query['allowAlignment']),
-        'errors' => $errors,
-    ];
+    return ['url' => $url, 'logo' => $logo, 'errors' => $errors];
 }
 
 /**
- * The box as configured, including the alignment-pattern permission.
+ * German unless a locale is asked for. Nothing in the interface offers the
+ * switch; `?lang=en` is the asking.
  *
- * @param array<string, mixed> $input
+ * @param array<string, mixed> $query
  */
-function box(array $input): LogoBox
+function texts(array $query): Translator
 {
-    $box = LogoBox::square($input['logoModules'], $input['logoMargin']);
+    $locale = isset($query['lang']) && is_string($query['lang']) ? $query['lang'] : null;
 
-    return $input['allowAlignment'] ? $box->allowingAlignmentPatterns() : $box;
-}
-
-/**
- * Resolves the level when the form says "auto", memoised so a page that asks
- * several times encodes once.
- *
- * @param array<string, mixed> $input
- *
- * @return array{0: LogoFitResult|null, 1: string|null} The fit, or why there is none
- */
-function fit(array $input): array
-{
-    static $cache = [];
-
-    $key = md5(serialize([
-        $input['url'],
-        $input['logoModules'],
-        $input['logoMargin'],
-        $input['allowAlignment'],
-    ]));
-
-    if (array_key_exists($key, $cache)) {
-        return $cache[$key];
-    }
-
-    try {
-        $result = [(new LogoFit(new BaconQrEncoder()))->lowestLevelFor($input['url'], box($input)), null];
-    } catch (QrGenException $exception) {
-        $result = [null, $exception->getMessage()];
-    }
-
-    return $cache[$key] = $result;
-}
-
-/**
- * The level actually used. On "auto" that is whatever LogoFit settled on; if
- * nothing survives, H, so the page still shows a plain symbol and the reason
- * next to the empty logo panel.
- *
- * @param array<string, mixed> $input
- */
-function effectiveLevel(array $input): ErrorCorrection
-{
-    if ($input['level'] !== LEVEL_AUTO) {
-        return ErrorCorrection::fromString($input['level']);
-    }
-
-    [$result] = fit($input);
-
-    return $result === null ? ErrorCorrection::high() : $result->level();
+    return Translator::forLocaleOrDefault($locale);
 }
 
 /**
@@ -234,42 +135,64 @@ function isHttpUrl(string $candidate): bool
     return $scheme === 'http' || $scheme === 'https';
 }
 
-/**
- * @param mixed $value
- */
-function clamp($value, int $min, int $max, int $fallback): int
+function box(): LogoBox
 {
-    if (!is_numeric($value)) {
-        return $fallback;
+    return Preset::logoBox();
+}
+
+/**
+ * Resolves which error correction level survives the preset box, memoised so a
+ * page that asks several times encodes once.
+ *
+ * @return array{0: LogoFitResult|null, 1: string|null} The fit, or why there is none
+ */
+function fit(string $url): array
+{
+    static $cache = [];
+
+    if (array_key_exists($url, $cache)) {
+        return $cache[$url];
     }
 
-    return max($min, min($max, (int) $value));
+    try {
+        $result = [(new LogoFit(new BaconQrEncoder()))->lowestLevelFor($url, box()), null];
+    } catch (QrGenException $exception) {
+        $result = [null, $exception->getMessage()];
+    }
+
+    return $cache[$url] = $result;
 }
 
 /**
- * @param array<string, mixed> $input
+ * Whatever LogoFit settled on; if nothing survives, H, so the page still shows
+ * a plain symbol and the reason next to the empty artwork panel.
  */
-function encode(array $input): ModuleMatrix
+function effectiveLevel(string $url): ErrorCorrection
 {
-    return (new BaconQrEncoder())->encode($input['url'], effectiveLevel($input));
+    [$result] = fit($url);
+
+    return $result === null ? ErrorCorrection::high() : $result->level();
+}
+
+function encode(string $url): ModuleMatrix
+{
+    return (new BaconQrEncoder())->encode($url, effectiveLevel($url));
 }
 
 /**
- * Reads the chosen logo file and hands its markup to the sanitiser.
+ * Reads the chosen artwork and hands its markup to the sanitiser.
  *
- * Reading the file happens here, in the demo, not in the package: the core takes
- * markup rather than a path, so the same logo can come from a Statamic asset, a
- * fixture or a delivery folder without the package caring which.
- *
- * @param array<string, mixed> $input
+ * Reading the file happens here, in the demo, not in the package: the core
+ * takes markup rather than a path, so the same artwork can come from a Statamic
+ * asset, a fixture or a delivery folder without the package caring which.
  */
-function logo(array $input): ?Logo
+function logo(string $filename): ?Logo
 {
-    if ($input['logo'] === '') {
+    if ($filename === '') {
         return null;
     }
 
-    $path = LOGO_DIR . '/' . $input['logo'];
+    $path = LOGO_DIR . '/' . $filename;
 
     if (!is_file($path)) {
         return null;
@@ -278,22 +201,15 @@ function logo(array $input): ?Logo
     return SvgLogo::fromMarkup((string) file_get_contents($path));
 }
 
-/**
- * @param array<string, mixed> $input
- */
-function renderer(array $input, bool $standalone, bool $withLogo): SvgRenderer
+function renderer(string $logoFile, bool $standalone, bool $withLogo): SvgRenderer
 {
-    $options = SvgOptions::default()
-        ->withModuleSize($input['moduleSize'])
-        ->withQuietZone($input['quietZone'])
-        ->withColors('#000000', $input['transparent'] && !$withLogo ? 'none' : '#ffffff')
-        ->withXmlDeclaration($standalone);
+    $options = Preset::svgOptions()->withXmlDeclaration($standalone);
 
     if ($withLogo) {
-        $artwork = logo($input);
+        $artwork = logo($logoFile);
 
         if ($artwork !== null) {
-            $options = $options->withLogo($artwork, box($input));
+            $options = $options->withLogo($artwork, box());
         }
     }
 
@@ -301,34 +217,12 @@ function renderer(array $input, bool $standalone, bool $withLogo): SvgRenderer
 }
 
 /**
- * Recovery rate of an error correction level, for the form and the fact table.
- */
-function levelHint(string $level): string
-{
-    switch ($level) {
-        case ErrorCorrection::LOW:
-            return ' — ~7% recovery';
-
-        case ErrorCorrection::MEDIUM:
-            return ' — ~15% recovery';
-
-        case ErrorCorrection::QUARTILE:
-            return ' — ~25% recovery';
-
-        default:
-            return ' — ~30% recovery, needed for a logo';
-    }
-}
-
-/**
- * @param array<string, mixed> $input
- *
  * @return array{0: string|null, 1: string|null} The rendered SVG, or null and a message
  */
-function tryRender(array $input, bool $standalone, bool $withLogo): array
+function tryRender(string $url, string $logoFile, bool $standalone, bool $withLogo): array
 {
     try {
-        return [renderer($input, $standalone, $withLogo)->render(encode($input)), null];
+        return [renderer($logoFile, $standalone, $withLogo)->render(encode($url)), null];
     } catch (QrGenException $exception) {
         return [null, $exception->getMessage()];
     }

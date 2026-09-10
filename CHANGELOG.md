@@ -22,6 +22,52 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 - Raster-Logo als Data-URI, falls kein SVG geliefert wird
 - PNG-Ausgabe ohne `gd`, über `zlib` und `crc32()`
 
+## [0.5.0] - 2026-09-10
+
+Textsammlung und festgelegte Werte.
+
+### Hinzugefügt
+
+- **`resources/lang/de.php` und `en.php`** — alle Oberflächentexte an einer
+  Stelle. Deutsch ist die Standardsprache, Englisch existiert als Katalog, wird
+  aber von nichts angeboten: es ist eine Frage danach (`?lang=en`), keine Datei,
+  die noch zu schreiben wäre. Format ist **Laravels** — `return`-Array,
+  punktgetrennte Schlüssel, `:name`-Platzhalter — damit Laravels eigener
+  Übersetzer dieselben Dateien später in der Statamic-Hülle lädt, ohne dass sie
+  angefasst werden
+- **`Redcodede\QrGen\I18n\Translator`**, bewusst **außerhalb** von `src/Qr/`.
+  Der Kern braucht keine Übersetzungen und darf keine Dateien lesen; die
+  Meldungen seiner Ausnahmen sind Entwicklerdiagnostik und bleiben englisch.
+  Ein fehlender Schlüssel kommt als er selbst zurück — lauter als ein leerer
+  String, leiser als eine Ausnahme
+- **`Redcodede\QrGen\Qr\Preset`** — die entschiedene Konfiguration an einer
+  Stelle: Logokasten **11**, Rand **1**, Modulgröße **13**, Ruhezone **2**.
+  Die Fehlerkorrekturstufe fehlt absichtlich; sie folgt aus Nutzlast und Kasten
+  und wird von `LogoFit` ausgerechnet
+- 32 Tests dazu. Drei davon halten die Kataloge zusammen: gleiche Schlüssel,
+  gleiche Platzhalter je Schlüssel, kein leerer Text. Eine Übersetzung, die
+  still auseinanderläuft, ist schlimmer als eine fehlende
+
+### Geändert
+
+- **Die Demo-Seite hat nur noch zwei Eingaben: URL und Bildmarke.**
+  Fehlerkorrektur, Kasten, Rand, Modulgröße, Ruhezone, Transparenz und die
+  Ausrichtungsmuster-Erlaubnis sind keine Felder mehr. Damit gibt es nichts, was
+  in einen schlechten Zustand geraten kann, und die Demo übt die Form, die das
+  Plugin bekommt — eine Ziel-URL und ein Asset-Pfad
+- Kein Text steht mehr in `demo/index.php`; alles kommt aus dem Katalog. Zahlen
+  werden mit deutschem Dezimalkomma formatiert
+
+### Beachten
+
+- **Die Ruhezone von 2 Modulen ist eine bewusste Abweichung** von ISO/IEC
+  18004, die 4 verlangt. Sie trägt nur, wenn das Layout drumherum die fehlenden
+  zwei Module an Weißraum beisteuert; grenzt der Code direkt an Grafik, wird er
+  unzuverlässig. Die Seite weist darauf hin, solange die Abweichung besteht
+- **Der Standardwert der Bibliothek bleibt bei 4.** `SvgOptions::default()`
+  hält sich an die Norm, die Abweichung gehört dem Projekt. Ein Test hält beides
+  auseinander und schlägt an, wenn die Abweichung verschwindet
+
 ## [0.4.2] - 2026-09-10
 
 Formularzustand. Alle drei Punkte betreffen nur die Demo-Seite, nicht das Paket.
@@ -271,7 +317,8 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/redcodede/qr-gen/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/redcodede/qr-gen/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/redcodede/qr-gen/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/redcodede/qr-gen/compare/v0.3.1...v0.4.0

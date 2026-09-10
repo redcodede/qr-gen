@@ -185,6 +185,27 @@ final class InvalidArgument extends InvalidArgumentException implements QrGenExc
         ));
     }
 
+    /**
+     * @param list<string> $available
+     */
+    public static function unknownLocale(string $given, array $available): self
+    {
+        return new self(sprintf(
+            'There is no catalogue for the locale "%s". Available: %s.',
+            $given,
+            implode(', ', $available)
+        ));
+    }
+
+    public static function missingCatalogue(string $locale, string $path): self
+    {
+        return new self(sprintf(
+            'The catalogue for "%s" is declared available but the file is not there: %s',
+            $locale,
+            $path
+        ));
+    }
+
     public static function budgetShareOutOfRange(float $given): self
     {
         return new self(sprintf(

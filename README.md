@@ -7,7 +7,7 @@
 Mit Demo-Seite und Download. Noch **nicht** dabei: PNG und die
 Statamic-Anbindung. Was hier unter „geplant" steht, existiert nicht.
 
-Geprüft am 10.09.2026 auf PHP 8.4: **188 Tests, 5843 Assertions, grün.**
+Geprüft am 10.09.2026 auf PHP 8.4: **220 Tests, 6113 Assertions, grün.**
 
 ---
 
@@ -59,6 +59,95 @@ Zuschnitt in zwei Stufen.
 
 Control-Panel-Actions und Fieldtype, herstellerspezifische Inhalte, Tracking.
 Auf dem dann aktuellen Statamic-Stand, nicht auf Statamic 3.
+
+## Die festgelegten Werte
+
+`Qr\Preset` hält die entschiedene Konfiguration an einer Stelle. Das sind
+Entscheidungen, keine Stellschrauben:
+
+| | |
+|---|---|
+| Logokasten | **11** Module |
+| Rand im Kasten | **1** Modul |
+| Modulgröße | **13** px |
+| Ruhezone | **2** Module |
+| Fehlerkorrekturstufe | **wird ausgerechnet**, siehe `LogoFit` |
+
+```php
+use Redcodede\QrGen\Qr\Preset;
+
+$options = Preset::svgOptions();   // Modulgröße und Ruhezone
+$box = Preset::logoBox();          // Kasten und Rand
+```
+
+Die Stufe fehlt absichtlich. Sie folgt aus Nutzlast und Logokasten, und sie
+vorab festzunageln hieße, das falsche Ende festzunageln.
+
+Was daraus für die beiden echten Nutzlasten folgt:
+
+| Nutzlast | Stufe | Symbol | freigeräumt | Reserve |
+|---|---|---|---|---|
+| `gvoe.de/return/7K4M2` (28 B) | H | Version 4, 33 × 33 | 11,1 % | **26 %** |
+| `www.redcode.de/` (23 B) | H | Version 3, 29 × 29 | 14,4 % | **4 %** |
+
+Der zweite Fall ist knapp — die kürzere URL ergibt ein kleineres Symbol, in dem
+derselbe Kasten mehr Anteil hat. Für die Produktionsurl ist es entspannt.
+
+### Ruhezone 2: eine bewusste Abweichung
+
+ISO/IEC 18004 verlangt **4** Module. Zwei tragen nur unter einer Bedingung:
+**das Layout drumherum muss die fehlenden zwei Module an Weißraum
+beisteuern.** Ein Symbol, das mit zwei eigenen Modulen direkt an Grafik grenzt,
+hat halb so viel hellen Rand, wie ein Scanner erwartet, und wird genau dort
+unzuverlässig, wo es zählt — auf einem kleinen Etikett, schräg gehalten, bei
+schlechtem Licht.
+
+Wer das Symbol platziert, verantwortet die Bedingung. Das Paket kann sie nicht
+prüfen, und entschieden wird sie vom Andruck, nicht von dieser Zeile.
+
+**Der Standardwert der Bibliothek bleibt bei 4.** `SvgOptions::default()` hält
+sich an die Norm; die Abweichung gehört dem Projekt, nicht dem Paket. Ein
+Paket, das eine normwidrige Ruhezone als eigenen Standard ausliefert, würde
+jeden anlügen, der es installiert. Ein Test hält die beiden auseinander.
+
+## Texte und Sprachen
+
+Alle Oberflächentexte liegen in `resources/lang/`. **Deutsch ist die
+Standardsprache**, Englisch existiert als Katalog, wird aber von nichts
+angeboten — es ist eine Frage danach, keine Datei, die noch zu schreiben wäre.
+
+```php
+use Redcodede\QrGen\I18n\Translator;
+
+$texts = Translator::forLocale();               // de
+$texts = Translator::forLocale('en');           // auf Abruf
+$texts = Translator::forLocaleOrDefault($any);  // fällt zurück statt zu werfen
+
+$texts->get('facts.payload.value', ['bytes' => 28]);   // "28 Bytes"
+```
+
+Das Format ist **Laravels**: ein `return`-Array mit punktgetrennten Schlüsseln
+und `:name` als Platzhalter. Damit lädt Laravels eigener Übersetzer dieselben
+Dateien später in der Statamic-Hülle, ohne dass sie angefasst werden — eine
+Textsammlung, nicht zwei.
+
+Drei Eigenschaften, die von Tests gehalten werden:
+
+- **Beide Kataloge haben genau dieselben Schlüssel.** Eine Übersetzung, die
+  still auseinanderläuft, ist schlimmer als eine fehlende — die fehlende sieht
+  man
+- **Beide benutzen je Schlüssel dieselben Platzhalter**, sonst rendert eine
+  Sprache ein übriggebliebenes `:headroom`, wo die andere eine Zahl zeigt
+- **Ein fehlender Schlüssel kommt als er selbst zurück.** Lauter als ein leerer
+  String und leiser als eine Ausnahme: die Seite rendert weiter, und ein
+  `facts.allowance` in einer Tabelle ist unmissverständlich
+
+Was **nicht** in den Katalogen steht, sind die Meldungen der Ausnahmen aus
+`src/Qr/`. Die sind Entwicklerdiagnostik — sie landen in Logs, nennen
+Klassennamen und Modulzahlen und richten sich an jemanden, der den Code liest.
+Wer sie einem Endnutzer zeigt, bildet sie auf einen eigenen Text ab, statt sie
+zu übersetzen. Deshalb liegt `src/I18n/` auch außerhalb von `src/Qr/`: der Kern
+braucht keine Übersetzungen und darf keine Dateien lesen.
 
 ## Abhängigkeiten und was sie tun
 
@@ -466,12 +555,20 @@ echo $matrix->toAsciiArt();
 die später die Statamic-Hülle aufruft. Wenn es dort geht, geht es dort auch —
 und wenn es aufhört zu gehen, liegt es am Paket und nicht am Klebstoff.
 
+**Zwei Eingaben: die URL und welche Bildmarke.** Alles andere kommt aus
+`Qr\Preset`, weil alles andere entschieden ist. Die Statamic-Hülle wird
+dieselben zwei Eingaben haben — eine Ziel-URL und ein Asset-Pfad — also übt die
+Demo die Form, die das Plugin bekommt, und nicht eine größere.
+
 | Datei | |
 |---|---|
-| `demo/index.php` | Formular, **beide Varianten nebeneinander**, Kennzahlen, Download-Knöpfe |
+| `demo/index.php` | Formular, **beide Varianten nebeneinander**, Kennzahlen, Download-Knöpfe. Kein Text im Code, alles aus dem Katalog |
 | `demo/svg.php` | liefert ein SVG allein; `?variant=logo` mit Logo, `?download=1` als Datei |
 | `demo/bootstrap.php` | Autoload, Eingabeprüfung, Objektaufbau |
 | `demo/logos/*.svg` | Testlogos. Jede Datei hier wird von `RealWorldLogoTest` durch die ganze Kette geschickt |
+
+`?lang=en` schaltet auf Englisch. Das Formular bietet es nicht an — genau das
+ist mit „auf Abruf" gemeint.
 
 **Es wird nichts gespeichert.** Jede Anfrage erzeugt und rendert von neuem,
 das SVG lebt nur in der Antwort. Kein Cache, kein Ausgabeordner, deshalb
@@ -502,9 +599,13 @@ src/
     Exception/             QrGenException, InvalidArgument, EncodingFailed, LogoRejected
     ErrorCorrection.php    die vier Stufen der Norm
     ModuleMatrix.php       die Grenze zwischen Kodieren und Zeichnen
+    Preset.php             die festgelegten Werte des Projekts
+  I18n/
+    Translator.php         Oberflächentexte, außerhalb des Kerns
   Statamic/                (leer) dünne Hülle: Provider, Tag, Command, Controller
+resources/lang/            de.php und en.php, im Laravel-Format, werden mitgeliefert
 demo/                      Demo-Seite und Testlogos, nicht im Dist
-tests/Qr/                  Tests des Kerns
+tests/                     Qr/ und I18n/
 ```
 
 `ModuleMatrix` ist die ganze Grenze zwischen Kodieren und Zeichnen. Alles, was
@@ -583,6 +684,7 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.4.0` | `LogoFit` findet die Stufe; Ausrichtungsmuster als Kompromiss |
 | `0.4.1` | Logo-Darstellung ohne Kantenglättung behoben, brauchbare Standardwerte |
 | `0.4.2` | Formularzustand der Demo: kein Autofill, kein Mausrad, Reset-Knopf |
+| `0.5.0` | Textsammlung DE/EN, `Qr\Preset` mit den festgelegten Werten |
 | `0.4.0` | geplant: Code- und Token-Erzeugung |
 | `0.5.0` | geplant: Statamic-Hülle, in der GVÖ-Seite lauffähig |
 | `1.0.0` | in Produktion abgenommen, öffentliche API stabil |

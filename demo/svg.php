@@ -8,7 +8,7 @@
  * a cached one would be the only one.
  *
  *   svg.php?url=https://www.redcode.de/                        plain, inline
- *   svg.php?url=…&variant=logo                                 with the logo
+ *   svg.php?url=…&variant=logo                                 with the artwork
  *   svg.php?url=…&variant=logo&download=1                      as a file
  */
 
@@ -18,7 +18,8 @@ namespace Redcodede\QrGen\Demo;
 
 require __DIR__ . '/bootstrap.php';
 
-$input = readInput($_GET);
+$texts = texts($_GET);
+$input = readInput($_GET, $texts);
 
 if ($input['errors'] !== []) {
     http_response_code(400);
@@ -29,7 +30,7 @@ if ($input['errors'] !== []) {
 
 $withLogo = isset($_GET['variant']) && $_GET['variant'] === 'logo';
 
-[$svg, $failure] = tryRender($input, true, $withLogo);
+[$svg, $failure] = tryRender($input['url'], $input['logo'], true, $withLogo);
 
 if ($svg === null) {
     http_response_code(422);
@@ -38,7 +39,7 @@ if ($svg === null) {
     exit;
 }
 
-$renderer = renderer($input, true, $withLogo);
+$renderer = renderer($input['logo'], true, $withLogo);
 $filename = downloadFilename($input['url'], $withLogo, $renderer->fileExtension());
 
 $disposition = empty($_GET['download'])
