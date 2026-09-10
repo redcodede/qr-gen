@@ -132,6 +132,22 @@ final class LogoBox
     }
 
     /**
+     * Largest centred box, per axis, that clears the finder patterns in a
+     * symbol of this size.
+     *
+     * Worth asking before building a box, because the answer depends on
+     * something the caller may not have thought of as a variable: the symbol
+     * size follows from the payload and the error correction level, so lowering
+     * the level shrinks the symbol and can make a box that used to fit too
+     * large. Clearing the finders is necessary but not sufficient — an
+     * alignment pattern may still be in the way, which only placeIn() can see.
+     */
+    public static function largestSideFor(int $symbolSize): int
+    {
+        return max(3, $symbolSize - 16);
+    }
+
+    /**
      * The three finder patterns and their separators occupy the first and last
      * eight modules of each axis. Checked geometrically so that a matrix built
      * by hand, without a function pattern mask, is still protected.
@@ -141,7 +157,12 @@ final class LogoBox
         $reach = 8;
 
         if ($x < $reach || $y < $reach || $x + $this->width > $size - $reach || $y + $this->height > $size - $reach) {
-            throw InvalidArgument::logoTouchesFinderZone();
+            throw InvalidArgument::logoTouchesFinderZone(
+                $this->width,
+                $this->height,
+                $size,
+                self::largestSideFor($size)
+            );
         }
     }
 
@@ -162,7 +183,12 @@ final class LogoBox
         }
 
         if ($covered > 0) {
-            throw InvalidArgument::logoCoversFunctionPattern($covered);
+            throw InvalidArgument::logoCoversFunctionPattern(
+                $covered,
+                $this->width,
+                $this->height,
+                $matrix->size()
+            );
         }
     }
 }

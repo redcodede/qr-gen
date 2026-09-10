@@ -8,6 +8,12 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 
 ### Geplant
 
+- **Logging in der Statamic-Hülle.** Der Kern bleibt I/O-frei und wirft; die
+  Hülle muss fangen und mit Kontext protokollieren, statt einen 500 zu
+  produzieren. Mit unterschiedlichen Stufen (zu großer Logokasten ist
+  `warning`, unerwarteter Fehlschlag `error`), mit Symbolgröße, Version, Stufe
+  und Kastenmaßen als Kontext, **ohne die Nutzlast**, und ohne dass ein
+  einzelner Fehlschlag einen Stapellauf abbricht
 - Code- und Token-Erzeugung, `CodeRepository`-Interface
 - Statamic-Hülle: ServiceProvider, Artisan-Command, Auflösungs-Route,
   Download-Seite, Flat-File-Repository
@@ -15,6 +21,26 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
   der ServiceProvider existiert
 - Raster-Logo als Data-URI, falls kein SVG geliefert wird
 - PNG-Ausgabe ohne `gd`, über `zlib` und `crc32()`
+
+## [0.3.1] - 2026-09-10
+
+### Geändert
+
+- **Die beiden Logo-Ablehnungen nennen jetzt Zahlen.** „The logo box reaches
+  into the corner zone of a finder pattern. Use a smaller box." schickte
+  jemanden zur Logodatei, obwohl die Ursache die Fehlerkorrekturstufe war: eine
+  niedrigere Stufe ergibt ein kleineres Symbol, und ein Kasten, der bei H passt,
+  passt bei M nicht mehr. Die Meldung nennt nun Kastenmaß, Symbolgröße, den
+  größten hier möglichen Kasten und den Hinweis, dass die Symbolgröße aus
+  Nutzlast und Stufe folgt und keine Einstellung ist
+- `LogoBox::largestSideFor()` neu: der größte zentrierte Kasten, der in einem
+  Symbol dieser Größe die Suchmuster freilässt. Damit lässt sich vorher fragen,
+  statt hinterher zu scheitern. Die Demo-Seite zeigt den Wert an
+
+### Hinzugefügt
+
+- Sieben Tests dazu, darunter der Fall, der tatsächlich aufgetreten ist: ein
+  Kasten, der bei Stufe H passt und bei M nicht mehr
 
 ## [0.3.0] - 2026-09-10
 
@@ -140,7 +166,8 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/redcodede/qr-gen/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/redcodede/qr-gen/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/redcodede/qr-gen/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/redcodede/qr-gen/releases/tag/v0.1.0

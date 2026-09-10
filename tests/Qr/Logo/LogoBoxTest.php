@@ -157,6 +157,88 @@ final class LogoBoxTest extends TestCase
         self::assertSame(81, $placement->clearedModules());
     }
 
+    /**
+     * @dataProvider symbolSizes
+     */
+    public function testItReportsTheLargestBoxThatClearsTheFinders(int $size, int $expected): void
+    {
+        self::assertSame($expected, LogoBox::largestSideFor($size));
+
+        // The reported maximum has to actually pass, and one step up has to fail.
+        $blank = $this->blankMatrix($size);
+        LogoBox::square($expected)->placeIn($blank);
+
+        $this->expectException(InvalidArgument::class);
+        LogoBox::square($expected + 2)->placeIn($blank);
+    }
+
+    /**
+     * @return iterable<string, array{int, int}>
+     */
+    public static function symbolSizes(): iterable
+    {
+        yield 'version 1, 21' => [21, 5];
+        yield 'version 2, 25' => [25, 9];
+        yield 'version 3, 29' => [29, 13];
+        yield 'version 4, 33' => [33, 17];
+    }
+
+    /**
+     * The message that sent someone looking at their logo file when the cause
+     * was the error correction level. It has to name the numbers and say where
+     * the symbol size comes from.
+     */
+    public function testTheFinderRefusalNamesTheNumbersAndTheRealCause(): void
+    {
+        try {
+            LogoBox::square(11)->placeIn($this->blankMatrix(25));
+            self::fail('Expected an InvalidArgument.');
+        } catch (InvalidArgument $exception) {
+            $message = $exception->getMessage();
+
+            self::assertStringContainsString('11x11', $message);
+            self::assertStringContainsString('25x25', $message);
+            self::assertStringContainsString('9 modules', $message);
+            self::assertStringContainsString('error correction level', $message);
+        }
+    }
+
+    public function testTheFunctionPatternRefusalNamesTheNumbersToo(): void
+    {
+        $matrix = (new BaconQrEncoder())->encode('https://www.redcode.de/', ErrorCorrection::medium());
+
+        try {
+            LogoBox::square(9)->placeIn($matrix);
+            self::fail('Expected an InvalidArgument.');
+        } catch (InvalidArgument $exception) {
+            self::assertStringContainsString('9x9', $exception->getMessage());
+            self::assertStringContainsString('25x25', $exception->getMessage());
+        }
+    }
+
+    /**
+     * The case that actually happened: a box that fits at level H stops fitting
+     * when the level is lowered, because a lower level means a smaller symbol.
+     */
+    public function testLoweringTheLevelCanMakeAFittingBoxTooLarge(): void
+    {
+        $encoder = new BaconQrEncoder();
+        $url = 'https://www.redcode.de/';
+
+        $high = $encoder->encode($url, ErrorCorrection::high());
+        $medium = $encoder->encode($url, ErrorCorrection::medium());
+
+        self::assertSame(29, $high->size());
+        self::assertSame(25, $medium->size());
+
+        LogoBox::square(11)->placeIn($high);
+
+        $this->expectException(InvalidArgument::class);
+        $this->expectExceptionMessage('finder pattern');
+
+        LogoBox::square(11)->placeIn($medium);
+    }
+
     public function testWithoutAMaskOnlyTheGeometricCheckApplies(): void
     {
         $matrix = $this->blankMatrix(33);

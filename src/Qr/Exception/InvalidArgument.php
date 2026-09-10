@@ -120,22 +120,45 @@ final class InvalidArgument extends InvalidArgumentException implements QrGenExc
         ));
     }
 
-    public static function logoCoversFunctionPattern(int $modules): self
-    {
+    public static function logoCoversFunctionPattern(
+        int $modules,
+        int $width,
+        int $height,
+        int $size
+    ): self {
         return new self(sprintf(
-            'The logo box would cover %d module(s) of a function pattern — a finder, timing or '
-            . 'alignment pattern. Those carry no error correction, so the symbol would lose the '
-            . 'geometry a scanner needs. Use a smaller box or a higher error correction level, '
-            . 'which moves the symbol to a version whose alignment patterns sit elsewhere.',
+            'A logo box of %dx%d modules in a %dx%d symbol would cover %d module(s) of a '
+            . 'function pattern — a finder, timing or alignment pattern. Those carry no error '
+            . 'correction, so the symbol would lose the geometry a scanner needs. Either use a '
+            . 'smaller box, or raise the error correction level: that moves the symbol to a '
+            . 'larger version whose alignment patterns sit elsewhere.',
+            $width,
+            $height,
+            $size,
+            $size,
             $modules
         ));
     }
 
-    public static function logoTouchesFinderZone(): self
-    {
-        return new self(
-            'The logo box reaches into the corner zone of a finder pattern. Use a smaller box.'
-        );
+    public static function logoTouchesFinderZone(
+        int $width,
+        int $height,
+        int $size,
+        int $largestSide
+    ): self {
+        return new self(sprintf(
+            'A logo box of %dx%d modules leaves no room for the finder patterns in a %dx%d '
+            . 'symbol. The three finders and their separators occupy the outer 8 modules of every '
+            . 'side, so the largest centred box here is %d modules on either axis. '
+            . 'The symbol size is not a setting: it follows from the payload and the error '
+            . 'correction level. If the box is the size you want, raise the level — that moves '
+            . 'the symbol to a larger version and makes room.',
+            $width,
+            $height,
+            $size,
+            $size,
+            $largestSide
+        ));
     }
 
     public static function logoNeedsOpaqueBackdrop(): self

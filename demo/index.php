@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Redcodede\QrGen\Demo;
 
 use Redcodede\QrGen\Qr\ErrorCorrection;
+use Redcodede\QrGen\Qr\Logo\LogoBox;
 
 require __DIR__ . '/bootstrap.php';
 
@@ -361,6 +362,14 @@ $drawable = $input['logoModules'] - (2 * $input['logoMargin']);
                     <tr><th>Cleared</th><td><?= $cleared ?> modules, <?= sprintf('%.1f%%', $cleared / ($matrix->size() ** 2) * 100) ?> of the symbol</td></tr>
                     <tr><th>Margin</th><td><?= $input['logoMargin'] ?> module(s), leaving <?= $drawable ?> &times; <?= $drawable ?> to draw in</td></tr>
                     <tr><th>Logo width</th><td><?= sprintf('%.0f%%', $input['logoModules'] / $matrix->size() * 100) ?> of the symbol</td></tr>
+                    <tr>
+                        <th>Largest box that clears the finders</th>
+                        <td><?= LogoBox::largestSideFor($matrix->size()) ?> modules
+                            <?php if ($input['logoModules'] > LogoBox::largestSideFor($matrix->size())): ?>
+                                &mdash; the box asked for is larger, which is why it is refused
+                            <?php endif; ?>
+                        </td>
+                    </tr>
                     <tr><th>SVG size</th><td><?= number_format(strlen((string) $plain)) ?> vs <?= number_format(strlen((string) $withLogo)) ?> bytes</td></tr>
                 </table>
             </div>

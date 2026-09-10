@@ -42,6 +42,9 @@ Zuschnitt in zwei Stufen.
 
 ### Offen
 
+- [ ] **Logging in der Statamic-Hülle.** Die Ausnahmen dieses Pakets müssen dort
+      gefangen und mit Kontext ins Log geschrieben werden, statt als 500
+      durchzuschlagen. Siehe [Logging](#logging)
 - [ ] Code- und Token-Erzeugung, `CodeRepository`-Interface
 - [ ] Statamic-Hülle: ServiceProvider, Artisan-Command, Auflösungs-Route,
       Download-Seite
@@ -334,6 +337,30 @@ diese Meldung kommt, landet in jedem Log, das die Ausnahme fängt — und ein
 Paket, das zusagt, verarbeitete URLs nicht zu speichern, kann sie nicht in
 einen Stacktrace schreiben.
 
+### Logging
+
+**Noch nicht gebaut.** Der Kern protokolliert nichts und wird es nicht tun — er
+hat kein I/O, und das ist Absicht: eine Bibliothek, die selbst ins Log schreibt,
+schreibt in ein Log, das sie nicht kennt. Er wirft und der Aufrufer entscheidet.
+
+Was fehlt, ist die andere Hälfte davon: **die Statamic-Hülle muss die Ausnahmen
+fangen und mit Kontext protokollieren**, statt sie als 500 durchschlagen zu
+lassen. Anforderungen, wenn das gebaut wird:
+
+- Logger per Konstruktor injiziert (PSR-3), nicht per Facade geholt — sonst
+  wandert der Framework-Bezug in Code, der ihn nicht haben darf
+- **Stufen unterscheiden:** ein zu großer Logokasten ist eine
+  Konfigurationssache und gehört auf `warning`, ein unerwarteter Fehlschlag auf
+  `error`. Beides heute nicht unterscheidbar, weil beides dieselbe Ausnahme ist
+- **Kontext statt Prosa:** Symbolgröße, Version, Fehlerkorrekturstufe,
+  Kastenmaße, betroffener Eintrag. Das ist, was eine Meldung nachvollziehbar
+  macht
+- **Die Nutzlast nicht mitloggen.** Aus demselben Grund, aus dem
+  `EncodingFailed` nur die Länge nennt: ein Paket, das zusagt, verarbeitete URLs
+  nicht zu speichern, kann sie nicht in ein Log schreiben
+- Ein Fehlschlag beim Erzeugen eines Codes darf einen Stapelverarbeitungslauf
+  nicht abbrechen — protokollieren, weitermachen, am Ende zusammenfassen
+
 ### Beim Suchen
 
 `ModuleMatrix::toAsciiArt()` zeichnet die Matrix als Text. In einer
@@ -462,6 +489,7 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.1.0` | Projektgerüst |
 | `0.2.0` | URL → SVG, Demo-Seite, Tests |
 | `0.3.0` | Logo in der Mitte, SVG-Sanitizer, Funktionsmuster-Prüfung |
+| `0.3.1` | Logo-Ablehnungen nennen Zahlen und die tatsächliche Ursache |
 | `0.4.0` | geplant: Code- und Token-Erzeugung |
 | `0.5.0` | geplant: Statamic-Hülle, in der GVÖ-Seite lauffähig |
 | `1.0.0` | in Produktion abgenommen, öffentliche API stabil |
