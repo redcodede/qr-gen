@@ -30,25 +30,38 @@ final class ModuleMatrix
     /** @var list<list<bool>>|null */
     private $reserved;
 
+    /** @var list<list<bool>>|null */
+    private $alignment;
+
     /** @var int */
     private $size;
 
     /**
-     * @param list<list<bool>>      $rows     Row-major, indexed [y][x].
-     * @param list<list<bool>>|null $reserved Same shape; true where the module
-     *                                        belongs to a function pattern.
-     *                                        Null when the encoder did not say.
+     * @param list<list<bool>>      $rows      Row-major, indexed [y][x].
+     * @param list<list<bool>>|null $reserved  Same shape; true where the module
+     *                                         belongs to any function pattern.
+     *                                         Null when the encoder did not say.
+     * @param list<list<bool>>|null $alignment Same shape; the subset of the
+     *                                         above that is an alignment
+     *                                         pattern. Kept apart because
+     *                                         covering one is a compromise
+     *                                         while covering a finder is fatal.
      *
      * @throws InvalidArgument if a grid is empty, not square, or holds anything but booleans
      */
-    public function __construct(array $rows, ?array $reserved = null)
+    public function __construct(array $rows, ?array $reserved = null, ?array $alignment = null)
     {
         $this->rows = $this->normalize($rows);
         $this->size = count($this->rows);
         $this->reserved = $reserved === null ? null : $this->normalize($reserved);
+        $this->alignment = $alignment === null ? null : $this->normalize($alignment);
 
         if ($this->reserved !== null && count($this->reserved) !== $this->size) {
             throw InvalidArgument::reservedMaskDoesNotMatch($this->size, count($this->reserved));
+        }
+
+        if ($this->alignment !== null && count($this->alignment) !== $this->size) {
+            throw InvalidArgument::reservedMaskDoesNotMatch($this->size, count($this->alignment));
         }
     }
 
@@ -131,6 +144,37 @@ final class ModuleMatrix
     public function hasReservedInfo(): bool
     {
         return $this->reserved !== null;
+    }
+
+    /**
+     * Whether the module belongs to an alignment pattern.
+     *
+     * Alignment patterns are the one kind of function pattern where covering is
+     * a judgement call rather than a mistake. A scanner uses them to correct
+     * perspective and warp, and a larger symbol has several — losing one costs
+     * tolerance on a curved or angled surface, but the remaining ones still
+     * locate the grid. Covering a finder or a timing pattern, by contrast,
+     * removes the geometry a scanner needs to find the symbol at all.
+     *
+     * The distinction is not academic. For a good many versions **an alignment
+     * pattern sits exactly at the centre of the symbol**, so a centred logo
+     * cannot avoid one however small it is. Measured against the library's
+     * version table: versions 7 to 13, and 21, 23, 25 and 27. Versions 1 to 6,
+     * 14 to 20 and 28 upward leave the middle free. Refusing outright would
+     * make a centred logo impossible on all of the former.
+     *
+     * @throws InvalidArgument if the coordinates lie outside the matrix
+     */
+    public function isAlignmentPattern(int $x, int $y): bool
+    {
+        $this->guardBounds($x, $y);
+
+        return $this->alignment !== null && $this->alignment[$y][$x];
+    }
+
+    public function hasAlignmentInfo(): bool
+    {
+        return $this->alignment !== null;
     }
 
     /**

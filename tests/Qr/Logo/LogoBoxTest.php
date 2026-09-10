@@ -126,14 +126,13 @@ final class LogoBoxTest extends TestCase
     }
 
     /**
-     * Alignment patterns carry no error correction, and for some versions one
-     * sits close enough to the centre to be hit. This is the case the geometric
-     * check cannot see and the mask can.
+     * The case the geometric check cannot see and the mask can: a 9x9 box on a
+     * version 2 symbol reaches module 8 on both axes, which is where the format
+     * information sits. Losing that is fatal — it is what tells a scanner the
+     * error correction level and the mask pattern.
      */
-    public function testABoxOverAnAlignmentPatternIsRefused(): void
+    public function testABoxOverTheFormatInformationIsRefused(): void
     {
-        // 23 bytes at level M lands on version 2, whose alignment pattern spans
-        // modules 16 to 20 — a 9x9 box centred on 25 reaches module 16.
         $matrix = (new BaconQrEncoder())->encode('https://www.redcode.de/', ErrorCorrection::medium());
 
         self::assertSame(25, $matrix->size(), 'Guard: this test assumes a version 2 symbol.');
@@ -142,6 +141,112 @@ final class LogoBoxTest extends TestCase
         $this->expectExceptionMessage('function pattern');
 
         LogoBox::square(9)->placeIn($matrix);
+    }
+
+    /**
+     * On many versions an alignment pattern sits **exactly at the centre** of
+     * the symbol, so a centred logo cannot avoid one however small it is. That
+     * is why covering one has to be permissible at all.
+     *
+     * Which versions is not a rule of thumb worth guessing at — it depends on
+     * where the alignment grid falls — so it is asserted against the table.
+     *
+     * @dataProvider centreOccupancy
+     */
+    public function testWhetherTheCentreIsAnAlignmentPatternDependsOnTheVersion(
+        int $version,
+        bool $occupied
+    ): void {
+        $matrix = (new BaconQrEncoder())->encode(
+            str_repeat('a', $this->payloadForVersion($version)),
+            ErrorCorrection::high()
+        );
+
+        self::assertSame($version, $matrix->version(), 'Guard: the payload has to land on this version.');
+
+        $middle = intdiv($matrix->size() - 1, 2);
+
+        self::assertSame($occupied, $matrix->isAlignmentPattern($middle, $middle));
+    }
+
+    /**
+     * @return iterable<string, array{int, bool}>
+     */
+    public static function centreOccupancy(): iterable
+    {
+        yield 'version 4, middle free' => [4, false];
+        yield 'version 7, centre occupied' => [7, true];
+        yield 'version 10, centre occupied' => [10, true];
+        yield 'version 15, middle free' => [15, false];
+    }
+
+    /**
+     * Payload lengths that land on a given version at level H, measured rather
+     * than calculated from the capacity tables.
+     */
+    private function payloadForVersion(int $version): int
+    {
+        $lengths = [4 => 28, 7 => 60, 10 => 100, 15 => 200];
+
+        return $lengths[$version];
+    }
+
+    public function testCoveringAnAlignmentPatternIsRefusedByDefault(): void
+    {
+        $this->expectException(InvalidArgument::class);
+        $this->expectExceptionMessage('alignment pattern');
+
+        LogoBox::square(11)->placeIn($this->largeSymbol());
+    }
+
+    /**
+     * Permitted on request, because otherwise a centred logo would be
+     * impossible on every symbol from version 7 up. The placement records the
+     * compromise instead of swallowing it.
+     */
+    public function testCoveringAnAlignmentPatternCanBePermitted(): void
+    {
+        $placement = LogoBox::square(11)->allowingAlignmentPatterns()->placeIn($this->largeSymbol());
+
+        self::assertTrue($placement->compromisesAlignment());
+        self::assertSame(25, $placement->coveredAlignmentModules(), 'A whole 5x5 pattern.');
+    }
+
+    /**
+     * Permission covers alignment patterns and nothing else. A finder or the
+     * format information stays refused, because without those there is no
+     * symbol to decode.
+     */
+    public function testPermissionDoesNotExtendToFatalFunctionPatterns(): void
+    {
+        $matrix = (new BaconQrEncoder())->encode('https://www.redcode.de/', ErrorCorrection::medium());
+
+        $this->expectException(InvalidArgument::class);
+        $this->expectExceptionMessage('function pattern');
+
+        LogoBox::square(9)->allowingAlignmentPatterns()->placeIn($matrix);
+    }
+
+    public function testAPlacementWithoutCompromiseReportsNone(): void
+    {
+        $matrix = (new BaconQrEncoder())->encode('https://gvoe.de/return/7K4M2', ErrorCorrection::high());
+        $placement = LogoBox::square(11)->placeIn($matrix);
+
+        self::assertFalse($placement->compromisesAlignment());
+        self::assertSame(0, $placement->coveredAlignmentModules());
+    }
+
+    /**
+     * 60 bytes at level H lands on version 7, whose centre is an alignment
+     * pattern.
+     */
+    private function largeSymbol(): ModuleMatrix
+    {
+        $matrix = (new BaconQrEncoder())->encode(str_repeat('a', 60), ErrorCorrection::high());
+
+        self::assertSame(7, $matrix->version(), 'Guard: this helper assumes a version 7 symbol.');
+
+        return $matrix;
     }
 
     /**

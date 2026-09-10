@@ -28,13 +28,40 @@ final class LogoPlacement
     /** @var int */
     private $margin;
 
-    public function __construct(int $x, int $y, int $width, int $height, int $margin)
-    {
+    /** @var int */
+    private $coveredAlignmentModules;
+
+    public function __construct(
+        int $x,
+        int $y,
+        int $width,
+        int $height,
+        int $margin,
+        int $coveredAlignmentModules = 0
+    ) {
         $this->x = $x;
         $this->y = $y;
         $this->width = $width;
         $this->height = $height;
         $this->margin = $margin;
+        $this->coveredAlignmentModules = $coveredAlignmentModules;
+    }
+
+    /**
+     * How many alignment-pattern modules this placement covers.
+     *
+     * Zero unless the box was built with allowingAlignmentPatterns(). Worth
+     * reporting rather than swallowing: it is the one compromise a placement
+     * can carry, and whoever ordered the print should know it was made.
+     */
+    public function coveredAlignmentModules(): int
+    {
+        return $this->coveredAlignmentModules;
+    }
+
+    public function compromisesAlignment(): bool
+    {
+        return $this->coveredAlignmentModules > 0;
     }
 
     /**

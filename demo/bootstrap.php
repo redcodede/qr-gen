@@ -18,6 +18,8 @@ use Redcodede\QrGen\Qr\Encoder\BaconQrEncoder;
 use Redcodede\QrGen\Qr\ErrorCorrection;
 use Redcodede\QrGen\Qr\Exception\QrGenException;
 use Redcodede\QrGen\Qr\Logo\LogoBox;
+use Redcodede\QrGen\Qr\Logo\LogoFit;
+use Redcodede\QrGen\Qr\Logo\LogoFitResult;
 use Redcodede\QrGen\Qr\Logo\SvgLogo;
 use Redcodede\QrGen\Qr\ModuleMatrix;
 use Redcodede\QrGen\Qr\Render\SvgOptions;
@@ -43,6 +45,11 @@ const DEFAULT_URL = 'https://www.redcode.de/';
  * trade-off worth seeing side by side.
  */
 const DEFAULT_LEVEL = ErrorCorrection::HIGH;
+
+/**
+ * Pseudo-level for the select: let LogoFit work out which level survives.
+ */
+const LEVEL_AUTO = 'AUTO';
 
 const DEFAULT_LOGO_MODULES = 11;
 const DEFAULT_LOGO_MARGIN = 1;
@@ -91,9 +98,9 @@ function readInput(array $query): array
 
     $level = isset($query['level']) && is_string($query['level'])
         ? strtoupper(trim($query['level']))
-        : DEFAULT_LEVEL;
+        : LEVEL_AUTO;
 
-    if (!in_array($level, ErrorCorrection::all(), true)) {
+    if ($level !== LEVEL_AUTO && !in_array($level, ErrorCorrection::all(), true)) {
         $errors[] = sprintf('Unknown error correction level, falling back to %s.', DEFAULT_LEVEL);
         $level = DEFAULT_LEVEL;
     }
@@ -114,8 +121,71 @@ function readInput(array $query): array
         'logo' => $logo,
         'logoModules' => clamp($query['logoModules'] ?? DEFAULT_LOGO_MODULES, 3, MAX_LOGO_MODULES, DEFAULT_LOGO_MODULES),
         'logoMargin' => clamp($query['logoMargin'] ?? DEFAULT_LOGO_MARGIN, 0, MAX_LOGO_MARGIN, DEFAULT_LOGO_MARGIN),
+        'allowAlignment' => !empty($query['allowAlignment']),
         'errors' => $errors,
     ];
+}
+
+/**
+ * The box as configured, including the alignment-pattern permission.
+ *
+ * @param array<string, mixed> $input
+ */
+function box(array $input): LogoBox
+{
+    $box = LogoBox::square($input['logoModules'], $input['logoMargin']);
+
+    return $input['allowAlignment'] ? $box->allowingAlignmentPatterns() : $box;
+}
+
+/**
+ * Resolves the level when the form says "auto", memoised so a page that asks
+ * several times encodes once.
+ *
+ * @param array<string, mixed> $input
+ *
+ * @return array{0: LogoFitResult|null, 1: string|null} The fit, or why there is none
+ */
+function fit(array $input): array
+{
+    static $cache = [];
+
+    $key = md5(serialize([
+        $input['url'],
+        $input['logoModules'],
+        $input['logoMargin'],
+        $input['allowAlignment'],
+    ]));
+
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+
+    try {
+        $result = [(new LogoFit(new BaconQrEncoder()))->lowestLevelFor($input['url'], box($input)), null];
+    } catch (QrGenException $exception) {
+        $result = [null, $exception->getMessage()];
+    }
+
+    return $cache[$key] = $result;
+}
+
+/**
+ * The level actually used. On "auto" that is whatever LogoFit settled on; if
+ * nothing survives, H, so the page still shows a plain symbol and the reason
+ * next to the empty logo panel.
+ *
+ * @param array<string, mixed> $input
+ */
+function effectiveLevel(array $input): ErrorCorrection
+{
+    if ($input['level'] !== LEVEL_AUTO) {
+        return ErrorCorrection::fromString($input['level']);
+    }
+
+    [$result] = fit($input);
+
+    return $result === null ? ErrorCorrection::high() : $result->level();
 }
 
 /**
@@ -158,7 +228,7 @@ function clamp($value, int $min, int $max, int $fallback): int
  */
 function encode(array $input): ModuleMatrix
 {
-    return (new BaconQrEncoder())->encode($input['url'], ErrorCorrection::fromString($input['level']));
+    return (new BaconQrEncoder())->encode($input['url'], effectiveLevel($input));
 }
 
 /**
@@ -200,10 +270,7 @@ function renderer(array $input, bool $standalone, bool $withLogo): SvgRenderer
         $artwork = logo($input);
 
         if ($artwork !== null) {
-            $options = $options->withLogo(
-                $artwork,
-                LogoBox::square($input['logoModules'], $input['logoMargin'])
-            );
+            $options = $options->withLogo($artwork, box($input));
         }
     }
 

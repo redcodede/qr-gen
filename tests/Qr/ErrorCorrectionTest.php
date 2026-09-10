@@ -68,6 +68,38 @@ final class ErrorCorrectionTest extends TestCase
         self::assertFalse(ErrorCorrection::high()->equals(ErrorCorrection::low()));
     }
 
+    /**
+     * @dataProvider recoveryRates
+     */
+    public function testItKnowsItsRecoveryRate(string $level, float $expected): void
+    {
+        self::assertSame($expected, ErrorCorrection::fromString($level)->recoveryRate());
+    }
+
+    /**
+     * @return iterable<string, array{string, float}>
+     */
+    public static function recoveryRates(): iterable
+    {
+        yield 'L' => ['L', 0.07];
+        yield 'M' => ['M', 0.15];
+        yield 'Q' => ['Q', 0.25];
+        yield 'H' => ['H', 0.30];
+    }
+
+    public function testTheRecoveryRateRisesWithTheLevel(): void
+    {
+        $previous = 0.0;
+
+        foreach (ErrorCorrection::all() as $level) {
+            $rate = ErrorCorrection::fromString($level)->recoveryRate();
+
+            self::assertGreaterThan($previous, $rate, "Level {$level} did not raise the rate.");
+
+            $previous = $rate;
+        }
+    }
+
     public function testItCastsToItsLetter(): void
     {
         self::assertSame('Q', (string) ErrorCorrection::quartile());

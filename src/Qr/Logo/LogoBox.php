@@ -36,6 +36,9 @@ final class LogoBox
     /** @var int */
     private $margin;
 
+    /** @var bool */
+    private $allowAlignmentPatterns = false;
+
     private function __construct(int $width, int $height, int $margin)
     {
         if ($width % 2 === 0 || $height % 2 === 0) {
@@ -93,6 +96,33 @@ final class LogoBox
         return $value % 2 === 0 ? max(3, $value - 1) : max(3, $value);
     }
 
+    /**
+     * Permits the box to cover alignment patterns.
+     *
+     * Off by default, and the default is the safe one. But it has to be
+     * available, because for many versions **an alignment pattern sits exactly
+     * at the centre of the symbol** — 7 to 13, and 21, 23, 25 and 27. On those,
+     * a centred logo cannot avoid one however small it is, and refusing
+     * outright would make them logo-proof.
+     *
+     * What it buys and what it costs: a scanner uses alignment patterns to
+     * correct perspective and warp, and a version 7 symbol has six of them.
+     * Losing the middle one costs tolerance on a curved or angled surface — a
+     * bottle, a bag, a photo taken at a slant — while the remaining five still
+     * locate the grid. Finders and timing patterns stay refused either way;
+     * without those there is no symbol to decode.
+     *
+     * On a printed label this is the sort of trade a proof settles, not a
+     * default.
+     */
+    public function allowingAlignmentPatterns(): self
+    {
+        $clone = clone $this;
+        $clone->allowAlignmentPatterns = true;
+
+        return $clone;
+    }
+
     public function width(): int
     {
         return $this->width;
@@ -106,6 +136,11 @@ final class LogoBox
     public function margin(): int
     {
         return $this->margin;
+    }
+
+    public function allowsAlignmentPatterns(): bool
+    {
+        return $this->allowAlignmentPatterns;
     }
 
     /**
@@ -126,9 +161,9 @@ final class LogoBox
         $y = intdiv($size - $this->height, 2);
 
         $this->guardFinderZones($x, $y, $size);
-        $this->guardFunctionPatterns($matrix, $x, $y);
+        $covered = $this->guardFunctionPatterns($matrix, $x, $y);
 
-        return new LogoPlacement($x, $y, $this->width, $this->height, $this->margin);
+        return new LogoPlacement($x, $y, $this->width, $this->height, $this->margin, $covered);
     }
 
     /**
@@ -166,29 +201,60 @@ final class LogoBox
         }
     }
 
-    private function guardFunctionPatterns(ModuleMatrix $matrix, int $x, int $y): void
+    /**
+     * Counts what the box would cover and decides whether that is acceptable.
+     *
+     * Two kinds, treated differently. Covering a finder, separator, timing
+     * pattern or the format information removes the geometry a scanner needs
+     * to find and read the symbol — refused, always. Covering an alignment
+     * pattern costs warp tolerance and is a judgement call, so it is refused
+     * unless the caller said otherwise.
+     *
+     * @return int Alignment modules the box covers, once permitted
+     */
+    private function guardFunctionPatterns(ModuleMatrix $matrix, int $x, int $y): int
     {
         if (!$matrix->hasReservedInfo()) {
-            return;
+            return 0;
         }
 
-        $covered = 0;
+        $fatal = 0;
+        $alignment = 0;
 
         for ($row = $y; $row < $y + $this->height; $row++) {
             for ($column = $x; $column < $x + $this->width; $column++) {
-                if ($matrix->isReserved($column, $row)) {
-                    $covered++;
+                if (!$matrix->isReserved($column, $row)) {
+                    continue;
                 }
+
+                if ($matrix->isAlignmentPattern($column, $row)) {
+                    $alignment++;
+
+                    continue;
+                }
+
+                $fatal++;
             }
         }
 
-        if ($covered > 0) {
+        if ($fatal > 0) {
             throw InvalidArgument::logoCoversFunctionPattern(
-                $covered,
+                $fatal,
                 $this->width,
                 $this->height,
                 $matrix->size()
             );
         }
+
+        if ($alignment > 0 && !$this->allowAlignmentPatterns) {
+            throw InvalidArgument::logoCoversAlignmentPattern(
+                $alignment,
+                $this->width,
+                $this->height,
+                $matrix->size()
+            );
+        }
+
+        return $alignment;
     }
 }

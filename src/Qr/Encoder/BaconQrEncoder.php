@@ -82,7 +82,9 @@ final class BaconQrEncoder implements QrEncoder
         // patterns, format and version information. None of that is covered by
         // error correction, so a logo has to be kept off it — and only the
         // encoder knows where it is, which is why it travels with the matrix.
-        $functionPattern = Version::getVersionForNumber(intdiv($height - 17, 4))->buildFunctionPattern();
+        $version = Version::getVersionForNumber(intdiv($height - 17, 4));
+        $functionPattern = $version->buildFunctionPattern();
+        $alignment = self::alignmentModules($version, $height);
 
         $rows = [];
         $reserved = [];
@@ -104,7 +106,53 @@ final class BaconQrEncoder implements QrEncoder
             $reserved[] = $reservedRow;
         }
 
-        return new ModuleMatrix($rows, $reserved);
+        return new ModuleMatrix($rows, $reserved, $alignment);
+    }
+
+    /**
+     * The 5x5 alignment patterns, marked separately from the rest of the
+     * function pattern.
+     *
+     * The centres come from the library's version table rather than from a copy
+     * of it here. The three combinations that fall on a finder corner are not
+     * drawn as alignment patterns, so they are skipped — matching the
+     * specification rather than merely staying out of trouble.
+     *
+     * @return list<list<bool>>
+     */
+    private static function alignmentModules(Version $version, int $size): array
+    {
+        $mask = array_fill(0, $size, array_fill(0, $size, false));
+        $centers = $version->getAlignmentPatternCenters();
+
+        if ($centers === []) {
+            return $mask;
+        }
+
+        $first = $centers[0];
+        $last = $centers[count($centers) - 1];
+
+        foreach ($centers as $centerY) {
+            foreach ($centers as $centerX) {
+                $onFinderCorner = ($centerX === $first && $centerY === $first)
+                    || ($centerX === $first && $centerY === $last)
+                    || ($centerX === $last && $centerY === $first);
+
+                if ($onFinderCorner) {
+                    continue;
+                }
+
+                for ($y = $centerY - 2; $y <= $centerY + 2; $y++) {
+                    for ($x = $centerX - 2; $x <= $centerX + 2; $x++) {
+                        if ($x >= 0 && $y >= 0 && $x < $size && $y < $size) {
+                            $mask[$y][$x] = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $mask;
     }
 
     private function baconLevel(ErrorCorrection $level): BaconLevel

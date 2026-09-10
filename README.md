@@ -7,7 +7,7 @@
 Mit Demo-Seite und Download. Noch **nicht** dabei: PNG und die
 Statamic-Anbindung. Was hier unter „geplant" steht, existiert nicht.
 
-Geprüft am 10.09.2026 auf PHP 8.4: **151 Tests, 5762 Assertions, grün.**
+Geprüft am 10.09.2026 auf PHP 8.4: **188 Tests, 5843 Assertions, grün.**
 
 ---
 
@@ -35,7 +35,11 @@ Zuschnitt in zwei Stufen.
 - [x] **Logo in der Mitte**, mit Ruhezone darum, jedes Seitenverhältnis
 - [x] **Sanitizer für fremde SVGs**, Whitelist statt Filter
 - [x] **Funktionsmuster-Prüfung:** ein Logokasten über Such-, Takt- oder
-      Ausrichtungsmuster wird abgewiesen, nicht gerendert
+      Formatmustern wird abgewiesen, nicht gerendert. Ausrichtungsmuster
+      werden davon unterschieden, weil sie ein Kompromiss und kein Fehler sind
+- [x] **`LogoFit`: die niedrigste Stufe finden, bei der ein Kasten überlebt** —
+      statt jemanden rätseln zu lassen, warum ein Kasten bei H passt und bei M
+      nicht
 - [x] Demo-Seite mit beiden Varianten, Kennzahlen und Download
 - [x] Test, der die Framework-Freiheit des Kerns erzwingt
 - [x] Rundlauf-Test, der das SVG zurück in eine Matrix liest
@@ -241,6 +245,92 @@ LogoBox::forAspectRatio($logo->width() / $logo->height(), 11);   // aus dem Logo
 Beide Kantenlängen müssen **ungerade** sein. Ein QR-Symbol ist immer ungerade
 (17 + 4 × Version), eine gerade Kantenlänge läge einen halben Modul neben dem
 Raster und räumte Teile von Modulen frei statt ganze.
+
+#### Die Stufe nicht raten, ausrechnen lassen
+
+Die Symbolgröße ist **keine Einstellung**. Sie folgt aus Nutzlast und
+Fehlerkorrekturstufe, weshalb ein Kasten, der bei H passt, bei M nicht mehr
+passt — das Symbol ist kleiner geworden, nicht das Logo. `LogoFit` nimmt einem
+das Rätsel ab:
+
+```php
+use Redcodede\QrGen\Qr\Logo\LogoFit;
+
+$fit = new LogoFit(new BaconQrEncoder());
+$result = $fit->lowestLevelFor('https://gvoe.de/return/7K4M2', LogoBox::square(11, 1));
+
+$result->level();        // ErrorCorrection, hier H
+$result->matrix();       // das Symbol, schon kodiert
+$result->placement();    // wo das Logo hinkommt
+$result->clearedShare(); // 0.111 — Anteil freigeräumter Module
+$result->budget();       // 0.15  — was die Stufe erlaubt
+$result->headroom();     // 0.26  — was davon übrig ist
+```
+
+**Die niedrigste Stufe, die überlebt, nicht die höchste verfügbare.** Eine
+höhere Stufe hilft doppelt (mehr Wiederherstellung *und* ein größeres Symbol,
+in dem derselbe Kasten weniger Anteil hat), kostet aber Dichte: mehr Module auf
+derselben Druckbreite heißt kleinere Module. Die niedrigste ausreichende Stufe
+hält die Module so groß wie möglich.
+
+Passt nichts, sagt `NoFittingLevel`, **was an jeder der vier Stufen scheiterte**
+und welcher Kasten bei H noch ginge:
+
+```
+No error correction level lets a 17x17 logo box survive on this payload.
+  L: 25x25 symbol — … largest centred box here is 9 modules …
+  M: 25x25 symbol — … largest centred box here is 9 modules …
+  Q: 29x29 symbol — … largest centred box here is 13 modules …
+  H: 29x29 symbol — … largest centred box here is 13 modules …
+At level H the largest box that survives is 11x11 modules.
+```
+
+Der Sicherheitsfaktor ist der Punkt, an dem das verteidigungsfähig wird: die
+freigeräumte Fläche ist ein Anteil an **Modulen**, die Wiederherstellungsrate
+ein Anteil an **Codewörtern**. Standard ist, höchstens die **Hälfte** der Rate
+für das Logo auszugeben — die andere Hälfte zahlt für Farbzuwachs, Kratzer,
+Fingerabdruck, schlechtes Licht und ein schräg gehaltenes Telefon. Ein Logo,
+das die ganze Reserve frisst, ergibt einen Code, der am Bildschirm scannt und
+im Regal versagt. Der Faktor ist ein Konstruktorargument, weil jemand mit einem
+Andruck in der Hand es besser weiß als diese Klasse.
+
+#### Ausrichtungsmuster: Kompromiss, kein Fehler
+
+Nicht jedes Funktionsmuster ist gleich. Ein Such-, Takt- oder Formatmuster zu
+verdecken nimmt einem Scanner die Geometrie, mit der er das Symbol überhaupt
+findet — das wird **immer** abgewiesen. Ein Ausrichtungsmuster dient der
+Perspektiv- und Verzerrungskorrektur; eines von mehreren zu verlieren kostet
+Toleranz auf gewölbtem oder schräg gehaltenem Material, die übrigen finden das
+Raster weiter.
+
+Das ist keine Feinheit, sondern notwendig: **auf vielen Versionen sitzt ein
+Ausrichtungsmuster genau in der Mitte**, dort kann ein zentriertes Logo es nicht
+umgehen, wie klein es auch ist. Gemessen an der Versionstabelle:
+
+| Versionen | Mitte |
+|---|---|
+| 1–6 | frei |
+| **7–13** | **belegt** |
+| 14–20 | frei |
+| **21, 23, 25, 27** | **belegt** |
+| 22, 24, 26, 28+ | frei |
+
+Ein pauschales Verbot würde diese Versionen logofeindlich machen. Deshalb:
+
+```php
+LogoBox::square(11, 1)->allowingAlignmentPatterns();
+```
+
+Standard ist **aus**. Die Platzierung merkt sich den Kompromiss, statt ihn zu
+verschlucken:
+
+```php
+$placement->compromisesAlignment();       // true
+$placement->coveredAlignmentModules();    // 25, ein ganzes 5x5-Muster
+```
+
+Auf einem gedruckten Etikett ist das die Sorte Entscheidung, die ein Andruck
+klärt, nicht ein Standardwert.
 
 #### Wie groß der Kasten sein darf
 
@@ -490,6 +580,7 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.2.0` | URL → SVG, Demo-Seite, Tests |
 | `0.3.0` | Logo in der Mitte, SVG-Sanitizer, Funktionsmuster-Prüfung |
 | `0.3.1` | Logo-Ablehnungen nennen Zahlen und die tatsächliche Ursache |
+| `0.4.0` | `LogoFit` findet die Stufe; Ausrichtungsmuster als Kompromiss |
 | `0.4.0` | geplant: Code- und Token-Erzeugung |
 | `0.5.0` | geplant: Statamic-Hülle, in der GVÖ-Seite lauffähig |
 | `1.0.0` | in Produktion abgenommen, öffentliche API stabil |

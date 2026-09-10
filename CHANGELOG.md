@@ -22,6 +22,58 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 - Raster-Logo als Data-URI, falls kein SVG geliefert wird
 - PNG-Ausgabe ohne `gd`, über `zlib` und `crc32()`
 
+## [0.4.0] - 2026-09-10
+
+Die Stufe wird nicht mehr geraten, sondern ausgerechnet.
+
+### Hinzugefügt
+
+- **`Qr\Logo\LogoFit`** — findet die **niedrigste** Fehlerkorrekturstufe, bei
+  der ein Logokasten überlebt, und gibt das schon kodierte Symbol mit zurück.
+  Die niedrigste, nicht die höchste: eine höhere Stufe hilft doppelt (mehr
+  Wiederherstellung und ein größeres Symbol, in dem derselbe Kasten weniger
+  Anteil hat), kostet aber Dichte
+- `Qr\Logo\LogoFitResult` mit `clearedShare()`, `budget()`, `headroom()` und
+  `compromisesAlignment()` — die Zahlen hinter der Entscheidung
+- `Qr\Exception\NoFittingLevel` nennt **den Grund je Stufe** und den größten
+  Kasten, der bei H noch ginge. „Passt nicht" allein ist nutzlos: ob man den
+  Kasten verkleinert, die Nutzlast kürzt oder einen Kompromiss eingeht, hängt
+  davon ab, an welcher Wand man bei welcher Stufe steht
+- `LogoFit::largestFittingAt()` — größter Kasten bei gegebener Stufe, das
+  Seitenverhältnis behaltend
+- `ErrorCorrection::recoveryRate()` — 7 / 15 / 25 / 30 %
+- **Sicherheitsfaktor**, Standard `0.5`: höchstens die Hälfte der
+  Wiederherstellungsrate darf das Logo kosten. Die andere Hälfte zahlt für
+  Farbzuwachs, Kratzer, schlechtes Licht und ein schräg gehaltenes Telefon.
+  Konstruktorargument, weil jemand mit einem Andruck in der Hand es besser weiß
+- `LogoBox::allowingAlignmentPatterns()` und
+  `LogoPlacement::compromisesAlignment()` / `coveredAlignmentModules()`
+- Demo-Seite: Stufenauswahl kennt **`auto`**, zeigt die gewählte Stufe, die
+  Ausnutzung der Reserve und ob ein Ausrichtungsmuster aufgegeben wurde.
+  Dazu ein Schalter für die Erlaubnis
+
+### Geändert
+
+- **Ausrichtungsmuster werden von den übrigen Funktionsmustern
+  unterschieden.** Ein Such-, Takt- oder Formatmuster zu verdecken nimmt einem
+  Scanner die Geometrie und wird immer abgewiesen. Ein Ausrichtungsmuster
+  dient der Verzerrungskorrektur; eines von mehreren zu verlieren ist ein
+  Kompromiss und auf Wunsch erlaubt
+- `ModuleMatrix` nimmt eine dritte, optionale Maske für die
+  Ausrichtungsmuster; `BaconQrEncoder` füllt sie aus
+  `Version::getAlignmentPatternCenters()` und lässt die drei Kombinationen aus,
+  die auf einer Sucheck liegen und deshalb nicht als Ausrichtungsmuster
+  gezeichnet werden
+
+### Korrigiert
+
+- **Die Aussage „ab Version 7 sitzt ein Ausrichtungsmuster in der Mitte" war
+  falsch.** Gegen die Versionstabelle gemessen gilt das für die Versionen
+  **7 bis 13** sowie **21, 23, 25 und 27**; 1–6, 14–20, 22, 24, 26 und ab 28
+  haben die Mitte frei. Die Verallgemeinerung stand in Kommentaren, in einer
+  Ausnahmemeldung und in der Doku und ist überall berichtigt. Aufgefallen ist
+  es, weil ein Test darauf gebaut hatte und fehlschlug
+
 ## [0.3.1] - 2026-09-10
 
 ### Geändert
@@ -166,7 +218,8 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/redcodede/qr-gen/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/redcodede/qr-gen/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/redcodede/qr-gen/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/redcodede/qr-gen/compare/v0.1.0...v0.2.0

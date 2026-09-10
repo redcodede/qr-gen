@@ -140,6 +140,30 @@ final class InvalidArgument extends InvalidArgumentException implements QrGenExc
         ));
     }
 
+    public static function logoCoversAlignmentPattern(
+        int $modules,
+        int $width,
+        int $height,
+        int $size
+    ): self {
+        return new self(sprintf(
+            'A logo box of %dx%d modules in a %dx%d symbol would cover %d module(s) of an '
+            . 'alignment pattern. Unlike a finder, that is a trade rather than a mistake: a '
+            . 'scanner uses alignment patterns to correct perspective and warp, so losing one '
+            . 'costs tolerance on a curved or angled surface while the others still locate the '
+            . 'grid. Either use a smaller box, change the error correction level so the symbol '
+            . 'lands on a version whose alignment patterns sit elsewhere, or accept it with '
+            . 'LogoBox::allowingAlignmentPatterns(). Note that on versions 7 to 13, and on 21, '
+            . '23, 25 and 27, an alignment pattern sits exactly at the centre, so on those a '
+            . 'centred logo cannot avoid one however small it is.',
+            $width,
+            $height,
+            $size,
+            $size,
+            $modules
+        ));
+    }
+
     public static function logoTouchesFinderZone(
         int $width,
         int $height,
@@ -158,6 +182,16 @@ final class InvalidArgument extends InvalidArgumentException implements QrGenExc
             $size,
             $size,
             $largestSide
+        ));
+    }
+
+    public static function budgetShareOutOfRange(float $given): self
+    {
+        return new self(sprintf(
+            'The safety factor has to be greater than 0 and at most 1, got %s. It is the share '
+            . 'of the recovery rate a logo may spend; the rest pays for print defects, dirt and '
+            . 'bad light.',
+            rtrim(rtrim(number_format($given, 4, '.', ''), '0'), '.')
         ));
     }
 

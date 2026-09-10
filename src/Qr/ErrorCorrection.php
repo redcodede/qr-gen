@@ -88,6 +88,32 @@ final class ErrorCorrection
         return $this->level;
     }
 
+    /**
+     * Share of codewords the level can recover, per ISO/IEC 18004.
+     *
+     * Careful with what this is compared against. It is a share of
+     * **codewords**, while a logo box is measured in **modules**. The two are
+     * not the same unit, so weighing one against the other is a heuristic and
+     * wants a safety factor — see LogoFit. What is exact is the function
+     * pattern check, which does not involve this number at all.
+     */
+    public function recoveryRate(): float
+    {
+        switch ($this->level) {
+            case self::LOW:
+                return 0.07;
+
+            case self::MEDIUM:
+                return 0.15;
+
+            case self::QUARTILE:
+                return 0.25;
+
+            default:
+                return 0.30;
+        }
+    }
+
     public function equals(self $other): bool
     {
         return $this->level === $other->level;

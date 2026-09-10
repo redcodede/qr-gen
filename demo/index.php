@@ -35,6 +35,16 @@ if ($input['errors'] === []) {
 }
 
 $logos = availableLogos();
+$isAuto = $input['level'] === LEVEL_AUTO;
+[$fitResult, $fitFailure] = $isAuto ? fit($input) : [null, null];
+$level = effectiveLevel($input);
+
+// On "auto" the resolver's report is the better message: it says what happened
+// at every level, not just at the one that happened to be tried.
+if ($isAuto && $fitFailure !== null) {
+    $logoFailure = $fitFailure;
+    $withLogo = null;
+}
 
 $query = [
     'url' => $input['url'],
@@ -48,6 +58,10 @@ $query = [
 
 if ($input['transparent']) {
     $query['transparent'] = '1';
+}
+
+if ($input['allowAlignment']) {
+    $query['allowAlignment'] = '1';
 }
 
 function link_(array $query, array $extra = []): string
@@ -248,9 +262,12 @@ $drawable = $input['logoModules'] - (2 * $input['logoMargin']);
         <div>
             <label for="level">Error correction</label>
             <select id="level" name="level">
-                <?php foreach (ErrorCorrection::all() as $level): ?>
-                    <option value="<?= e($level) ?>"<?= $level === $input['level'] ? ' selected' : '' ?>>
-                        <?= e($level . levelHint($level)) ?>
+                <option value="<?= LEVEL_AUTO ?>"<?= $isAuto ? ' selected' : '' ?>>
+                    auto &mdash; lowest that survives
+                </option>
+                <?php foreach (ErrorCorrection::all() as $option): ?>
+                    <option value="<?= e($option) ?>"<?= $option === $input['level'] ? ' selected' : '' ?>>
+                        <?= e($option . levelHint($option)) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -291,6 +308,11 @@ $drawable = $input['logoModules'] - (2 * $input['logoMargin']);
         <div class="check">
             <input type="checkbox" id="transparent" name="transparent" value="1"<?= $input['transparent'] ? ' checked' : '' ?>>
             <label for="transparent">Transparent (plain only)</label>
+        </div>
+
+        <div class="check">
+            <input type="checkbox" id="allowAlignment" name="allowAlignment" value="1"<?= $input['allowAlignment'] ? ' checked' : '' ?>>
+            <label for="allowAlignment">Allow covering alignment patterns</label>
         </div>
 
         <div><button type="submit">Generate</button></div>
@@ -352,10 +374,28 @@ $drawable = $input['logoModules'] - (2 * $input['logoMargin']);
             <div class="cols">
                 <table>
                     <tr><th>Payload</th><td><?= strlen($input['url']) ?> bytes</td></tr>
-                    <tr><th>Error correction</th><td><?= e($input['level'] . levelHint($input['level'])) ?></td></tr>
+                    <tr>
+                        <th>Error correction</th>
+                        <td>
+                            <?= e($level->value() . levelHint($level->value())) ?>
+                            <?php if ($isAuto): ?><br><small>chosen automatically: the lowest that survives this box</small><?php endif; ?>
+                        </td>
+                    </tr>
                     <tr><th>QR version</th><td><?= $matrix->version() ?> of 40</td></tr>
                     <tr><th>Modules</th><td><?= $matrix->size() ?> &times; <?= $matrix->size() ?> = <?= number_format($matrix->size() ** 2) ?></td></tr>
-                    <tr><th>Function pattern known</th><td><?= $matrix->hasReservedInfo() ? 'yes, box is checked against it' : 'no' ?></td></tr>
+                    <?php if ($fitResult !== null): ?>
+                        <tr>
+                            <th>Allowance</th>
+                            <td><?= sprintf('%.1f%% used of %.1f%%', $fitResult->clearedShare() * 100, $fitResult->budget() * 100) ?>,
+                                <?= sprintf('%.0f%%', $fitResult->headroom() * 100) ?> headroom</td>
+                        </tr>
+                        <tr>
+                            <th>Alignment pattern</th>
+                            <td><?= $fitResult->compromisesAlignment()
+                                ? $fitResult->placement()->coveredAlignmentModules() . ' modules given up'
+                                : 'intact' ?></td>
+                        </tr>
+                    <?php endif; ?>
                 </table>
                 <table>
                     <tr><th>Logo box</th><td><?= $input['logoModules'] ?> &times; <?= $input['logoModules'] ?> modules</td></tr>
