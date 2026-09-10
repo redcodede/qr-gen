@@ -3,7 +3,7 @@
 /**
  * Shared setup for the two demo entry points.
  *
- * The demo exists to see a rendered symbol in a browser and to download it. It
+ * The demo exists to see rendered symbols in a browser and to download them. It
  * writes nothing: every request encodes and renders from scratch, and the SVG
  * lives only in the response. There is no cache and no output directory, so
  * there is nothing to clean up and nothing to leak.
@@ -13,9 +13,12 @@ declare(strict_types=1);
 
 namespace Redcodede\QrGen\Demo;
 
+use Redcodede\QrGen\Qr\Contract\Logo;
 use Redcodede\QrGen\Qr\Encoder\BaconQrEncoder;
 use Redcodede\QrGen\Qr\ErrorCorrection;
 use Redcodede\QrGen\Qr\Exception\QrGenException;
+use Redcodede\QrGen\Qr\Logo\LogoBox;
+use Redcodede\QrGen\Qr\Logo\SvgLogo;
 use Redcodede\QrGen\Qr\ModuleMatrix;
 use Redcodede\QrGen\Qr\Render\SvgOptions;
 use Redcodede\QrGen\Qr\Render\SvgRenderer;
@@ -33,10 +36,25 @@ require $autoload;
 
 const DEFAULT_URL = 'https://www.redcode.de/';
 
+/**
+ * H by default, because that is what a logo needs: it clears modules, and the
+ * ~30% recovery is what pays for them. It costs a version step — the plain
+ * symbol on this page is denser than it would have to be, which is exactly the
+ * trade-off worth seeing side by side.
+ */
+const DEFAULT_LEVEL = ErrorCorrection::HIGH;
+
+const DEFAULT_LOGO_MODULES = 11;
+const DEFAULT_LOGO_MARGIN = 1;
+
+const LOGO_DIR = __DIR__ . '/logos';
+
 const MAX_URL_LENGTH = 2000;
 const MIN_MODULE_SIZE = 1;
 const MAX_MODULE_SIZE = 64;
 const MAX_QUIET_ZONE = 16;
+const MAX_LOGO_MODULES = 61;
+const MAX_LOGO_MARGIN = 6;
 
 /**
  * Reads and validates the query string.
@@ -47,7 +65,7 @@ const MAX_QUIET_ZONE = 16;
  *
  * @param array<string, mixed> $query
  *
- * @return array{url: string, level: string, moduleSize: int, quietZone: int, transparent: bool, errors: list<string>}
+ * @return array{url: string, level: string, moduleSize: int, quietZone: int, transparent: bool, logo: string, logoModules: int, logoMargin: int, errors: list<string>}
  */
 function readInput(array $query): array
 {
@@ -73,11 +91,18 @@ function readInput(array $query): array
 
     $level = isset($query['level']) && is_string($query['level'])
         ? strtoupper(trim($query['level']))
-        : ErrorCorrection::MEDIUM;
+        : DEFAULT_LEVEL;
 
     if (!in_array($level, ErrorCorrection::all(), true)) {
-        $errors[] = sprintf('Unknown error correction level, falling back to %s.', ErrorCorrection::MEDIUM);
-        $level = ErrorCorrection::MEDIUM;
+        $errors[] = sprintf('Unknown error correction level, falling back to %s.', DEFAULT_LEVEL);
+        $level = DEFAULT_LEVEL;
+    }
+
+    $logos = availableLogos();
+    $logo = isset($query['logo']) && is_string($query['logo']) ? basename($query['logo']) : '';
+
+    if (!in_array($logo, $logos, true)) {
+        $logo = $logos === [] ? '' : $logos[0];
     }
 
     return [
@@ -86,8 +111,23 @@ function readInput(array $query): array
         'moduleSize' => clamp($query['moduleSize'] ?? 8, MIN_MODULE_SIZE, MAX_MODULE_SIZE, 8),
         'quietZone' => clamp($query['quietZone'] ?? SvgOptions::SPEC_QUIET_ZONE, 0, MAX_QUIET_ZONE, SvgOptions::SPEC_QUIET_ZONE),
         'transparent' => !empty($query['transparent']),
+        'logo' => $logo,
+        'logoModules' => clamp($query['logoModules'] ?? DEFAULT_LOGO_MODULES, 3, MAX_LOGO_MODULES, DEFAULT_LOGO_MODULES),
+        'logoMargin' => clamp($query['logoMargin'] ?? DEFAULT_LOGO_MARGIN, 0, MAX_LOGO_MARGIN, DEFAULT_LOGO_MARGIN),
         'errors' => $errors,
     ];
+}
+
+/**
+ * The SVG files sitting in demo/logos, by filename.
+ *
+ * @return list<string>
+ */
+function availableLogos(): array
+{
+    $found = glob(LOGO_DIR . '/*.svg') ?: [];
+
+    return array_values(array_map('basename', $found));
 }
 
 function isHttpUrl(string $candidate): bool
@@ -114,7 +154,7 @@ function clamp($value, int $min, int $max, int $fallback): int
 }
 
 /**
- * @param array{url: string, level: string, moduleSize: int, quietZone: int, transparent: bool, errors: list<string>} $input
+ * @param array<string, mixed> $input
  */
 function encode(array $input): ModuleMatrix
 {
@@ -122,47 +162,52 @@ function encode(array $input): ModuleMatrix
 }
 
 /**
- * @param array{url: string, level: string, moduleSize: int, quietZone: int, transparent: bool, errors: list<string>} $input
+ * Reads the chosen logo file and hands its markup to the sanitiser.
+ *
+ * Reading the file happens here, in the demo, not in the package: the core takes
+ * markup rather than a path, so the same logo can come from a Statamic asset, a
+ * fixture or a delivery folder without the package caring which.
+ *
+ * @param array<string, mixed> $input
  */
-function renderer(array $input, bool $standalone): SvgRenderer
+function logo(array $input): ?Logo
+{
+    if ($input['logo'] === '') {
+        return null;
+    }
+
+    $path = LOGO_DIR . '/' . $input['logo'];
+
+    if (!is_file($path)) {
+        return null;
+    }
+
+    return SvgLogo::fromMarkup((string) file_get_contents($path));
+}
+
+/**
+ * @param array<string, mixed> $input
+ */
+function renderer(array $input, bool $standalone, bool $withLogo): SvgRenderer
 {
     $options = SvgOptions::default()
         ->withModuleSize($input['moduleSize'])
         ->withQuietZone($input['quietZone'])
-        ->withColors('#000000', $input['transparent'] ? 'none' : '#ffffff')
+        ->withColors('#000000', $input['transparent'] && !$withLogo ? 'none' : '#ffffff')
         ->withXmlDeclaration($standalone);
 
-    return new SvgRenderer($options);
-}
+    if ($withLogo) {
+        $artwork = logo($input);
 
-/**
- * The QR version, derived from the module count. Handy for judging print size:
- * a lower version means fewer and therefore larger modules at the same physical
- * width, which is what a scanner has an easier time with.
- */
-function versionOf(ModuleMatrix $matrix): int
-{
-    return intdiv($matrix->size() - 17, 4);
-}
-
-/**
- * Builds a download filename from the URL's host.
- *
- * Reduced to an ASCII slug rather than escaped, because this value goes into a
- * Content-Disposition header where a stray newline or quote would let a caller
- * write headers of their own.
- */
-function downloadFilename(string $url, string $extension): string
-{
-    $host = (string) parse_url($url, PHP_URL_HOST);
-    $slug = strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $host) ?? '');
-    $slug = trim($slug, '-');
-
-    if ($slug === '') {
-        $slug = 'code';
+        if ($artwork !== null) {
+            $options = $options->withLogo(
+                $artwork,
+                LogoBox::square($input['logoModules'], $input['logoMargin'])
+            );
+        }
     }
 
-    return 'qr-' . substr($slug, 0, 60) . '.' . $extension;
+    return new SvgRenderer($options);
 }
 
 /**
@@ -186,12 +231,14 @@ function levelHint(string $level): string
 }
 
 /**
+ * @param array<string, mixed> $input
+ *
  * @return array{0: string|null, 1: string|null} The rendered SVG, or null and a message
  */
-function tryRender(array $input, bool $standalone): array
+function tryRender(array $input, bool $standalone, bool $withLogo): array
 {
     try {
-        return [renderer($input, $standalone)->render(encode($input)), null];
+        return [renderer($input, $standalone, $withLogo)->render(encode($input)), null];
     } catch (QrGenException $exception) {
         return [null, $exception->getMessage()];
     }

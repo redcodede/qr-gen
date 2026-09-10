@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Redcodede\QrGen\Qr\Render;
 
 use Redcodede\QrGen\Qr\Contract\QrRenderer;
+use Redcodede\QrGen\Qr\Exception\InvalidArgument;
+use Redcodede\QrGen\Qr\Logo\LogoPlacement;
 use Redcodede\QrGen\Qr\ModuleMatrix;
 
 /**
@@ -43,6 +45,7 @@ final class SvgRenderer implements QrRenderer
         $modules = $matrix->size();
         $extent = $modules + (2 * $quietZone);
         $pixels = $extent * $this->options->moduleSize();
+        $placement = $this->placement($matrix);
 
         $svg = '';
 
@@ -75,10 +78,14 @@ final class SvgRenderer implements QrRenderer
             );
         }
 
-        $path = $this->buildPath($matrix, $quietZone);
+        $path = $this->buildPath($matrix, $quietZone, $placement);
 
         if ($path !== '') {
             $svg .= sprintf('<path fill="%s" d="%s"/>', $this->options->darkColor(), $path);
+        }
+
+        if ($placement !== null) {
+            $svg .= $this->renderLogo($placement, $quietZone);
         }
 
         return $svg . '</svg>';
@@ -94,12 +101,35 @@ final class SvgRenderer implements QrRenderer
         return 'svg';
     }
 
+    private function placement(ModuleMatrix $matrix): ?LogoPlacement
+    {
+        if (!$this->options->hasLogo()) {
+            return null;
+        }
+
+        // The cleared area has to read as light. With a transparent background
+        // whatever sits behind the symbol shows through it instead, and a
+        // scanner then sees neither light nor dark where it needs light.
+        if (!$this->options->hasBackground()) {
+            throw InvalidArgument::logoNeedsOpaqueBackdrop();
+        }
+
+        /** @var \Redcodede\QrGen\Qr\Logo\LogoBox $box */
+        $box = $this->options->logoBox();
+
+        return $box->placeIn($matrix);
+    }
+
     /**
      * Walks each row and emits one subpath per uninterrupted run of dark
      * modules, so a row of twenty dark modules costs one subpath rather than
      * twenty.
+     *
+     * Modules inside a logo box are skipped rather than drawn and covered. The
+     * artwork then sits on the background instead of on top of dark modules,
+     * and the path stays as small as the symbol allows.
      */
-    private function buildPath(ModuleMatrix $matrix, int $quietZone): string
+    private function buildPath(ModuleMatrix $matrix, int $quietZone, ?LogoPlacement $placement): string
     {
         $size = $matrix->size();
         $rows = $matrix->rows();
@@ -109,7 +139,7 @@ final class SvgRenderer implements QrRenderer
             $x = 0;
 
             while ($x < $size) {
-                if (!$rows[$y][$x]) {
+                if (!$rows[$y][$x] || ($placement !== null && $placement->covers($x, $y))) {
                     $x++;
 
                     continue;
@@ -117,7 +147,11 @@ final class SvgRenderer implements QrRenderer
 
                 $run = 1;
 
-                while ($x + $run < $size && $rows[$y][$x + $run]) {
+                while (
+                    $x + $run < $size
+                    && $rows[$y][$x + $run]
+                    && !($placement !== null && $placement->covers($x + $run, $y))
+                ) {
                     $run++;
                 }
 
@@ -134,6 +168,61 @@ final class SvgRenderer implements QrRenderer
         }
 
         return $path;
+    }
+
+    /**
+     * Scales the artwork into the drawable part of the box, preserving its
+     * aspect ratio and centring what is left over.
+     *
+     * The transform works in module units, so the scale factor is small — a
+     * 500-unit logo into 9 modules is 0.018. Six decimals keep a 177-module
+     * symbol accurate to well under a thousandth of a module.
+     */
+    private function renderLogo(LogoPlacement $placement, int $quietZone): string
+    {
+        /** @var \Redcodede\QrGen\Qr\Contract\Logo $logo */
+        $logo = $this->options->logo();
+
+        $availableWidth = $placement->drawableWidth();
+        $availableHeight = $placement->drawableHeight();
+
+        $scale = min($availableWidth / $logo->width(), $availableHeight / $logo->height());
+        $drawnWidth = $logo->width() * $scale;
+        $drawnHeight = $logo->height() * $scale;
+
+        $x = $quietZone + $placement->drawableX() + (($availableWidth - $drawnWidth) / 2);
+        $y = $quietZone + $placement->drawableY() + (($availableHeight - $drawnHeight) / 2);
+
+        // The cleared area is painted in the light colour rather than left to
+        // the background rect, so the margin is explicit in the file and a
+        // later change to the background cannot swallow it.
+        $backdrop = sprintf(
+            '<rect x="%d" y="%d" width="%d" height="%d" fill="%s"/>',
+            $placement->x() + $quietZone,
+            $placement->y() + $quietZone,
+            $placement->width(),
+            $placement->height(),
+            $this->options->lightColor()
+        );
+
+        return $backdrop . sprintf(
+            '<g transform="translate(%s %s) scale(%s)">%s</g>',
+            $this->number($x),
+            $this->number($y),
+            $this->number($scale),
+            $logo->markup()
+        );
+    }
+
+    /**
+     * Fixed six decimals with trailing zeros removed, so the output does not
+     * depend on the locale's decimal separator or on precision settings.
+     */
+    private function number(float $value): string
+    {
+        $formatted = rtrim(rtrim(number_format($value, 6, '.', ''), '0'), '.');
+
+        return $formatted === '' || $formatted === '-' ? '0' : $formatted;
     }
 
     private function escape(string $value): string

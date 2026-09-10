@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Demo page: type a URL, see the symbol, download the file.
+ * Demo page: type a URL, see both symbols, download either.
  *
  * Deliberately plain PHP with no framework. Everything on this page runs through
  * the same framework-free classes the Statamic addon will call later, so if it
@@ -19,35 +19,48 @@ require __DIR__ . '/bootstrap.php';
 
 $input = readInput($_GET);
 $matrix = null;
-$svg = null;
-$failure = null;
+$plain = null;
+$plainFailure = null;
+$withLogo = null;
+$logoFailure = null;
 
 if ($input['errors'] === []) {
-    [$svg, $failure] = tryRender($input, false);
+    [$plain, $plainFailure] = tryRender($input, false, false);
+    [$withLogo, $logoFailure] = tryRender($input, false, true);
 
-    if ($svg !== null) {
+    if ($plain !== null) {
         $matrix = encode($input);
     }
 }
+
+$logos = availableLogos();
 
 $query = [
     'url' => $input['url'],
     'level' => $input['level'],
     'moduleSize' => $input['moduleSize'],
     'quietZone' => $input['quietZone'],
+    'logo' => $input['logo'],
+    'logoModules' => $input['logoModules'],
+    'logoMargin' => $input['logoMargin'],
 ];
 
 if ($input['transparent']) {
     $query['transparent'] = '1';
 }
 
-$svgUrl = 'svg.php?' . http_build_query($query);
-$downloadUrl = 'svg.php?' . http_build_query($query + ['download' => '1']);
+function link_(array $query, array $extra = []): string
+{
+    return 'svg.php?' . http_build_query(array_merge($query, $extra));
+}
 
 function e(?string $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
+
+$cleared = $input['logoModules'] * $input['logoModules'];
+$drawable = $input['logoModules'] - (2 * $input['logoMargin']);
 
 ?><!doctype html>
 <html lang="en">
@@ -64,6 +77,7 @@ function e(?string $value): string
         --line: #dcd8d4;
         --card: #ffffff;
         --accent: #b4342c;
+        --warn: #8a5a00;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -74,6 +88,7 @@ function e(?string $value): string
             --line: #33353a;
             --card: #1f2124;
             --accent: #e8635a;
+            --warn: #d9a53a;
         }
     }
 
@@ -87,7 +102,7 @@ function e(?string $value): string
         font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     }
 
-    main { max-width: 900px; margin: 0 auto; }
+    main { max-width: 1000px; margin: 0 auto; }
 
     h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: -0.01em; }
     h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin: 0 0 12px; }
@@ -136,9 +151,11 @@ function e(?string $value): string
     }
 
     .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
-    @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) { .cols { grid-template-columns: 1fr; } }
 
     .panel {
+        display: flex;
+        flex-direction: column;
         padding: 18px;
         background: var(--card);
         border: 1px solid var(--line);
@@ -149,6 +166,7 @@ function e(?string $value): string
         display: flex;
         align-items: center;
         justify-content: center;
+        flex: 1;
         padding: 20px;
         background-image:
             linear-gradient(45deg, var(--line) 25%, transparent 25%, transparent 75%, var(--line) 75%),
@@ -162,7 +180,7 @@ function e(?string $value): string
 
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { text-align: left; padding: 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-    th { font-weight: 500; color: var(--muted); width: 45%; }
+    th { font-weight: 500; color: var(--muted); width: 55%; }
     tr:last-child th, tr:last-child td { border-bottom: 0; }
 
     .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
@@ -180,7 +198,7 @@ function e(?string $value): string
 
     .btn-secondary { color: var(--fg); background: transparent; border: 1px solid var(--line); }
 
-    .errors {
+    .errors, .note {
         padding: 14px 18px;
         margin-bottom: 24px;
         background: var(--card);
@@ -189,8 +207,11 @@ function e(?string $value): string
         border-radius: 8px;
     }
 
+    .note { border-color: var(--warn); font-size: 14px; }
     .errors ul { margin: 0; padding-left: 18px; }
+    .failure { color: var(--accent); font-size: 14px; margin: 0; }
 
+    .facts { margin-top: 24px; }
     details { margin-top: 24px; }
     summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 
@@ -212,9 +233,9 @@ function e(?string $value): string
 <main>
     <h1>qr-gen</h1>
     <p class="lede">
-        URL in, SVG out. Nothing is written to disk &mdash; every request encodes and
-        renders from scratch, and the download regenerates rather than fetching a
-        stored file.
+        URL in, two SVGs out &mdash; one plain, one with artwork in the middle.
+        Nothing is written to disk: every request encodes and renders from scratch,
+        and a download regenerates rather than fetching a stored file.
     </p>
 
     <form method="get" action="index.php">
@@ -228,10 +249,32 @@ function e(?string $value): string
             <select id="level" name="level">
                 <?php foreach (ErrorCorrection::all() as $level): ?>
                     <option value="<?= e($level) ?>"<?= $level === $input['level'] ? ' selected' : '' ?>>
-                        <?= e($level) ?><?= e(levelHint($level)) ?>
+                        <?= e($level . levelHint($level)) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
+        </div>
+
+        <div>
+            <label for="logo">Logo</label>
+            <select id="logo" name="logo">
+                <?php if ($logos === []): ?>
+                    <option value="">none in demo/logos</option>
+                <?php endif; ?>
+                <?php foreach ($logos as $file): ?>
+                    <option value="<?= e($file) ?>"<?= $file === $input['logo'] ? ' selected' : '' ?>><?= e($file) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div>
+            <label for="logoModules">Logo box (modules, odd)</label>
+            <input type="number" id="logoModules" name="logoModules" min="3" max="<?= MAX_LOGO_MODULES ?>" step="2" value="<?= $input['logoModules'] ?>">
+        </div>
+
+        <div>
+            <label for="logoMargin">Logo margin (modules)</label>
+            <input type="number" id="logoMargin" name="logoMargin" min="0" max="<?= MAX_LOGO_MARGIN ?>" value="<?= $input['logoMargin'] ?>">
         </div>
 
         <div>
@@ -246,60 +289,95 @@ function e(?string $value): string
 
         <div class="check">
             <input type="checkbox" id="transparent" name="transparent" value="1"<?= $input['transparent'] ? ' checked' : '' ?>>
-            <label for="transparent">Transparent background</label>
+            <label for="transparent">Transparent (plain only)</label>
         </div>
 
         <div><button type="submit">Generate</button></div>
     </form>
 
-    <?php if ($input['errors'] !== [] || $failure !== null): ?>
+    <?php if ($input['errors'] !== []): ?>
         <div class="errors">
             <ul>
                 <?php foreach ($input['errors'] as $error): ?>
                     <li><?= e($error) ?></li>
                 <?php endforeach; ?>
-                <?php if ($failure !== null): ?>
-                    <li><?= e($failure) ?></li>
-                <?php endif; ?>
             </ul>
         </div>
     <?php endif; ?>
 
-    <?php if ($svg !== null && $matrix !== null): ?>
-        <div class="cols">
-            <div class="panel">
-                <h2>Preview</h2>
-                <div class="preview"><?= $svg ?></div>
-                <div class="actions">
-                    <a class="btn-link" href="<?= e($downloadUrl) ?>">Download SVG</a>
-                    <a class="btn-link btn-secondary" href="<?= e($svgUrl) ?>" target="_blank" rel="noopener">Open raw</a>
-                </div>
-            </div>
+    <?php if ($input['transparent']): ?>
+        <div class="note">
+            A logo needs an opaque backdrop: the cleared area around it has to read as light,
+            otherwise whatever sits behind the symbol shows through and a scanner sees neither
+            light nor dark. The transparent option therefore applies to the plain symbol only.
+        </div>
+    <?php endif; ?>
 
-            <div class="panel">
-                <h2>What came out</h2>
+    <div class="cols">
+        <div class="panel">
+            <h2>Without logo</h2>
+            <?php if ($plain !== null): ?>
+                <div class="preview"><?= $plain ?></div>
+                <div class="actions">
+                    <a class="btn-link" href="<?= e(link_($query, ['download' => '1'])) ?>">Download SVG</a>
+                    <a class="btn-link btn-secondary" href="<?= e(link_($query)) ?>" target="_blank" rel="noopener">Open raw</a>
+                </div>
+            <?php else: ?>
+                <p class="failure"><?= e($plainFailure ?? 'Nothing rendered.') ?></p>
+            <?php endif; ?>
+        </div>
+
+        <div class="panel">
+            <h2>With logo</h2>
+            <?php if ($withLogo !== null && $input['logo'] !== ''): ?>
+                <div class="preview"><?= $withLogo ?></div>
+                <div class="actions">
+                    <a class="btn-link" href="<?= e(link_($query, ['variant' => 'logo', 'download' => '1'])) ?>">Download SVG</a>
+                    <a class="btn-link btn-secondary" href="<?= e(link_($query, ['variant' => 'logo'])) ?>" target="_blank" rel="noopener">Open raw</a>
+                </div>
+            <?php elseif ($input['logo'] === ''): ?>
+                <p class="failure">
+                    No SVG in <code>demo/logos</code>. Drop one in and reload.
+                </p>
+            <?php else: ?>
+                <p class="failure"><?= e($logoFailure ?? 'Nothing rendered.') ?></p>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <?php if ($matrix !== null): ?>
+        <div class="panel facts">
+            <h2>What came out</h2>
+            <div class="cols">
                 <table>
                     <tr><th>Payload</th><td><?= strlen($input['url']) ?> bytes</td></tr>
-                    <tr><th>Error correction</th><td><?= e($input['level']) ?><?= e(levelHint($input['level'])) ?></td></tr>
-                    <tr><th>QR version</th><td><?= versionOf($matrix) ?> of 40</td></tr>
-                    <tr><th>Modules</th><td><?= $matrix->size() ?> &times; <?= $matrix->size() ?></td></tr>
-                    <tr><th>With quiet zone</th><td><?= $matrix->size() + 2 * $input['quietZone'] ?> &times; <?= $matrix->size() + 2 * $input['quietZone'] ?> modules</td></tr>
-                    <tr><th>Rendered size</th><td><?= ($matrix->size() + 2 * $input['quietZone']) * $input['moduleSize'] ?> px square</td></tr>
-                    <tr><th>SVG</th><td><?= number_format(strlen($svg)) ?> bytes, one <code>&lt;path&gt;</code></td></tr>
+                    <tr><th>Error correction</th><td><?= e($input['level'] . levelHint($input['level'])) ?></td></tr>
+                    <tr><th>QR version</th><td><?= $matrix->version() ?> of 40</td></tr>
+                    <tr><th>Modules</th><td><?= $matrix->size() ?> &times; <?= $matrix->size() ?> = <?= number_format($matrix->size() ** 2) ?></td></tr>
+                    <tr><th>Function pattern known</th><td><?= $matrix->hasReservedInfo() ? 'yes, box is checked against it' : 'no' ?></td></tr>
+                </table>
+                <table>
+                    <tr><th>Logo box</th><td><?= $input['logoModules'] ?> &times; <?= $input['logoModules'] ?> modules</td></tr>
+                    <tr><th>Cleared</th><td><?= $cleared ?> modules, <?= sprintf('%.1f%%', $cleared / ($matrix->size() ** 2) * 100) ?> of the symbol</td></tr>
+                    <tr><th>Margin</th><td><?= $input['logoMargin'] ?> module(s), leaving <?= $drawable ?> &times; <?= $drawable ?> to draw in</td></tr>
+                    <tr><th>Logo width</th><td><?= sprintf('%.0f%%', $input['logoModules'] / $matrix->size() * 100) ?> of the symbol</td></tr>
+                    <tr><th>SVG size</th><td><?= number_format(strlen((string) $plain)) ?> vs <?= number_format(strlen((string) $withLogo)) ?> bytes</td></tr>
                 </table>
             </div>
         </div>
 
         <details>
-            <summary>SVG source</summary>
-            <pre><?= e($svg) ?></pre>
+            <summary>SVG source, with logo</summary>
+            <pre><?= e((string) $withLogo) ?></pre>
         </details>
     <?php endif; ?>
 
     <footer>
-        No logo yet &mdash; that needs a decision on print size and an RGB version of the
-        logo first. A symbol with a logo has to be proofed at final size on the real
-        material before it can be promised.
+        The cleared area is weighed against the error correction level as a rule of thumb &mdash;
+        modules and codewords are not the same unit. What is not a rule of thumb is the function
+        patterns: finders, timing and alignment carry no error correction, and a box that touches
+        one is refused. Whether the printed code scans is settled by a proof at final size on the
+        real material, not by this page.
     </footer>
 </main>
 </body>

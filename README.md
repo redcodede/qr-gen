@@ -3,11 +3,11 @@
 > Erzeugt aus einer URL einen QR-Code als SVG. Zwei Laufzeit-Abhängigkeiten,
 > keine Bildextension, kein Framework im Kern.
 
-**Status: Stufe 1 läuft.** URL rein, SVG raus, mit Demo-Seite und Download.
-Noch **nicht** dabei: Logo-Einbettung, PNG und die Statamic-Anbindung. Was hier
-unter „geplant" steht, existiert nicht.
+**Status: URL rein, zwei SVGs raus** — einer ohne, einer mit Logo in der Mitte.
+Mit Demo-Seite und Download. Noch **nicht** dabei: PNG und die
+Statamic-Anbindung. Was hier unter „geplant" steht, existiert nicht.
 
-Geprüft am 10.09.2026 auf PHP 8.4: **77 Tests, 4636 Assertions, grün.**
+Geprüft am 10.09.2026 auf PHP 8.4: **151 Tests, 5762 Assertions, grün.**
 
 ---
 
@@ -28,21 +28,25 @@ Zuschnitt in zwei Stufen.
 
 ## Was drin ist
 
-### Stufe 1 — fertig
+### Fertig
 
 - [x] URL → QR-Code-Matrix, Fehlerkorrekturstufe wählbar
 - [x] Matrix → SVG, ein einziger `<path>`, verlustfrei skalierbar
-- [x] Demo-Seite mit Vorschau, Kennzahlen und Download
+- [x] **Logo in der Mitte**, mit Ruhezone darum, jedes Seitenverhältnis
+- [x] **Sanitizer für fremde SVGs**, Whitelist statt Filter
+- [x] **Funktionsmuster-Prüfung:** ein Logokasten über Such-, Takt- oder
+      Ausrichtungsmuster wird abgewiesen, nicht gerendert
+- [x] Demo-Seite mit beiden Varianten, Kennzahlen und Download
 - [x] Test, der die Framework-Freiheit des Kerns erzwingt
 - [x] Rundlauf-Test, der das SVG zurück in eine Matrix liest
 
-### Stufe 1 — offen
+### Offen
 
-- [ ] Logo-Einbettung ins SVG (braucht Druckgröße und ein RGB-Logo)
 - [ ] Code- und Token-Erzeugung, `CodeRepository`-Interface
 - [ ] Statamic-Hülle: ServiceProvider, Artisan-Command, Auflösungs-Route,
       Download-Seite
-- [ ] PNG, ohne `gd` (siehe [Warum keine Bildextension](#warum-keine-bildextension))
+- [ ] Raster-Logo (PNG) als Data-URI, für den Fall, dass kein SVG kommt
+- [ ] PNG-Ausgabe, ohne `gd` (siehe [Warum keine Bildextension](#warum-keine-bildextension))
 
 ### Stufe 2 — später, im Website-Relaunch
 
@@ -204,6 +208,93 @@ Farben werden geprüft, nicht escaped: erlaubt sind Hex-Notation mit 3, 4, 6
 oder 8 Stellen und das Schlüsselwort `none`. Eine beliebige Zeichenkette
 könnte das Attribut schließen und eigenes Markup schreiben.
 
+### Logo in der Mitte
+
+```php
+use Redcodede\QrGen\Qr\Logo\LogoBox;
+use Redcodede\QrGen\Qr\Logo\SvgLogo;
+
+$logo = SvgLogo::fromMarkup(file_get_contents('/pfad/zum/logo.svg'));
+
+$options = SvgOptions::default()
+    ->withLogo($logo, LogoBox::square(11, 1));   // 11 Module Kasten, 1 Modul Rand
+
+$svg = (new SvgRenderer($options))->render($matrix);
+```
+
+**Der Kasten ist Logo plus Rand**, nicht das Logo allein. Bei `square(11, 1)`
+werden 11 × 11 Module freigeräumt und das Logo in die inneren 9 × 9 gesetzt.
+Der Rand trennt nicht nur optisch — er verhindert auch, dass eine Logokante als
+Modulkante gelesen wird.
+
+Das Logo darf jedes Seitenverhältnis haben. Der Kasten muss es nicht
+nachbilden, aber es hilft:
+
+```php
+LogoBox::of(15, 9, 1);                                   // breit, von Hand
+LogoBox::forAspectRatio($logo->width() / $logo->height(), 11);   // aus dem Logo
+```
+
+Beide Kantenlängen müssen **ungerade** sein. Ein QR-Symbol ist immer ungerade
+(17 + 4 × Version), eine gerade Kantenlänge läge einen halben Modul neben dem
+Raster und räumte Teile von Modulen frei statt ganze.
+
+#### Wie groß der Kasten sein darf
+
+Für `https://gvoe.de/return/7K4M2` (28 Bytes), Funktionsmuster exakt geprüft:
+
+| Kasten | bei Q (29 × 29) | bei H (33 × 33) |
+|---|---|---|
+| 9 × 9 | 9,6 %, frei | 7,4 %, frei |
+| 11 × 11 | 14,4 %, frei | **11,1 %, frei** |
+| 13 × 13 | 20,1 %, **2 Module Ausrichtungsmuster** | 15,5 %, frei |
+
+Verdeckte Module gegen Wiederherstellungsrate ist eine **Faustregel** — Module
+und Codewörter sind nicht dieselbe Einheit. Rund ein Drittel der Breite bei
+Stufe H ist bequem. Keine Faustregel sind die Funktionsmuster: Such-, Takt- und
+Ausrichtungsmuster tragen **keine** Fehlerkorrektur, und ein Kasten darüber
+wird abgewiesen.
+
+Das Logo kostet zweimal: einmal in verdeckter Fläche, einmal in der Version.
+Ohne Logo genügt Stufe M, mit Logo braucht es H — und H hebt dasselbe Nutzdatum
+von 29 × 29 auf 33 × 33. Bei 20 mm Codebreite sind das **0,54 mm je Modul ohne
+gegen 0,49 mm mit Logo**.
+
+Und: **ein Logo braucht einen deckenden Hintergrund.** Mit `'none'` als heller
+Farbe wird die Kombination abgewiesen, weil sonst der Untergrund durch die
+freigeräumte Fläche scheint und ein Scanner dort weder hell noch dunkel sieht.
+
+#### Was das Logo mitbringen muss
+
+Ein SVG ist ein Dokument, kein Bild: es kann Skript, Event-Handler, externe
+Verweise und Entity-Deklarationen tragen. Ein Logo kommt fast immer von außen,
+also wird es als **nicht vertrauenswürdig** behandelt, auch wenn die Person
+vertrauenswürdig ist, die es geliefert hat.
+
+`SvgLogo` **baut das Markup aus geparsten Tokens neu auf**, statt es zu
+filtern. Was der Sanitizer nicht verstanden hat, kann im Ergebnis nicht
+auftauchen — eine Lücke in der Musterliste lässt eine Datei also scheitern,
+statt sie mit Unerwartetem durchzulassen.
+
+| | |
+|---|---|
+| **erlaubt** | `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polygon`, `polyline`; Geometrie-, Fill-, Stroke- und Transform-Attribute |
+| **wird aufgelöst** | ein `<style>`-Block mit einfachen Klassenselektoren wird in Präsentationsattribute inlined, das leere `<defs>` danach entfernt. Das ist Illustrators Standardexport |
+| **wird entfernt** | `id`-Attribute, Kommentare, `<title>`, `<desc>`, `<metadata>` |
+| **wird abgewiesen** | `<script>`, `on…`-Handler, `<image>`, `<text>`, `<use>`, `<a>`, `<foreignObject>`, Animationen, nicht leere `<defs>` (Gradienten, Masken, Clip-Paths), `url(…)`, `xlink:href`, `data:`, At-Rules, DOCTYPE mit interner Teilmenge, loser Text, unbalancierte Tags |
+
+**Abgewiesen statt bereinigt.** Stilles Entfernen würde entweder die Zeichnung
+ändern, ohne es zu sagen, oder einen Rest übriglassen, den niemand bedacht hat.
+Eine Ablehnung, die das störende Konstrukt benennt, lässt die Datei dort
+reparieren, wo sie richtig zu reparieren ist.
+
+Was daraus als Zulieferbedingung folgt: **`viewBox` vorhanden, Schrift in Pfade
+umgewandelt, Gradienten und Masken aufgelöst, keine eingebetteten Bilder,
+keine externen Verweise.** Farben sind ohnehin RGB — SVG kennt kein CMYK.
+
+`id`-Attribute werden entfernt statt umbenannt. Ohne Bezeichner gibt es nichts,
+was kollidieren kann, wenn zwei Codes auf derselben Seite stehen.
+
 ### Ausliefern
 
 Der Renderer gibt eine Zeichenkette zurück und schreibt nichts. Was daraus
@@ -260,9 +351,10 @@ und wenn es aufhört zu gehen, liegt es am Paket und nicht am Klebstoff.
 
 | Datei | |
 |---|---|
-| `demo/index.php` | Formular, Vorschau, Kennzahlen, Download-Knopf |
-| `demo/svg.php` | liefert das SVG allein, mit `?download=1` als Datei |
+| `demo/index.php` | Formular, **beide Varianten nebeneinander**, Kennzahlen, Download-Knöpfe |
+| `demo/svg.php` | liefert ein SVG allein; `?variant=logo` mit Logo, `?download=1` als Datei |
 | `demo/bootstrap.php` | Autoload, Eingabeprüfung, Objektaufbau |
+| `demo/logos/*.svg` | Testlogos. Jede Datei hier wird von `RealWorldLogoTest` durch die ganze Kette geschickt |
 
 **Es wird nichts gespeichert.** Jede Anfrage erzeugt und rendert von neuem,
 das SVG lebt nur in der Antwort. Kein Cache, kein Ausgabeordner, deshalb
@@ -280,16 +372,21 @@ src/
     Contract/
       QrEncoder.php        Zeichenkette → Matrix (Schritte 1–6)
       QrRenderer.php       Matrix → Datei-Bytes (Schritt 7)
+      Logo.php             Markup plus Eigengröße
     Encoder/
       BaconQrEncoder.php   Adapter auf bacon/bacon-qr-code
+    Logo/
+      SvgLogo.php          Sanitizer: fremdes SVG → einbettbares Markup
+      LogoBox.php          gewünschter Kasten in Modulen, prüft die Platzierung
+      LogoPlacement.php    wo der Kasten dann liegt
     Render/
-      SvgRenderer.php      Matrix → SVG
+      SvgRenderer.php      Matrix → SVG, räumt den Logokasten frei
       SvgOptions.php       unveränderliche Darstellungseinstellungen
-    Exception/             QrGenException, InvalidArgument, EncodingFailed
+    Exception/             QrGenException, InvalidArgument, EncodingFailed, LogoRejected
     ErrorCorrection.php    die vier Stufen der Norm
     ModuleMatrix.php       die Grenze zwischen Kodieren und Zeichnen
   Statamic/                (leer) dünne Hülle: Provider, Tag, Command, Controller
-demo/                      Demo-Seite, nicht im Dist
+demo/                      Demo-Seite und Testlogos, nicht im Dist
 tests/Qr/                  Tests des Kerns
 ```
 
@@ -298,6 +395,19 @@ ein Encoder weiß, endet dort, und alles, was ein Renderer braucht, beginnt
 dort. Deshalb ist ein Encoder-Wechsel eine Klasse und kein Umbau. Die Matrix
 trägt **keine Ruhezone** — die gehört zum Zeichnen, weil ihre Größe davon
 abhängt, wie der Code platziert wird, nicht davon, wie er kodiert wurde.
+
+Sie trägt aber optional, **welche Module Funktionsmuster sind** — Such-,
+Trenn-, Takt- und Ausrichtungsmuster, Format- und Versionsinformation. Die sind
+nicht fehlerkorrigiert, also muss alles, was Module entfernt, wissen wo sie
+liegen. Nur der Encoder weiß das, deshalb reist die Maske mit der Matrix.
+`hasReservedInfo()` unterscheidet „kein Funktionsmuster" von „niemand hat es
+gesagt" — für die Prüfung eines Logokastens ist das der Unterschied zwischen
+geprüft und ungeprüft.
+
+Ein Logo liefert **Markup, keinen Pfad.** Das Lesen einer Datei ist Sache des
+Aufrufers, was den Kern frei von Datei-I/O hält und dasselbe Logo aus einem
+Statamic-Asset, einem Paket oder einer Testdatei kommen lässt, ohne dass dieses
+Paket den Unterschied kennt.
 
 Für `src/Qr/` gilt: **kein `use Statamic\…`, kein `use Illuminate\…`, kein
 Datei- oder Netzzugriff.** Statamic 3 und 6 lassen sich nicht von einem
@@ -325,6 +435,16 @@ Strukturen, die die Norm festlegt, und nicht nur die Form der Ausgabe:
   benachbarter Module zu einem Pfad verliert und erfindet nichts
 - **Die Ausgabe verweist auf nichts Externes** — kein `<image>`, kein
   `xlink:href`, kein `@import`, kein `<script>`
+- **Der Logokasten ist wirklich leer.** Auf einer vollflächig dunklen Matrix
+  wird gezählt: gezeichnet werden genau `Module − Kasten`, und kein einziger
+  Lauf reicht hinein
+- **Der Sanitizer weist ab, was er nicht kennt** — 19 Fälle von `<script>` über
+  `url(…)` bis zur DOCTYPE-Teilmenge, jeder mit der Meldung, die im Export zu
+  beheben ist
+- **Echte Exporte gehen durch die ganze Kette.** Jede Datei in `demo/logos`
+  wird von `RealWorldLogoTest` sanitisiert, in das Briefing-Symbol gerendert und
+  daraufhin geprüft, dass weder `<style>` noch `class=` noch `id=` noch `url(`
+  überlebt hat
 
 **Was die Tests nicht können:** sagen, ob der Code vom Etikett gelesen wird.
 Dafür braucht es einen Andruck in Originalgröße auf dem echten Material,
@@ -340,10 +460,11 @@ sind bis dahin in Minor-Schritten erlaubt.
 | | |
 |---|---|
 | `0.1.0` | Projektgerüst |
-| `0.2.0` | Stufe 1: URL → SVG, Demo-Seite, Tests |
-| `0.3.0` | geplant: Logo-Einbettung |
-| `0.4.0` | geplant: Statamic-Hülle, in der GVÖ-Seite lauffähig |
-| `1.0.0` | Stufe 1 in Produktion abgenommen, öffentliche API stabil |
+| `0.2.0` | URL → SVG, Demo-Seite, Tests |
+| `0.3.0` | Logo in der Mitte, SVG-Sanitizer, Funktionsmuster-Prüfung |
+| `0.4.0` | geplant: Code- und Token-Erzeugung |
+| `0.5.0` | geplant: Statamic-Hülle, in der GVÖ-Seite lauffähig |
+| `1.0.0` | in Produktion abgenommen, öffentliche API stabil |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):
 `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `build:`. Ein `!`
@@ -389,11 +510,20 @@ ratend beantwortet.
    `partner` hat 262 DE-Einträge, aber nur `title`, `ort`, `slug`. Hersteller
    im Sinne des VerpackDG sind eine andere Rolle als Lizenzpartner
 3. **Druckgröße und Material.** Ohne das kann der Andruck nicht anlaufen, und
-   ohne Andruck wird ein Logo im Code nicht zugesagt
-4. **Logo als RGB-SVG**, mit `viewBox`, ohne `<style>`-Block. Vorhanden ist nur
-   CMYK
+   ohne Andruck wird ein Logo im Code nicht zugesagt. Das ist jetzt der einzige
+   Punkt, der die Logo-Variante noch aufhält — technisch läuft sie
+4. **Welche Logo-Zeichnung?** Die GVÖ-Seite trägt zwei verschiedene: ein SVG
+   mit 1,20 : 1 in zwei Farben und ein PNG mit 1,65 : 1, einfarbig, mit der
+   Wortmarke. Bei 20 mm Codebreite stehen die Buchstaben rund 2,3 mm hoch und
+   die Umlautpunkte messen etwa 0,36 mm, also weniger als ein Codemodul.
+   Druckbar, aber eine Gestaltungsfrage — eine Fassung für kleine Größen wäre
+   besser
 5. **Sprachlogik der Auflösungs-Route.** Weiterleitung auf `/en/…` oder eine
    URL für beide Sprachen? Betrifft Caching und Suchmaschinen
+
+Erledigt: **„Logo als RGB-SVG fehlt" war ein Missverständnis.** SVG kennt kein
+CMYK; `gvoe-logo-cmyk.svg` trägt bereits Hex-Farben (`#009879`, `#9D9D9C`) und
+ist bis auf den `<style>`-Block ideale Eingabe — und den löst der Sanitizer auf.
 
 Aus dem Briefing bereits festgelegt: fünfstelliger Code aus
 `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (ohne `0 O 1 I L`), Ziel-URL

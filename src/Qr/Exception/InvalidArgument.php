@@ -78,4 +78,72 @@ final class InvalidArgument extends InvalidArgumentException implements QrGenExc
             $given
         ));
     }
+
+    public static function reservedMaskDoesNotMatch(int $size, int $maskSize): self
+    {
+        return new self(sprintf(
+            'The function pattern mask is %d rows for a %dx%d matrix.',
+            $maskSize,
+            $size,
+            $size
+        ));
+    }
+
+    public static function logoBoxNotOdd(int $width, int $height): self
+    {
+        return new self(sprintf(
+            'A logo box has to be an odd number of modules on both sides, got %dx%d. A QR symbol '
+            . 'is always odd (17 + 4 x version), so an even box would sit half a module off the '
+            . 'grid and cover parts of modules instead of whole ones.',
+            $width,
+            $height
+        ));
+    }
+
+    public static function logoBoxTooLarge(int $width, int $height, int $size): self
+    {
+        return new self(sprintf(
+            'A logo box of %dx%d modules does not fit a %dx%d symbol.',
+            $width,
+            $height,
+            $size,
+            $size
+        ));
+    }
+
+    public static function logoMarginTooLarge(int $margin, int $shorterSide): self
+    {
+        return new self(sprintf(
+            'A margin of %d modules leaves nothing to draw in on a box %d modules across.',
+            $margin,
+            $shorterSide
+        ));
+    }
+
+    public static function logoCoversFunctionPattern(int $modules): self
+    {
+        return new self(sprintf(
+            'The logo box would cover %d module(s) of a function pattern — a finder, timing or '
+            . 'alignment pattern. Those carry no error correction, so the symbol would lose the '
+            . 'geometry a scanner needs. Use a smaller box or a higher error correction level, '
+            . 'which moves the symbol to a version whose alignment patterns sit elsewhere.',
+            $modules
+        ));
+    }
+
+    public static function logoTouchesFinderZone(): self
+    {
+        return new self(
+            'The logo box reaches into the corner zone of a finder pattern. Use a smaller box.'
+        );
+    }
+
+    public static function logoNeedsOpaqueBackdrop(): self
+    {
+        return new self(
+            'A logo needs an opaque backdrop, but the light color is "none". The cleared area '
+            . 'around the logo has to read as light, otherwise whatever is behind the symbol '
+            . 'shows through and a scanner sees neither light nor dark. Set a light color.'
+        );
+    }
 }

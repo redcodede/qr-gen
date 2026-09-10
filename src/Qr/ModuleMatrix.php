@@ -15,21 +15,49 @@ use Redcodede\QrGen\Qr\Exception\InvalidArgument;
  *
  * The matrix carries no quiet zone. That belongs to rendering, because its size
  * depends on how the symbol is placed, not on how it was encoded.
+ *
+ * Optionally it also carries which modules are **function patterns** — finders,
+ * separators, timing patterns, alignment patterns, format and version
+ * information. Those are not covered by error correction, so anything that
+ * removes modules (a logo) has to know where they are. Only the encoder knows,
+ * hence it travels with the matrix.
  */
 final class ModuleMatrix
 {
     /** @var list<list<bool>> */
     private $rows;
 
+    /** @var list<list<bool>>|null */
+    private $reserved;
+
     /** @var int */
     private $size;
 
     /**
-     * @param list<list<bool>> $rows Row-major, indexed [y][x].
+     * @param list<list<bool>>      $rows     Row-major, indexed [y][x].
+     * @param list<list<bool>>|null $reserved Same shape; true where the module
+     *                                        belongs to a function pattern.
+     *                                        Null when the encoder did not say.
      *
-     * @throws InvalidArgument if the grid is empty, not square, or holds anything but booleans
+     * @throws InvalidArgument if a grid is empty, not square, or holds anything but booleans
      */
-    public function __construct(array $rows)
+    public function __construct(array $rows, ?array $reserved = null)
+    {
+        $this->rows = $this->normalize($rows);
+        $this->size = count($this->rows);
+        $this->reserved = $reserved === null ? null : $this->normalize($reserved);
+
+        if ($this->reserved !== null && count($this->reserved) !== $this->size) {
+            throw InvalidArgument::reservedMaskDoesNotMatch($this->size, count($this->reserved));
+        }
+    }
+
+    /**
+     * @param array<int, array<int, mixed>> $rows
+     *
+     * @return list<list<bool>>
+     */
+    private function normalize(array $rows): array
     {
         $size = count($rows);
 
@@ -49,8 +77,10 @@ final class ModuleMatrix
             }
         }
 
-        $this->rows = array_values(array_map('array_values', $rows));
-        $this->size = $size;
+        /** @var list<list<bool>> $normalized */
+        $normalized = array_values(array_map('array_values', $rows));
+
+        return $normalized;
     }
 
     /**
@@ -64,15 +94,43 @@ final class ModuleMatrix
     }
 
     /**
+     * The QR version this side length corresponds to, 1 to 40.
+     */
+    public function version(): int
+    {
+        return intdiv($this->size - 17, 4);
+    }
+
+    /**
      * @throws InvalidArgument if the coordinates lie outside the matrix
      */
     public function isDark(int $x, int $y): bool
     {
-        if ($x < 0 || $y < 0 || $x >= $this->size || $y >= $this->size) {
-            throw InvalidArgument::moduleOutOfBounds($x, $y, $this->size);
-        }
+        $this->guardBounds($x, $y);
 
         return $this->rows[$y][$x];
+    }
+
+    /**
+     * Whether the module belongs to a function pattern and therefore must not
+     * be covered.
+     *
+     * Reports false when the encoder supplied no mask. Ask hasReservedInfo()
+     * first if the difference between "not a function pattern" and "nobody
+     * said" matters — for validating a logo placement, it does.
+     *
+     * @throws InvalidArgument if the coordinates lie outside the matrix
+     */
+    public function isReserved(int $x, int $y): bool
+    {
+        $this->guardBounds($x, $y);
+
+        return $this->reserved !== null && $this->reserved[$y][$x];
+    }
+
+    public function hasReservedInfo(): bool
+    {
+        return $this->reserved !== null;
     }
 
     /**
@@ -105,5 +163,12 @@ final class ModuleMatrix
         }
 
         return implode("\n", $lines);
+    }
+
+    private function guardBounds(int $x, int $y): void
+    {
+        if ($x < 0 || $y < 0 || $x >= $this->size || $y >= $this->size) {
+            throw InvalidArgument::moduleOutOfBounds($x, $y, $this->size);
+        }
     }
 }

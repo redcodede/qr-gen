@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Redcodede\QrGen\Qr\Encoder;
 
 use BaconQrCode\Common\ErrorCorrectionLevel as BaconLevel;
+use BaconQrCode\Common\Version;
 use BaconQrCode\Encoder\Encoder as BaconEncoder;
 use Redcodede\QrGen\Qr\Contract\QrEncoder;
 use Redcodede\QrGen\Qr\ErrorCorrection;
@@ -77,10 +78,18 @@ final class BaconQrEncoder implements QrEncoder
             throw EncodingFailed::notASquareMatrix($width, $height);
         }
 
+        // Which modules are finders, separators, timing and alignment
+        // patterns, format and version information. None of that is covered by
+        // error correction, so a logo has to be kept off it — and only the
+        // encoder knows where it is, which is why it travels with the matrix.
+        $functionPattern = Version::getVersionForNumber(intdiv($height - 17, 4))->buildFunctionPattern();
+
         $rows = [];
+        $reserved = [];
 
         for ($y = 0; $y < $height; $y++) {
             $row = [];
+            $reservedRow = [];
 
             for ($x = 0; $x < $width; $x++) {
                 // The library's ByteMatrix stores 1 for a dark module, 0 for a
@@ -88,12 +97,14 @@ final class BaconQrEncoder implements QrEncoder
                 // finished symbol has no -1 left, and treating anything but 1
                 // as light keeps a hypothetical leftover from rendering dark.
                 $row[] = $matrix->get($x, $y) === 1;
+                $reservedRow[] = $functionPattern->get($x, $y);
             }
 
             $rows[] = $row;
+            $reserved[] = $reservedRow;
         }
 
-        return new ModuleMatrix($rows);
+        return new ModuleMatrix($rows, $reserved);
     }
 
     private function baconLevel(ErrorCorrection $level): BaconLevel

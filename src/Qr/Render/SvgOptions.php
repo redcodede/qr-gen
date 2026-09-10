@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Redcodede\QrGen\Qr\Render;
 
+use Redcodede\QrGen\Qr\Contract\Logo;
 use Redcodede\QrGen\Qr\Exception\InvalidArgument;
+use Redcodede\QrGen\Qr\Logo\LogoBox;
 
 /**
  * Settings for the SVG renderer. Immutable; every wither returns a new instance.
@@ -44,9 +46,60 @@ final class SvgOptions
     /** @var bool */
     private $xmlDeclaration = false;
 
+    /** @var Logo|null */
+    private $logo;
+
+    /** @var LogoBox|null */
+    private $logoBox;
+
     public static function default(): self
     {
         return new self();
+    }
+
+    /**
+     * Places artwork in the middle of the symbol.
+     *
+     * The box is the cleared area — logo plus the light margin around it. It is
+     * validated against the matrix at render time, not here, because whether it
+     * fits depends on the version, and the version depends on the payload.
+     *
+     * A logo needs level H in practice. Nothing here enforces that: the renderer
+     * has no idea what level the matrix was encoded at, and refusing the
+     * combination would be a guess. What it does refuse is a cleared area over a
+     * function pattern, which is the failure that actually breaks a scan.
+     */
+    public function withLogo(Logo $logo, LogoBox $box): self
+    {
+        $clone = clone $this;
+        $clone->logo = $logo;
+        $clone->logoBox = $box;
+
+        return $clone;
+    }
+
+    public function withoutLogo(): self
+    {
+        $clone = clone $this;
+        $clone->logo = null;
+        $clone->logoBox = null;
+
+        return $clone;
+    }
+
+    public function logo(): ?Logo
+    {
+        return $this->logo;
+    }
+
+    public function logoBox(): ?LogoBox
+    {
+        return $this->logoBox;
+    }
+
+    public function hasLogo(): bool
+    {
+        return $this->logo !== null && $this->logoBox !== null;
     }
 
     /**
