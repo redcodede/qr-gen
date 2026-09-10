@@ -20,9 +20,10 @@ declare(strict_types=1);
 
 return [
     'app.title' => 'qr-gen',
-    'app.subtitle' => 'URL rein, zwei SVGs raus — einer schlicht, einer mit Bildmarke in der Mitte. '
-        . 'Es wird nichts auf die Platte geschrieben: jede Anfrage kodiert und rendert von neuem, '
-        . 'und der Download erzeugt neu, statt eine Datei zu holen.',
+    'app.subtitle' => 'URL rein, zwei Codes raus — einer schlicht, einer mit Bildmarke in der '
+        . 'Mitte. Als SVG für den Druck, dazu ein druckfertiges PNG für den schlichten. Es wird '
+        . 'nichts auf die Platte geschrieben: jede Anfrage kodiert und rendert von neuem, und der '
+        . 'Download erzeugt neu, statt eine Datei zu holen.',
 
     'form.url.label' => 'URL',
     'form.logo.label' => 'Bildmarke',
@@ -35,10 +36,16 @@ return [
 
     'panel.plain' => 'Ohne Bildmarke',
     'panel.logo' => 'Mit Bildmarke',
-    'panel.download' => 'SVG herunterladen',
+    'panel.download.svg' => 'SVG herunterladen',
+    'panel.download.png' => 'PNG herunterladen',
     'panel.raw' => 'Direkt öffnen',
     'panel.nothing' => 'Nichts gerendert.',
     'panel.noLogo' => 'Kein SVG in demo/logos. Leg eines hinein und lade neu.',
+    'panel.png.unavailable' => 'Für den Druck ist das SVG das richtige Format: Vektor, beliebig '
+        . 'skalierbar, gestochen scharf in jeder Größe. Ein PNG mit Bildmarke gibt es hier nicht, '
+        . 'weil dafür Vektorpfade gerastert werden müssten — Bézierkurven, Bögen, Füllregeln — und '
+        . 'das ist ein 2D-Rasterisierer und keine hundert Zeilen. Wer ein Raster mit Bildmarke '
+        . 'braucht, exportiert es beim Layout aus dem SVG in der benötigten Größe.',
 
     'facts.heading' => 'Was herausgekommen ist',
     'facts.payload' => 'Nutzlast',
@@ -66,6 +73,13 @@ return [
     'facts.largestBox.value' => ':modules Module',
     'facts.svgSize' => 'SVG-Größe',
     'facts.svgSize.value' => ':plain gegen :logo Bytes',
+    'facts.png' => 'PNG',
+    'facts.png.value' => ':pixels × :pixels px, :perModule px je Modul, 1 Bit, :bytes Bytes',
+    'facts.printSize' => 'Gedruckte Größe',
+    'facts.printSize.value' => ':size mm bei :dpi dpi — ordentlich für :ordered mm, ohne '
+        . 'Hochskalieren',
+    'facts.preview' => 'Vorschau zeigt',
+    'facts.preview.value' => ':format, das kleinere von beiden',
 
     'source.summary' => 'SVG-Quelltext, mit Bildmarke',
 
@@ -77,6 +91,12 @@ return [
     'notice.quietZone' => 'Die Ruhezone steht auf :quietZone Modulen. Die Norm verlangt 4. '
         . 'Das trägt nur, wenn das Layout drumherum die fehlenden Module an Weißraum beisteuert — '
         . 'grenzt der Code direkt an Grafik, wird er unzuverlässig. Der Andruck entscheidet.',
+
+    'notice.print' => 'Für die Druckerei: Schwarz als :dark, Weiß als :light, und im CMYK-Umbruch '
+        . 'ausdrücklich 100 % K — kein Rich Black. Ein aus vier Farben gemischtes Schwarz braucht '
+        . 'vier passgenaue Platten, und wo sie nicht passen, weicht eine Modulkante zu einem '
+        . 'farbigen Saum auf. Genau diese Kante vermisst ein Scanner. Weder PNG noch SVG können '
+        . 'CMYK überhaupt tragen; die Umwandlung passiert im Umbruch.',
 
     'error.url.tooLong' => 'Die URL ist :length Bytes lang. Diese Seite nimmt höchstens :max.',
     'error.url.notHttp' => 'Das ist keine http- oder https-URL. Der Encoder selbst nimmt jede '

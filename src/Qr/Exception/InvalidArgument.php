@@ -79,6 +79,25 @@ final class InvalidArgument extends InvalidArgumentException implements QrGenExc
         ));
     }
 
+    public static function printSizeOutOfRange(float $millimetres): self
+    {
+        return new self(sprintf(
+            'The intended print size has to be between 5 and 2000 mm, got %s.',
+            rtrim(rtrim(number_format($millimetres, 2, '.', ''), '0'), '.')
+        ));
+    }
+
+    public static function notAPrintColor(string $name, string $given): self
+    {
+        return new self(sprintf(
+            '%s has to be a hex color with three or six digits, got "%s". A two-colour PNG has '
+            . 'no alpha channel, so hex with an alpha component is refused rather than silently '
+            . 'truncated — use withTransparentBackground() if the light area should drop out.',
+            $name,
+            $given
+        ));
+    }
+
     public static function reservedMaskDoesNotMatch(int $size, int $maskSize): self
     {
         return new self(sprintf(

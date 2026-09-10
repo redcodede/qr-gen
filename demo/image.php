@@ -1,15 +1,19 @@
 <?php
 
 /**
- * Serves one SVG on its own, for download or for embedding.
+ * Serves one image on its own, for download or for embedding.
  *
  * Generated per request and streamed straight out. Nothing is written to disk,
  * which is why the response says no-store: there is no stored copy anywhere, and
  * a cached one would be the only one.
  *
- *   svg.php?url=https://www.redcode.de/                        plain, inline
- *   svg.php?url=…&variant=logo                                 with the artwork
- *   svg.php?url=…&variant=logo&download=1                      as a file
+ *   image.php?url=…                              SVG, plain, inline
+ *   image.php?url=…&format=png                   PNG, print-ready
+ *   image.php?url=…&variant=logo                 SVG with artwork
+ *   image.php?url=…&format=png&download=1        as a file
+ *
+ * A PNG with artwork does not exist — see pngAvailable() — and a request for one
+ * comes back as SVG rather than as a symbol with a hole in it.
  */
 
 declare(strict_types=1);
@@ -29,30 +33,31 @@ if ($input['errors'] !== []) {
 }
 
 $withLogo = isset($_GET['variant']) && $_GET['variant'] === 'logo';
+$format = isset($_GET['format']) && $_GET['format'] === 'png' && pngAvailable($withLogo) ? 'png' : 'svg';
 
-[$svg, $failure] = tryRender($input['url'], $input['logo'], true, $withLogo);
+[$image, $failure] = tryRender($input['url'], $input['logo'], true, $withLogo, $format);
 
-if ($svg === null) {
+if ($image === null) {
     http_response_code(422);
     header('Content-Type: text/plain; charset=utf-8');
     echo $failure . "\n";
     exit;
 }
 
-$renderer = renderer($input['logo'], true, $withLogo);
+$renderer = rendererFor($format, $input['logo'], true, $withLogo);
 $filename = downloadFilename($input['url'], $withLogo, $renderer->fileExtension());
 
 $disposition = empty($_GET['download'])
     ? 'inline'
     : sprintf('attachment; filename="%s"', $filename);
 
-header('Content-Type: ' . $renderer->mimeType() . '; charset=utf-8');
+header('Content-Type: ' . $renderer->mimeType() . ($format === 'svg' ? '; charset=utf-8' : ''));
 header('Content-Disposition: ' . $disposition);
-header('Content-Length: ' . strlen($svg));
+header('Content-Length: ' . strlen($image));
 header('X-Content-Type-Options: nosniff');
 header('Cache-Control: no-store');
 
-echo $svg;
+echo $image;
 
 /**
  * Builds a download filename from the URL's host.

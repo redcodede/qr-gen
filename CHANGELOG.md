@@ -22,6 +22,56 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 - Raster-Logo als Data-URI, falls kein SVG geliefert wird
 - PNG-Ausgabe ohne `gd`, über `zlib` und `crc32()`
 
+## [0.6.0] - 2026-09-10
+
+Ein druckfertiges PNG, ohne Bildextension.
+
+### Hinzugefügt
+
+- **`Qr\Render\PngRenderer`** — von Hand geschrieben, ohne `gd` und ohne
+  `imagick`. Ein zweifarbiges PNG ist `IHDR`, `PLTE`, `pHYs`, `IDAT` und
+  `IEND`, jedes mit CRC32; `zlib` ist in jedem Standard-PHP-Build und `crc32()`
+  ist Sprachkern. **1 Bit je Pixel, zwei Palettenfarben** — genau das, was ein
+  RIP für Strichzeichnungen will: keine Kantenglättung, die eine Modulkante
+  aufweicht, und eine Datei von rund einem Kilobyte
+- **`Qr\Render\PngOptions`** — angegeben werden **physische Größe und
+  Auflösung**, die Pixelmaße fallen daraus. Jedes Modul bekommt eine ganze Zahl
+  an Pixeln, und gerundet wird nach oben, damit die Datei nie kleiner ist als
+  bestellt. Für die Briefing-URL: 37 Module × 32 px = **1184 px = 50,12 mm bei
+  600 dpi**, 1.136 Bytes
+- Der **`pHYs`-Chunk**, der den Unterschied zwischen einem großen Bild und
+  einem druckfertigen macht. Ohne ihn platziert ein Layoutprogramm die Datei
+  mit seiner eigenen Annahme, meist 72 dpi
+- `Preset::pngOptions()`, `Preset::PRINT_DPI` (600), `Preset::PRINT_SIZE_MM`
+  (50), `Preset::DARK_COLOR` und `LIGHT_COLOR`
+- Demo-Seite: **PNG-Download** für den schlichten Code, und die Vorschau zeigt
+  das kleinere der beiden Formate — bei einem QR-Code ist das das PNG, was der
+  Intuition widerspricht, die ein Vektorformat weckt
+- Ein Hinweis für die Druckerei: **100 % K, kein Rich Black.** Ein aus vier
+  Farben gemischtes Schwarz braucht vier passgenaue Platten, und wo sie nicht
+  passen, weicht eine Modulkante zu einem farbigen Saum auf. Weder PNG noch SVG
+  können CMYK überhaupt tragen; die Umwandlung passiert im Umbruch
+- 31 Tests, die die Bytes auseinandernehmen: Signatur, Chunk-Reihenfolge, jede
+  CRC, `pHYs`-Wert, Palette, Bittiefe über `getimagesize()` — und ein
+  Rundlauf, der den Raster zurück in die Matrix entpackt und mit der Eingabe
+  vergleicht
+
+### Geändert
+
+- `demo/svg.php` heißt jetzt `demo/image.php` und nimmt `?format=png`. Eine
+  Datei, die PNG ausliefert, sollte nicht `svg.php` heißen
+
+### Nicht enthalten
+
+- **Ein PNG mit Bildmarke.** Dafür müssten Vektorpfade gerastert werden —
+  Bézierkurven, Bögen, Füllregeln — und das ist ein 2D-Rasterisierer, nicht
+  hundert Zeilen Chunk-Schreiben. Es ist auch die falsche Frage: für den Druck
+  ist das SVG das Lieferformat, und wer das Layout macht, exportiert daraus ein
+  Raster in jeder Größe. Eine Anfrage nach `format=png` mit Bildmarke kommt
+  deshalb als SVG zurück, nicht als Symbol mit einem Loch darin. Der Weg dorthin
+  wäre eine Raster-Bildmarke plus ein PNG-Dekoder im Paket, und der kostet die
+  1-Bit-Schärfe
+
 ## [0.5.0] - 2026-09-10
 
 Textsammlung und festgelegte Werte.
@@ -317,7 +367,8 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/redcodede/qr-gen/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/redcodede/qr-gen/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/redcodede/qr-gen/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/redcodede/qr-gen/compare/v0.4.0...v0.4.1

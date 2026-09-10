@@ -17,9 +17,10 @@ declare(strict_types=1);
 
 return [
     'app.title' => 'qr-gen',
-    'app.subtitle' => 'URL in, two SVGs out — one plain, one with artwork in the middle. '
-        . 'Nothing is written to disk: every request encodes and renders from scratch, '
-        . 'and a download regenerates rather than fetching a stored file.',
+    'app.subtitle' => 'URL in, two codes out — one plain, one with artwork in the middle. As SVG '
+        . 'for print, plus a print-ready PNG for the plain one. Nothing is written to disk: every '
+        . 'request encodes and renders from scratch, and a download regenerates rather than '
+        . 'fetching a stored file.',
 
     'form.url.label' => 'URL',
     'form.logo.label' => 'Artwork',
@@ -32,10 +33,16 @@ return [
 
     'panel.plain' => 'Without artwork',
     'panel.logo' => 'With artwork',
-    'panel.download' => 'Download SVG',
+    'panel.download.svg' => 'Download SVG',
+    'panel.download.png' => 'Download PNG',
     'panel.raw' => 'Open raw',
     'panel.nothing' => 'Nothing rendered.',
     'panel.noLogo' => 'No SVG in demo/logos. Drop one in and reload.',
+    'panel.png.unavailable' => 'For print the SVG is the right format: vector, scalable to any '
+        . 'size, crisp at every one of them. There is no PNG with artwork here because that would '
+        . 'mean rasterising vector paths — beziers, arcs, fill rules — which is a 2D rasteriser, '
+        . 'not a hundred lines. Anyone who needs a raster with artwork exports one from the SVG at '
+        . 'the size they need while laying out the page.',
 
     'facts.heading' => 'What came out',
     'facts.payload' => 'Payload',
@@ -63,6 +70,12 @@ return [
     'facts.largestBox.value' => ':modules modules',
     'facts.svgSize' => 'SVG size',
     'facts.svgSize.value' => ':plain vs :logo bytes',
+    'facts.png' => 'PNG',
+    'facts.png.value' => ':pixels × :pixels px, :perModule px per module, 1 bit, :bytes bytes',
+    'facts.printSize' => 'Printed size',
+    'facts.printSize.value' => ':size mm at :dpi dpi — good for :ordered mm with no upscaling',
+    'facts.preview' => 'Preview shows',
+    'facts.preview.value' => ':format, the smaller of the two',
 
     'source.summary' => 'SVG source, with artwork',
 
@@ -74,6 +87,12 @@ return [
     'notice.quietZone' => 'The quiet zone is set to :quietZone modules. The specification asks for 4. '
         . 'That only holds if the surrounding layout contributes the missing modules as white space — '
         . 'a code butting straight up against artwork becomes unreliable. A print proof settles it.',
+
+    'notice.print' => 'For the printer: black as :dark, white as :light, and in the CMYK '
+        . 'conversion explicitly 100 % K — no rich black. A black mixed from four inks needs four '
+        . 'plates in register, and where they are not, a module edge softens into a coloured '
+        . 'fringe. That edge is exactly what a scanner measures. Neither PNG nor SVG can carry '
+        . 'CMYK at all; the conversion happens in prepress.',
 
     'error.url.tooLong' => 'The URL is :length bytes long. This page accepts at most :max.',
     'error.url.notHttp' => 'That is not an http or https URL. The encoder itself takes any string, '

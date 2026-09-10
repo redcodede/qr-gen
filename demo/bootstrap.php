@@ -20,6 +20,7 @@ namespace Redcodede\QrGen\Demo;
 
 use Redcodede\QrGen\I18n\Translator;
 use Redcodede\QrGen\Qr\Contract\Logo;
+use Redcodede\QrGen\Qr\Contract\QrRenderer;
 use Redcodede\QrGen\Qr\Encoder\BaconQrEncoder;
 use Redcodede\QrGen\Qr\ErrorCorrection;
 use Redcodede\QrGen\Qr\Exception\QrGenException;
@@ -29,6 +30,7 @@ use Redcodede\QrGen\Qr\Logo\LogoFitResult;
 use Redcodede\QrGen\Qr\Logo\SvgLogo;
 use Redcodede\QrGen\Qr\ModuleMatrix;
 use Redcodede\QrGen\Qr\Preset;
+use Redcodede\QrGen\Qr\Render\PngRenderer;
 use Redcodede\QrGen\Qr\Render\SvgRenderer;
 
 $autoload = dirname(__DIR__) . '/vendor/autoload.php';
@@ -201,7 +203,7 @@ function logo(string $filename): ?Logo
     return SvgLogo::fromMarkup((string) file_get_contents($path));
 }
 
-function renderer(string $logoFile, bool $standalone, bool $withLogo): SvgRenderer
+function svgRenderer(string $logoFile, bool $standalone, bool $withLogo): SvgRenderer
 {
     $options = Preset::svgOptions()->withXmlDeclaration($standalone);
 
@@ -216,14 +218,75 @@ function renderer(string $logoFile, bool $standalone, bool $withLogo): SvgRender
     return new SvgRenderer($options);
 }
 
-/**
- * @return array{0: string|null, 1: string|null} The rendered SVG, or null and a message
- */
-function tryRender(string $url, string $logoFile, bool $standalone, bool $withLogo): array
+function pngRenderer(): PngRenderer
 {
+    return new PngRenderer(Preset::pngOptions());
+}
+
+/**
+ * The renderer for a requested format. PNG carries no artwork, so a request for
+ * one comes back as SVG rather than as a symbol with a hole where the logo
+ * should be.
+ */
+function rendererFor(string $format, string $logoFile, bool $standalone, bool $withLogo): QrRenderer
+{
+    return $format === 'png' && !$withLogo
+        ? pngRenderer()
+        : svgRenderer($logoFile, $standalone, $withLogo);
+}
+
+/**
+ * PNG is offered for the plain symbol only.
+ *
+ * Putting artwork into a raster would mean rasterising vector paths — beziers,
+ * arcs, fill rules — which is a 2D rasteriser rather than a hundred lines of
+ * chunk writing. It is also the wrong deliverable: a print shop takes vector
+ * artwork, and whoever lays out the page can export a raster from the SVG at
+ * whatever size they need.
+ */
+function pngAvailable(bool $withLogo): bool
+{
+    return !$withLogo;
+}
+
+/**
+ * @return array{0: string|null, 1: string|null} The rendered bytes, or null and a message
+ */
+function tryRender(
+    string $url,
+    string $logoFile,
+    bool $standalone,
+    bool $withLogo,
+    string $format = 'svg'
+): array {
     try {
-        return [renderer($logoFile, $standalone, $withLogo)->render(encode($url)), null];
+        return [rendererFor($format, $logoFile, $standalone, $withLogo)->render(encode($url)), null];
     } catch (QrGenException $exception) {
         return [null, $exception->getMessage()];
     }
+}
+
+/**
+ * Which format the preview should use: whichever is fewer bytes.
+ *
+ * Counter to the intuition that a vector file is always the lean one — a
+ * two-colour PNG of a QR code is long runs of identical bytes, and deflate
+ * eats those, so 1184 pixels square lands around a kilobyte while the SVG
+ * spends three on path data.
+ *
+ * @return array{0: string, 1: int, 2: int} Format, PNG bytes, SVG bytes
+ */
+function cheaperFormat(string $url, string $logoFile, bool $withLogo): array
+{
+    [$svg] = tryRender($url, $logoFile, false, $withLogo);
+    $svgBytes = strlen((string) $svg);
+
+    if (!pngAvailable($withLogo)) {
+        return ['svg', 0, $svgBytes];
+    }
+
+    [$png] = tryRender($url, $logoFile, false, false, 'png');
+    $pngBytes = strlen((string) $png);
+
+    return [$pngBytes > 0 && $pngBytes < $svgBytes ? 'png' : 'svg', $pngBytes, $svgBytes];
 }

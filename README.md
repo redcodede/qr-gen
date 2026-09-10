@@ -1,13 +1,14 @@
 # qr-gen
 
-> Erzeugt aus einer URL einen QR-Code als SVG. Zwei Laufzeit-Abhängigkeiten,
-> keine Bildextension, kein Framework im Kern.
+> Erzeugt aus einer URL einen QR-Code als SVG und als druckfertiges PNG. Zwei
+> Laufzeit-Abhängigkeiten, keine Bildextension, kein Framework im Kern.
 
-**Status: URL rein, zwei SVGs raus** — einer ohne, einer mit Logo in der Mitte.
-Mit Demo-Seite und Download. Noch **nicht** dabei: PNG und die
-Statamic-Anbindung. Was hier unter „geplant" steht, existiert nicht.
+**Status: URL rein, zwei Codes raus** — einer ohne, einer mit Bildmarke in der
+Mitte, als SVG; dazu ein druckfertiges PNG für den schlichten. Mit Demo-Seite
+und Downloads. Noch **nicht** dabei: die Statamic-Anbindung. Was hier unter
+„geplant" steht, existiert nicht.
 
-Geprüft am 10.09.2026 auf PHP 8.4: **220 Tests, 6113 Assertions, grün.**
+Geprüft am 10.09.2026 auf PHP 8.4: **251 Tests, 12282 Assertions, grün.**
 
 ---
 
@@ -40,6 +41,9 @@ Zuschnitt in zwei Stufen.
 - [x] **`LogoFit`: die niedrigste Stufe finden, bei der ein Kasten überlebt** —
       statt jemanden rätseln zu lassen, warum ein Kasten bei H passt und bei M
       nicht
+- [x] **Druckfertiges PNG ohne `gd` und ohne `imagick`**, 1 Bit, zwei Farben,
+      mit `pHYs`-Auflösung und aus der physischen Größe berechnet
+- [x] Textsammlung DE/EN, Deutsch als Standard
 - [x] Demo-Seite mit beiden Varianten, Kennzahlen und Download
 - [x] Test, der die Framework-Freiheit des Kerns erzwingt
 - [x] Rundlauf-Test, der das SVG zurück in eine Matrix liest
@@ -52,8 +56,8 @@ Zuschnitt in zwei Stufen.
 - [ ] Code- und Token-Erzeugung, `CodeRepository`-Interface
 - [ ] Statamic-Hülle: ServiceProvider, Artisan-Command, Auflösungs-Route,
       Download-Seite
-- [ ] Raster-Logo (PNG) als Data-URI, für den Fall, dass kein SVG kommt
-- [ ] PNG-Ausgabe, ohne `gd` (siehe [Warum keine Bildextension](#warum-keine-bildextension))
+- [ ] Raster-Bildmarke, falls die Bildmarke nur als PNG kommt. Braucht einen
+      PNG-**Dekoder**, damit sie sich einrechnen lässt
 
 ### Stufe 2 — später, im Website-Relaunch
 
@@ -71,13 +75,17 @@ Entscheidungen, keine Stellschrauben:
 | Rand im Kasten | **1** Modul |
 | Modulgröße | **13** px |
 | Ruhezone | **2** Module |
+| Druckauflösung | **600** dpi |
+| Zielgröße im Druck | **50** mm |
+| Farben | `#000000` auf `#ffffff` |
 | Fehlerkorrekturstufe | **wird ausgerechnet**, siehe `LogoFit` |
 
 ```php
 use Redcodede\QrGen\Qr\Preset;
 
-$options = Preset::svgOptions();   // Modulgröße und Ruhezone
-$box = Preset::logoBox();          // Kasten und Rand
+$svgOptions = Preset::svgOptions();   // Modulgröße, Ruhezone, Farben
+$pngOptions = Preset::pngOptions();   // Auflösung, Druckgröße, Farben
+$box = Preset::logoBox();             // Kasten und Rand
 ```
 
 Die Stufe fehlt absichtlich. Sie folgt aus Nutzlast und Logokasten, und sie
@@ -109,6 +117,82 @@ prüfen, und entschieden wird sie vom Andruck, nicht von dieser Zeile.
 sich an die Norm; die Abweichung gehört dem Projekt, nicht dem Paket. Ein
 Paket, das eine normwidrige Ruhezone als eigenen Standard ausliefert, würde
 jeden anlügen, der es installiert. Ein Test hält die beiden auseinander.
+
+## Beide Formate, und welches wofür
+
+```php
+use Redcodede\QrGen\Qr\Render\PngRenderer;
+use Redcodede\QrGen\Qr\Render\SvgRenderer;
+
+$svg = (new SvgRenderer(Preset::svgOptions()))->render($matrix);
+$png = (new PngRenderer(Preset::pngOptions()))->render($matrix);
+```
+
+| | SVG | PNG |
+|---|---|---|
+| Skalierbar | beliebig | nein |
+| Bildmarke | **ja** | nein, siehe unten |
+| Für die Druckerei | **das richtige Format** | Beilage |
+| Briefing-URL | 3.952 B | **1.184 × 1.184 px, 1.136 B** |
+
+### Das PNG ist aus der Druckgröße gerechnet, nicht aus einer Pixelzahl
+
+Die Pixelmaße sind keine Einstellung. Angegeben werden **physische Größe und
+Auflösung**, und daraus fällt die Pixelzahl:
+
+| | |
+|---|---|
+| Auflösung | **600 dpi** |
+| Zielgröße | **50 mm** |
+| Briefing-URL | 37 Module × **32 px** = 1184 px = **50,12 mm** |
+| Demo-URL | 33 Module × **36 px** = 1188 px = 50,29 mm |
+
+Zwei Dinge daran sind Absicht. **Jedes Modul bekommt eine ganze Zahl an
+Pixeln** — eine Modulgrenze, die zwischen zwei Pixel fällt, ist eine Kante, die
+der Raster verschmieren muss, und eine verschmierte Kante liest ein Scanner
+falsch. Und **gerundet wird nach oben**, also ist die Datei nie kleiner als
+bestellt: auf 50 mm gedruckt wird um Bruchteile eines Prozents verkleinert,
+nie hochskaliert.
+
+600 dpi statt 300, weil 300 die Zahl für Fotografien ist, wo das Auge in einem
+Halbton nicht mehr auflöst. Ein QR-Code ist harte Kante, und eine Kante
+profitiert von jedem Punkt, den die Maschine setzen kann.
+
+**`pHYs` ist der Unterschied zwischen einem großen Bild und einem
+druckfertigen.** Ohne diesen Chunk platziert ein Layoutprogramm die Datei mit
+seiner eigenen Annahme — meist 72 dpi — und der Code landet achtmal zu groß,
+woraufhin ihn jemand nach Augenmaß verkleinert.
+
+**1 Bit, zwei Palettenfarben.** Genau das ist ein QR-Code und genau das will
+ein RIP für Strichzeichnungen: keine Kantenglättung, die eine Modulkante
+aufweicht, kein Graustufenwert, den eine Maschine rastern muss, und eine Datei
+von einem Kilobyte statt von einem Megabyte.
+
+### Farbmodus: was mitzugeben ist
+
+Schwarz ist `#000000`, Weiß `#ffffff`. **Weder PNG noch SVG können CMYK
+überhaupt tragen** — PNG hat den Farbraum nicht, SVG 1.1 auch nicht. Die
+Umwandlung passiert im Umbruch, und die Anweisung dazu lautet: **100 % K, kein
+Rich Black.** Ein aus vier Farben gemischtes Schwarz braucht vier passgenaue
+Platten, und wo sie nicht passen, weicht eine Modulkante zu einem farbigen Saum
+auf — genau die Kante, die ein Scanner vermisst.
+
+### Warum das PNG keine Bildmarke trägt
+
+Dafür müssten Vektorpfade gerastert werden: Bézierkurven, Bögen, Füllregeln.
+Das ist ein 2D-Rasterisierer, nicht hundert Zeilen Chunk-Schreiben, und dafür
+bräuchte es `imagick` mit librsvg — also genau die Abhängigkeit, die dieses
+Paket nicht hat.
+
+Es ist aber auch die falsche Frage. **Für den Druck ist das SVG das
+Lieferformat**: eine Druckerei nimmt Vektor, und wer das Layout macht,
+exportiert daraus ein Raster in jeder gewünschten Größe. Das PNG ist die
+Beilage für digitale Verwendung und für Empfänger, die mit SVG nicht umgehen.
+
+Wenn wirklich ein Raster mit Bildmarke aus dem Paket kommen soll, ist der Weg
+eine **Raster-Bildmarke** (die GVÖ hat ihr Logo als PNG) plus ein PNG-Dekoder
+im Paket. Das ist machbar, kostet aber die 1-Bit-Schärfe, weil die Ausgabe dann
+8 Bit Farbe sein muss.
 
 ## Texte und Sprachen
 
@@ -210,9 +294,12 @@ von denen nichts benutzt wird. Der Eintrag kommt mit dem ServiceProvider.
 Ein SVG ist Zeichenkettenbau. In der PHP-CLI der WSL fehlen `gd`, `imagick`,
 `dom`, `simplexml` und `mbstring` — für den Renderer ist das gleichgültig.
 
-Auch **PNG braucht später kein `gd`**: ein zweifarbiges PNG ist `IHDR`, `IDAT`
-und `IEND` mit CRC32, `zlib` ist vorhanden und `crc32()` ist Sprachkern. Rund
-80 Zeilen.
+**Und PNG braucht auch keines.** Ein zweifarbiges PNG ist `IHDR`, `PLTE`,
+`pHYs`, `IDAT` und `IEND`, jedes mit CRC32: `zlib` ist in jedem
+Standard-PHP-Build und `crc32()` ist Sprachkern. Das kostet rund hundert Zeilen
+und spart eine Abhängigkeit samt Installationsschritt auf dem Server. Was eine
+Bildbibliothek hier zusätzlich brächte, wäre ein 8- oder 24-Bit-Puffer, wo ein
+Bit je Pixel genau richtig ist.
 
 ## Einrichten
 
@@ -563,7 +650,7 @@ Demo die Form, die das Plugin bekommt, und nicht eine größere.
 | Datei | |
 |---|---|
 | `demo/index.php` | Formular, **beide Varianten nebeneinander**, Kennzahlen, Download-Knöpfe. Kein Text im Code, alles aus dem Katalog |
-| `demo/svg.php` | liefert ein SVG allein; `?variant=logo` mit Logo, `?download=1` als Datei |
+| `demo/image.php` | liefert ein Bild allein; `?format=png`, `?variant=logo`, `?download=1` |
 | `demo/bootstrap.php` | Autoload, Eingabeprüfung, Objektaufbau |
 | `demo/logos/*.svg` | Testlogos. Jede Datei hier wird von `RealWorldLogoTest` durch die ganze Kette geschickt |
 
@@ -596,6 +683,10 @@ src/
     Render/
       SvgRenderer.php      Matrix → SVG, räumt den Logokasten frei
       SvgOptions.php       unveränderliche Darstellungseinstellungen
+      PngRenderer.php      Matrix → 1-Bit-PNG, von Hand, ohne Bildextension
+      PngOptions.php       Auflösung und Druckgröße statt Pixelmaße
+      PngRenderer.php      Matrix → 1-Bit-PNG, von Hand, ohne Bildextension
+      PngOptions.php       Auflösung und Druckgröße statt Pixelmaße
     Exception/             QrGenException, InvalidArgument, EncodingFailed, LogoRejected
     ErrorCorrection.php    die vier Stufen der Norm
     ModuleMatrix.php       die Grenze zwischen Kodieren und Zeichnen
@@ -685,6 +776,7 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.4.1` | Logo-Darstellung ohne Kantenglättung behoben, brauchbare Standardwerte |
 | `0.4.2` | Formularzustand der Demo: kein Autofill, kein Mausrad, Reset-Knopf |
 | `0.5.0` | Textsammlung DE/EN, `Qr\Preset` mit den festgelegten Werten |
+| `0.6.0` | Druckfertiges PNG ohne Bildextension, Download für beide Formate |
 | `0.4.0` | geplant: Code- und Token-Erzeugung |
 | `0.5.0` | geplant: Statamic-Hülle, in der GVÖ-Seite lauffähig |
 | `1.0.0` | in Produktion abgenommen, öffentliche API stabil |

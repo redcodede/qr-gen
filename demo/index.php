@@ -65,9 +65,26 @@ $margin = Preset::LOGO_MARGIN_MODULES;
 $cleared = $box * $box;
 $drawable = $box - (2 * $margin);
 
+// Whichever format is fewer bytes gets shown. For a two-colour QR code that is
+// usually the PNG, which is not the intuition a vector format invites.
+[$previewFormat, $pngBytes, $svgBytes] = $matrix !== null
+    ? cheaperFormat($input['url'], $input['logo'], false)
+    : ['svg', 0, 0];
+
+$png = null;
+
+if ($matrix !== null) {
+    $pngRenderer = pngRenderer();
+    $png = [
+        'pixels' => $pngRenderer->pixelWidth($matrix),
+        'perModule' => $pngRenderer->pixelsPerModule($matrix),
+        'printed' => $pngRenderer->printedSizeMm($matrix),
+    ];
+}
+
 function link_(array $query, array $extra = []): string
 {
-    return 'svg.php?' . http_build_query(array_merge($query, $extra));
+    return 'image.php?' . http_build_query(array_merge($query, $extra));
 }
 
 function e(?string $value): string
@@ -202,6 +219,11 @@ function e(?string $value): string
 
     .preview svg { max-width: 100%; height: auto; }
 
+    /* A 1184-pixel raster shown at a third of that: without this the browser
+       smooths module edges into grey and the preview looks softer than the
+       file is. */
+    .preview img { max-width: 100%; height: auto; image-rendering: pixelated; }
+
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { text-align: left; padding: 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
     th { font-weight: 500; color: var(--muted); width: 55%; }
@@ -232,8 +254,10 @@ function e(?string $value): string
     }
 
     .note { border-color: var(--warn); font-size: 14px; }
+    .note-print { border-color: var(--line); color: var(--muted); }
     .errors ul { margin: 0; padding-left: 18px; }
     .failure { color: var(--accent); font-size: 14px; margin: 0; }
+    .hint { margin: 14px 0 0; font-size: 13px; color: var(--muted); }
 
     .facts { margin-top: 24px; }
     details { margin-top: 24px; }
@@ -312,13 +336,25 @@ function e(?string $value): string
         <div class="note"><?= e($texts->get('notice.quietZone', ['quietZone' => Preset::QUIET_ZONE])) ?></div>
     <?php endif; ?>
 
+    <div class="note note-print"><?= e($texts->get('notice.print', [
+        'dark' => Preset::DARK_COLOR,
+        'light' => Preset::LIGHT_COLOR,
+    ])) ?></div>
+
     <div class="cols">
         <div class="panel">
             <h2><?= e($texts->get('panel.plain')) ?></h2>
             <?php if ($plain !== null): ?>
-                <div class="preview"><?= $plain ?></div>
+                <div class="preview">
+                    <?php if ($previewFormat === 'png'): ?>
+                        <img src="<?= e(link_($query, ['format' => 'png'])) ?>" alt="" width="<?= (int) $png['pixels'] ?>" height="<?= (int) $png['pixels'] ?>">
+                    <?php else: ?>
+                        <?= $plain ?>
+                    <?php endif; ?>
+                </div>
                 <div class="actions">
-                    <a class="btn-link" href="<?= e(link_($query, ['download' => '1'])) ?>"><?= e($texts->get('panel.download')) ?></a>
+                    <a class="btn-link" href="<?= e(link_($query, ['download' => '1'])) ?>"><?= e($texts->get('panel.download.svg')) ?></a>
+                    <a class="btn-link" href="<?= e(link_($query, ['format' => 'png', 'download' => '1'])) ?>"><?= e($texts->get('panel.download.png')) ?></a>
                     <a class="btn-link btn-secondary" href="<?= e(link_($query)) ?>" target="_blank" rel="noopener"><?= e($texts->get('panel.raw')) ?></a>
                 </div>
             <?php else: ?>
@@ -331,9 +367,10 @@ function e(?string $value): string
             <?php if ($withLogo !== null && $input['logo'] !== ''): ?>
                 <div class="preview"><?= $withLogo ?></div>
                 <div class="actions">
-                    <a class="btn-link" href="<?= e(link_($query, ['variant' => 'logo', 'download' => '1'])) ?>"><?= e($texts->get('panel.download')) ?></a>
+                    <a class="btn-link" href="<?= e(link_($query, ['variant' => 'logo', 'download' => '1'])) ?>"><?= e($texts->get('panel.download.svg')) ?></a>
                     <a class="btn-link btn-secondary" href="<?= e(link_($query, ['variant' => 'logo'])) ?>" target="_blank" rel="noopener"><?= e($texts->get('panel.raw')) ?></a>
                 </div>
+                <p class="hint"><?= e($texts->get('panel.png.unavailable')) ?></p>
             <?php elseif ($input['logo'] === ''): ?>
                 <p class="failure"><?= e($texts->get('panel.noLogo')) ?></p>
             <?php else: ?>
@@ -424,6 +461,30 @@ function e(?string $value): string
                             'logo' => number_format(strlen((string) $withLogo), 0, ',', '.'),
                         ])) ?></td>
                     </tr>
+                    <?php if ($png !== null): ?>
+                        <tr>
+                            <th><?= e($texts->get('facts.png')) ?></th>
+                            <td><?= e($texts->get('facts.png.value', [
+                                'pixels' => number_format($png['pixels'], 0, ',', '.'),
+                                'perModule' => $png['perModule'],
+                                'bytes' => number_format($pngBytes, 0, ',', '.'),
+                            ])) ?></td>
+                        </tr>
+                        <tr>
+                            <th><?= e($texts->get('facts.printSize')) ?></th>
+                            <td><?= e($texts->get('facts.printSize.value', [
+                                'size' => number_format($png['printed'], 2, ',', '.'),
+                                'dpi' => Preset::PRINT_DPI,
+                                'ordered' => number_format(Preset::PRINT_SIZE_MM, 0, ',', '.'),
+                            ])) ?></td>
+                        </tr>
+                        <tr>
+                            <th><?= e($texts->get('facts.preview')) ?></th>
+                            <td><?= e($texts->get('facts.preview.value', [
+                                'format' => strtoupper($previewFormat),
+                            ])) ?></td>
+                        </tr>
+                    <?php endif; ?>
                 </table>
             </div>
         </div>
