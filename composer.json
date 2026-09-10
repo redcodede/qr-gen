@@ -1,0 +1,60 @@
+{
+    "name": "redcodede/qr-gen",
+    "description": "QR-Code-Generator für Statamic. Erzeugt aus einer URL einen Satz QR-Codes als SVG, ohne Laufzeit-Abhängigkeiten.",
+    "keywords": [
+        "statamic",
+        "statamic-addon",
+        "qr",
+        "qr-code",
+        "svg",
+        "verpackdg",
+        "ppwr"
+    ],
+    "type": "statamic-addon",
+    "license": "AGPL-3.0-or-later",
+    "homepage": "https://github.com/redcodede/qr-gen",
+    "authors": [
+        {
+            "name": "Leo Woschke",
+            "email": "lwoschke@redcode.org"
+        }
+    ],
+    "support": {
+        "email": "service@redcode.org",
+        "issues": "https://github.com/redcodede/qr-gen/issues",
+        "source": "https://github.com/redcodede/qr-gen"
+    },
+    "require": {
+        "php": "^8.0",
+        "statamic/cms": "^3.4"
+    },
+    "require-dev": {
+        "bacon/bacon-qr-code": "^2.0",
+        "phpunit/phpunit": "^9.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Redcodede\\QrGen\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Redcodede\\QrGen\\Tests\\": "tests"
+        }
+    },
+    "extra": {
+        "statamic": {
+            "name": "QR-Gen",
+            "description": "Erzeugt QR-Codes als SVG aus einer URL"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pixelfear/composer-dist-plugin": true
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    }
+}
