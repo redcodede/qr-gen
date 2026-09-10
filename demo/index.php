@@ -203,6 +203,7 @@ $drawable = $input['logoModules'] - (2 * $input['logoMargin']);
     tr:last-child th, tr:last-child td { border-bottom: 0; }
 
     .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
     .btn-link {
         display: inline-block;
@@ -257,7 +258,15 @@ $drawable = $input['logoModules'] - (2 * $input['logoMargin']);
         and a download regenerates rather than fetching a stored file.
     </p>
 
-    <form method="get" action="index.php">
+    <?php /*
+        autocomplete="off" is the important attribute here, not a nicety.
+        Chrome restores form field values on a soft reload, so a value that got
+        into a field once survives every refresh — the URL and the defaults say
+        one thing and the form shows another. That is what "the page did not
+        reload properly" looks like from the outside, and calling the link
+        afresh is the only thing that clears it. This stops it happening.
+    */ ?>
+    <form method="get" action="index.php" autocomplete="off">
         <div class="field-wide">
             <label for="url">URL</label>
             <input type="text" id="url" name="url" value="<?= e($input['url']) ?>" spellcheck="false">
@@ -319,8 +328,26 @@ $drawable = $input['logoModules'] - (2 * $input['logoMargin']);
             <label for="allowAlignment">Allow covering alignment patterns</label>
         </div>
 
-        <div><button type="submit">Generate</button></div>
+        <div class="buttons">
+            <button type="submit">Generate</button>
+            <a class="btn-link btn-secondary" href="index.php">Reset</a>
+        </div>
     </form>
+
+    <script>
+        // A focused number input treats the mouse wheel as a spinner, so
+        // scrolling the page with the cursor over one silently changes it. With
+        // step="2" on the logo box that turns 9 into 37 in fourteen notches,
+        // and the value then looks like something someone typed on purpose.
+        // Dropping focus lets the page scroll instead.
+        document.querySelectorAll('input[type="number"]').forEach(function (field) {
+            field.addEventListener('wheel', function () {
+                if (document.activeElement === field) {
+                    field.blur();
+                }
+            });
+        });
+    </script>
 
     <?php if ($input['errors'] !== []): ?>
         <div class="errors">

@@ -581,6 +581,8 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.3.0` | Logo in der Mitte, SVG-Sanitizer, Funktionsmuster-Prüfung |
 | `0.3.1` | Logo-Ablehnungen nennen Zahlen und die tatsächliche Ursache |
 | `0.4.0` | `LogoFit` findet die Stufe; Ausrichtungsmuster als Kompromiss |
+| `0.4.1` | Logo-Darstellung ohne Kantenglättung behoben, brauchbare Standardwerte |
+| `0.4.2` | Formularzustand der Demo: kein Autofill, kein Mausrad, Reset-Knopf |
 | `0.4.0` | geplant: Code- und Token-Erzeugung |
 | `0.5.0` | geplant: Statamic-Hülle, in der GVÖ-Seite lauffähig |
 | `1.0.0` | in Produktion abgenommen, öffentliche API stabil |

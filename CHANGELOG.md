@@ -22,6 +22,31 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 - Raster-Logo als Data-URI, falls kein SVG geliefert wird
 - PNG-Ausgabe ohne `gd`, über `zlib` und `crc32()`
 
+## [0.4.2] - 2026-09-10
+
+Formularzustand. Alle drei Punkte betreffen nur die Demo-Seite, nicht das Paket.
+
+### Behoben
+
+- **Das Formular hat `autocomplete="off"`.** Chrome stellt Feldwerte bei einem
+  weichen Neuladen wieder her, also überlebte ein Wert, der einmal in einem
+  Feld stand, jedes Refresh — URL und Standardwerte sagten das eine, das
+  Formular zeigte das andere. Von außen sieht das aus wie „die Seite hat nicht
+  vernünftig nachgeladen", und nur ein frischer Aufruf des Links räumte es weg.
+  Das war die Ursache eines gemeldeten Fehlerbildes (`37x37`-Kasten auf einem
+  `25x25`-Symbol), nicht eine fehlerhafte Eingabe
+- **Das Mausrad verstellt die Zahlenfelder nicht mehr.** Ein fokussiertes
+  `input[type="number"]` behandelt das Rad als Drehregler, also verändert
+  Scrollen mit dem Zeiger darüber den Wert stillschweigend. Bei `step="2"` am
+  Logokasten sind das von 9 auf 37 in vierzehn Rasten, und der Wert sieht
+  danach aus wie etwas, das jemand absichtlich eingetippt hat. Das Feld gibt
+  jetzt den Fokus ab, statt zu zählen, und die Seite scrollt
+
+### Hinzugefügt
+
+- **Reset-Knopf** neben „Generate". Ein Klick zurück auf die Standardwerte,
+  ohne die URL von Hand zu putzen
+
 ## [0.4.1] - 2026-09-10
 
 ### Behoben
@@ -246,7 +271,9 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/redcodede/qr-gen/compare/v0.4.1...v0.4.2
+[0.4.1]: https://github.com/redcodede/qr-gen/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/redcodede/qr-gen/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/redcodede/qr-gen/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/redcodede/qr-gen/compare/v0.2.0...v0.3.0
