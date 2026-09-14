@@ -1,6 +1,6 @@
 {
     "name": "redcodede/qr-gen",
-    "description": "QR-Code-Generator für Statamic. Erzeugt aus einer URL einen Satz QR-Codes als SVG, ohne Laufzeit-Abhängigkeiten.",
+    "description": "QR-Code-Generator für Statamic. Erzeugt aus einer URL QR-Codes als SVG und als druckfertiges PNG, mit oder ohne Bildmarke, ohne Bildextension.",
     "keywords": [
         "statamic",
         "statamic-addon",
@@ -26,14 +26,18 @@
     },
     "require": {
         "php": "^8.0",
-        "bacon/bacon-qr-code": "^2.0 || ^3.0"
+        "bacon/bacon-qr-code": "^2.0 || ^3.0",
+        "statamic/cms": "^3.4"
     },
     "require-dev": {
+        "laravel/framework": "^8.83",
+        "orchestra/testbench": "^6.18",
         "phpunit/phpunit": "^9.6"
     },
     "autoload": {
         "psr-4": {
-            "Redcodede\\QrGen\\": "src"
+            "Redcodede\\QrGen\\": "src",
+            "Redcodede\\QrGen\\Statamic\\": "src/Statamic"
         }
     },
     "autoload-dev": {
@@ -44,7 +48,13 @@
     "extra": {
         "statamic": {
             "name": "QR-Gen",
-            "description": "Erzeugt QR-Codes als SVG aus einer URL"
+            "slug": "qr-gen",
+            "description": "Erzeugt QR-Codes als SVG und als druckfertiges PNG, mit oder ohne Bildmarke"
+        },
+        "laravel": {
+            "providers": [
+                "Redcodede\\QrGen\\Statamic\\ServiceProvider"
+            ]
         }
     },
     "config": {
@@ -54,6 +64,7 @@
         }
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "test:deprecations": "php -d error_reporting=32767 -d display_errors=1 vendor/bin/phpunit"
     }
 }

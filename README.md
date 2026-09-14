@@ -8,7 +8,7 @@ Mitte, **beide als SVG und als druckfertiges PNG**. Mit Demo-Seite und
 Downloads. Noch **nicht** dabei: die Statamic-Anbindung. Was hier unter
 „geplant" steht, existiert nicht.
 
-Geprüft am 14.09.2026 auf PHP 8.4: **386 Tests, 25872 Assertions, grün.**
+Geprüft am 14.09.2026 auf PHP 8.4: **392 Tests, 25891 Assertions, grün.**
 
 ---
 
@@ -53,6 +53,8 @@ Zuschnitt in zwei Stufen.
       ab, statt es zu nähern**
 - [x] Textsammlung DE/EN, Deutsch als Standard
 - [x] Demo-Seite mit beiden Varianten, Kennzahlen und Download
+- [x] **Gerüst der Statamic-Hülle**: ServiceProvider mit Fieldset- und
+      View-Namensraum, `config/qr-gen.php`, Testharness auf `orchestra/testbench`
 - [x] Test, der die Framework-Freiheit des Kerns erzwingt
 - [x] Rundlauf-Test, der das SVG zurück in eine Matrix liest
 
@@ -62,8 +64,8 @@ Zuschnitt in zwei Stufen.
       gefangen und mit Kontext ins Log geschrieben werden, statt als 500
       durchzuschlagen. Siehe [Logging](#logging)
 - [ ] Code- und Token-Erzeugung, `CodeRepository`-Interface
-- [ ] Statamic-Hülle: ServiceProvider, Artisan-Command, Auflösungs-Route,
-      Download-Seite
+- [ ] Statamic-Hülle: Einstellungen im Control Panel, Fieldset und Tag für die
+      Frontend-Komponente, Bild-Route. Das Gerüst steht, siehe oben
 - [ ] Elliptische Bögen (`A`) und Konturen im Rasterisierer. Bisher nicht
       gebraucht: keine der vorliegenden Zeichnungen benutzt beides
 - [ ] Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
@@ -346,6 +348,7 @@ Fremdpaket, der siebte ist unser.**
 | `bacon/bacon-qr-code` | `^2.0 \|\| ^3.0` | Schritte 1–6: Zeichenkette → Modul-Matrix. **Nur `Encoder::encode()`**, keiner ihrer Renderer | 60 Dateien, ~7900 Zeilen |
 | `dasprid/enum` | `^1.0.3` | Enum-Polyfill, den Bacon für `ErrorCorrectionLevel` benutzt. Kommt als transitive Abhängigkeit mit | 10 Dateien, ~790 Zeilen |
 | `ext-iconv` | — | Zeichensatzumwandlung im Encoder. In jeder Standard-PHP vorhanden | — |
+| `statamic/cms` | `^3.4` | Die Hülle: ServiceProvider, Control Panel, Blueprints, Antlers. **Der Kern fasst davon nichts an**, ein Test erzwingt das | rund 140 Pakete |
 
 **Das ist alles.** Kein `ext-gd`, kein `ext-imagick`, kein `ext-dom`, kein
 `ext-simplexml`, kein `ext-mbstring`, kein Laravel, kein Statamic.
@@ -370,20 +373,44 @@ die Tests in `tests/Qr/Encoder/` merken den Wechsel nicht.
 
 ### Entwicklung
 
-| Paket | Job |
-|---|---|
-| `phpunit/phpunit` | `^9.6`, Testlauf |
+| Paket | Version | Job |
+|---|---|---|
+| `phpunit/phpunit` | `^9.6` | Testlauf |
+| `orchestra/testbench` | `^6.18` | Fährt eine Laravel-Anwendung für die Tests der Hülle hoch. Statamic 3.4 bringt keine eigene Testhilfe mit, `src/Testing` gibt es dort noch nicht |
+| `laravel/framework` | `^8.83` | **Nicht zum Benutzen, zum Festnageln.** Statamic 3.4 erlaubt Laravel 8 oder 9; die GVÖ-Seite fährt 8. Ohne diesen Eintrag löst Composer hier 9 auf, und eine API, die es nur in 9 gibt, fiele erst auf dem Server auf |
 
-`statamic/cms` steht **absichtlich in keiner der beiden Listen.** Noch fasst
-keine Zeile Statamic an, und ein `require` darauf zöge rund 140 Pakete nach,
-von denen nichts benutzt wird. Der Eintrag kommt mit dem ServiceProvider.
-`statamic/cms` 3.4.17 installiert nachweislich auf PHP 8.4 (geprüft
-10.09.2026).
+Die Auflösung auf Laravel 8 zieht `league/flysystem` auf 1.1 und `league/glide`
+auf 1.7 herunter. Das ist kein Zufall und kein Problem, sondern genau die
+Kombination, die auf der Zielseite läuft.
+
+### Deprecations sind im Container aus
+
+Laravel 8 ist auf PHP 8.4 nicht deprecation-frei. Ohne Gegenmaßnahme erzeugt
+allein das Autoloading 528 Meldungen, bevor der erste Test läuft, und unter
+`beStrictAboutOutputDuringTests` wird dadurch jeder Test „risky".
+
+`.ddev/php/error-reporting.ini` setzt deshalb `error_reporting`,
+`display_errors` und `log_errors` auf die Werte, **die auf dem Zielserver ohnehin
+gelten** (geprüft am 14.09.2026 im phpinfo). Es wird hier also nichts
+stillgelegt, was dort meldet.
+
+Zwei Stellschrauben sind nötig, weil eine nicht reicht: Laravel setzt beim
+Booten selbst `error_reporting(-1)`, und sein Fehlerbehandler tut unter Tests
+mit Deprecations bewusst nichts und gibt `null` zurück, woraufhin PHP sie
+selbst druckt.
+
+Was das eigene Paket meldet, zeigt `composer test:deprecations`.
 
 ### Warum keine Bildextension
 
 Ein SVG ist Zeichenkettenbau. In der PHP-CLI der WSL fehlen `gd`, `imagick`,
 `dom`, `simplexml` und `mbstring` — für den Renderer ist das gleichgültig.
+
+Zur Ehrlichkeit gehört: **auf dem Zielserver der GVÖ ist `gd` vorhanden**
+(2.3.3, geprüft am 14.09.2026), `imagick` nicht. Dort wäre die Freiheit von
+Bildextensionen also nicht nötig gewesen. Sie bleibt trotzdem richtig, aber als
+Versicherung für einen Serverumzug und für die spätere Statamic-6-Fassung, nicht
+als Voraussetzung für heute.
 
 **Und PNG braucht auch keines.** Ein zweifarbiges PNG ist `IHDR`, `PLTE`,
 `pHYs`, `IDAT` und `IEND`, jedes mit CRC32: `zlib` ist in jedem
@@ -838,7 +865,10 @@ src/
     Preset.php             die festgelegten Werte des Projekts
   I18n/
     Translator.php         Oberflächentexte, außerhalb des Kerns
-  Statamic/                (leer) dünne Hülle: Provider, Tag, Command, Controller
+  Statamic/                dünne Hülle, alles Framework-Nahe liegt hier
+    ServiceProvider.php    nur Verdrahtung, keine Fachlogik
+config/
+  qr-gen.php               Rückfallwerte; das CP überschreibt sie, die Seite die wiederum
 resources/lang/            de.php und en.php, im Laravel-Format, werden mitgeliefert
 demo/                      Demo-Seite und Testlogos, nicht im Dist
 tests/                     Qr/ und I18n/
@@ -924,8 +954,10 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.6.0` | Druckfertiges PNG ohne Bildextension, Download für beide Formate |
 | `0.7.0` | Eigener Rasterisierer: Bildmarke auch im PNG, beide Codes in beiden Formaten |
 | `0.8.0` | Bildmarke darf ein PNG sein: eigener Dekoder, Skalierer, Größenempfehlung |
-| `0.9.0` | geplant: Code- und Token-Erzeugung |
-| `0.10.0` | geplant: Statamic-Hülle, in der GVÖ-Seite lauffähig |
+| `0.9.0` | Gerüst der Statamic-Hülle: ServiceProvider, Konfiguration, Testharness |
+| `0.10.0` | geplant: Einstellungen im Control Panel |
+| `0.11.0` | geplant: Frontend-Komponente, in der GVÖ-Seite lauffähig |
+| `0.12.0` | geplant: Code- und Token-Erzeugung |
 | `1.0.0` | in Produktion abgenommen, öffentliche API stabil |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):
@@ -951,12 +983,16 @@ einen `repositories`-Eintrag auf dieses Repo:
 composer require redcodede/qr-gen
 ```
 
-Für die lokale Entwicklung stattdessen ein Path-Repository auf `addons/*`. Im
-GVÖ-Projekt fehlt der Eintrag noch (geprüft 10.09.2026).
+Für die lokale Entwicklung stattdessen ein Path-Repository auf das Verzeichnis
+mit diesem Repo. Im GVÖ-Projekt fehlt der Eintrag noch (geprüft 14.09.2026).
 
-`extra.laravel.providers` ist in der `composer.json` noch nicht gesetzt. Der
-Eintrag kommt zusammen mit dem ServiceProvider — vorher zeigte er auf eine
-nicht existierende Klasse und die Installation bräche ab.
+`extra.laravel.providers` zeigt auf `Redcodede\QrGen\Statamic\ServiceProvider`,
+und die `autoload.psr-4` führt neben `Redcodede\QrGen\` einen zweiten,
+spezifischeren Eintrag für `Redcodede\QrGen\Statamic\`. Der sieht überflüssig
+aus und ist es nicht: Statamics `Manifest::formatPackage()` leitet das
+Verzeichnis der Erweiterung aus `autoload.psr-4[Namensraum des Providers]` ab.
+Ohne den Eintrag gibt es diesen Schlüssel nicht, und die Erweiterung fände ihre
+eigene Konfiguration, ihre Views und ihre Fieldsets nicht.
 
 ## Offene Punkte
 

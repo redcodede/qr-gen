@@ -15,16 +15,64 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
   und Kastenmaßen als Kontext, **ohne die Nutzlast**, und ohne dass ein
   einzelner Fehlschlag einen Stapellauf abbricht
 - Code- und Token-Erzeugung, `CodeRepository`-Interface
-- Statamic-Hülle: ServiceProvider, Artisan-Command, Auflösungs-Route,
-  Download-Seite, Flat-File-Repository
-- `statamic/cms` und `extra.laravel.providers` in der `composer.json`, sobald
-  der ServiceProvider existiert
+- Statamic-Hülle: Einstellungen im Control Panel, Fieldset und Tag für die
+  Frontend-Komponente, Bild-Route, Auflösungs-Route, Flat-File-Repository.
+  Das Gerüst steht seit `0.9.0`
 - Bildmarke als **Raster** annehmen, falls sie nur als PNG geliefert wird.
   Braucht einen PNG-Dekoder im Paket; die Vektor-Bildmarke ist erledigt
 - Elliptische Bögen (`A`) und Konturen im Rasterisierer, falls eine Zeichnung
   sie je braucht. Bisher hat keine
 - Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
   ankommt
+
+## [0.9.0] - 2026-09-14
+
+Das Gerüst der Statamic-Hülle. Noch nichts davon ist sichtbar; es ist das, woran
+die Einstellungen und die Frontend-Komponente hängen werden.
+
+### Hinzugefügt
+
+- **`Qr\Statamic\ServiceProvider`** — hält nur Verdrahtung: Fieldset-Namensraum
+  `qr-gen`, View-Namensraum `qr-gen`, Konfiguration, Übersetzungen. Keine
+  Fachlogik, und das soll so bleiben
+- **`config/qr-gen.php`** mit den Rückfallwerten: welche Codes erzeugt werden
+  (ohne und mit Bildmarke), welche Formate zum Herunterladen angeboten werden,
+  Default-Bildmarke und Default-URL. **Die Druckwerte stehen absichtlich nicht
+  darin** — Druckgröße, Auflösung, Logokasten und Ruhezone liegen in
+  `Qr\Preset` und sind entschieden, nicht eingestellt. Ein freigegebener Andruck
+  gilt für genau diese Werte
+- **Testharness auf `orchestra/testbench`.** Statamic 3.4 bringt keine Testhilfe
+  für Erweiterungen mit, `src/Testing` kam erst mit Statamic 4. Der Harness
+  reicht drei Dinge von Hand nach: das Addon-Manifest, Statamics eigene
+  Konfiguration und ein temporäres Dateiwurzelverzeichnis, das nach jedem Test
+  verschwindet
+- Sechs Tests, die das Gerüst absichern: dass die Anwendung mit der Erweiterung
+  bootet, dass Statamic sie im Manifest findet, dass das abgeleitete Verzeichnis
+  auf das Paket zeigt, dass die Konfiguration unter `qr-gen` liegt, dass die
+  Druckwerte **keine** Konfiguration sind, und dass der Kern innerhalb einer
+  laufenden Laravel-Anwendung genau dasselbe rendert wie ohne
+
+### Geändert
+
+- **`statamic/cms ^3.4` ist jetzt eine Laufzeit-Abhängigkeit.** Bis hierher
+  stand in der README, der Eintrag komme mit dem ServiceProvider; das ist jetzt
+  so. Er zieht rund 140 Pakete nach, und ab jetzt ist das berechtigt
+- **`laravel/framework ^8.83` in `require-dev`, nicht zum Benutzen, sondern zum
+  Festnageln.** Statamic 3.4 erlaubt Laravel 8 oder 9, die GVÖ-Seite fährt 8.
+  Ohne den Eintrag löst Composer hier 9 auf, und eine API, die es nur in 9 gibt,
+  fiele erst auf dem Server auf. Die Auflösung zieht dadurch `league/flysystem`
+  auf 1.1 und `league/glide` auf 1.7, also genau die Kombination der Zielseite
+- **`autoload.psr-4` bekommt einen zweiten, spezifischeren Eintrag** für
+  `Redcodede\QrGen\Statamic\`. Der sieht überflüssig aus und ist es nicht:
+  Statamics `Manifest::formatPackage()` leitet das Verzeichnis der Erweiterung
+  aus `autoload.psr-4[Namensraum des Providers]` ab, und ohne den Eintrag gibt
+  es diesen Schlüssel nicht
+- **`.ddev/php/error-reporting.ini`**: Laravel 8 ist auf PHP 8.4 nicht
+  deprecation-frei, und ohne Gegenmaßnahme erzeugt allein das Autoloading 528
+  Meldungen, bevor der erste Test läuft. Gesetzt werden `error_reporting`,
+  `display_errors` und `log_errors` auf die Werte, die auf dem Zielserver
+  ohnehin gelten. `composer test:deprecations` zeigt trotzdem, was das eigene
+  Paket meldet
 
 ## [0.8.0] - 2026-09-14
 
