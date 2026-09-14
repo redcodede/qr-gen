@@ -34,6 +34,10 @@ use Redcodede\QrGen\Qr\Raster\LogoRaster;
 use Redcodede\QrGen\Qr\Preset;
 use Redcodede\QrGen\Qr\Render\PngRenderer;
 use Redcodede\QrGen\Qr\Render\SvgRenderer;
+use Redcodede\QrGen\Qr\Settings\EffectiveSettings;
+use Redcodede\QrGen\Qr\Settings\GlobalSettings;
+use Redcodede\QrGen\Qr\Settings\PageSettings;
+use Redcodede\QrGen\Qr\Settings\Variant;
 
 $autoload = dirname(__DIR__) . '/vendor/autoload.php';
 
@@ -59,27 +63,72 @@ const LOGO_DIR = __DIR__ . '/logos';
 const MAX_URL_LENGTH = 2000;
 
 /**
- * Reads and validates the query string.
+ * Liest die Adresszeile und verrechnet die beiden Konfigurationsebenen.
  *
- * Only `url`, `logo` and `lang` are read. The rest of the configuration is not
- * a query parameter any more, so there is nothing to get into a bad state and
- * no field for a stray mouse wheel to change.
+ * Die Demo bildet ab, was das Plugin später hat: **globale Einstellungen**, die
+ * im Control Panel gepflegt werden, und **Seiten-Einstellungen** aus dem
+ * Blueprint. Hier kommt beides aus der Adresszeile, weil diese Seite nichts
+ * speichert; die Objekte dahinter sind dieselben, die die Statamic-Hülle
+ * benutzen wird.
+ *
+ * Zurück kommen zusätzlich `url` und `logo` als **aufgelöste** Werte. Alles
+ * Nachgelagerte auf der Seite rechnet damit weiter und muss von den zwei Ebenen
+ * nichts wissen.
  *
  * @param array<string, mixed> $query
  *
- * @return array{url: string, logo: string, errors: list<string>}
+ * @return array{
+ *     url: string, logo: string, errors: list<string>,
+ *     global: GlobalSettings, page: PageSettings, effective: EffectiveSettings
+ * }
  */
 function readInput(array $query, Translator $texts): array
 {
     $errors = [];
+    $logos = availableLogos();
 
-    $url = isset($query['url']) && is_string($query['url']) ? trim($query['url']) : DEFAULT_URL;
+    // Ein nicht angehaktes Kästchen schickt gar nichts. Ohne diese Marke liesse
+    // sich "abgewählt" nicht von "Seite zum ersten Mal geöffnet" unterscheiden,
+    // und nichts liesse sich je abschalten.
+    $submitted = isset($query['configured']);
 
-    if ($url === '') {
-        $url = DEFAULT_URL;
+    $global = GlobalSettings::default()
+        ->withDefaultUrl(field($query, ['g', 'url'], $submitted ? null : DEFAULT_URL))
+        ->withDefaultLogo(field($query, ['g', 'logo'], $submitted ? null : defaultLogo($logos)));
+
+    if ($submitted) {
+        $global = $global
+            ->withVariants(
+                checked($query, ['g', 'variants', Variant::PLAIN]),
+                checked($query, ['g', 'variants', Variant::LOGO])
+            )
+            ->withDownloads(
+                checked($query, ['g', 'downloads', 'svg']),
+                checked($query, ['g', 'downloads', 'png'])
+            );
     }
 
-    if (strlen($url) > MAX_URL_LENGTH) {
+    $page = PageSettings::empty()
+        ->withUrl(field($query, ['p', 'url'], null))
+        ->withLogo(field($query, ['p', 'logo'], null));
+
+    if ($submitted) {
+        $wanted = $query['p']['variants'] ?? [];
+        $page = $page->withVariants(is_array($wanted) ? array_values(array_map('strval', $wanted)) : []);
+    }
+
+    // Eine Bildmarke, die es nicht gibt, gilt als keine. Dann entfällt die
+    // Variante mit Bildmarke von selbst, statt ein Panel zu versprechen, das
+    // nur eine Fehlermeldung enthalten kann.
+    $global = $global->withDefaultLogo(knownLogo($global->defaultLogo(), $logos));
+    $page = $page->withLogo(knownLogo($page->logo(), $logos));
+
+    $effective = EffectiveSettings::from($global, $page);
+    $url = (string) $effective->url();
+
+    if ($url === '') {
+        $errors[] = $texts->get('error.url.missing');
+    } elseif (strlen($url) > MAX_URL_LENGTH) {
         $errors[] = $texts->get('error.url.tooLong', [
             'length' => strlen($url),
             'max' => MAX_URL_LENGTH,
@@ -89,18 +138,80 @@ function readInput(array $query, Translator $texts): array
         $errors[] = $texts->get('error.url.notHttp');
     }
 
-    $logos = availableLogos();
-    $logo = isset($query['logo']) && is_string($query['logo']) ? basename($query['logo']) : '';
+    return [
+        'url' => $url,
+        'logo' => (string) $effective->logo(),
+        'errors' => $errors,
+        'global' => $global,
+        'page' => $page,
+        'effective' => $effective,
+    ];
+}
 
-    if (!in_array($logo, $logos, true)) {
-        if (in_array(DEFAULT_LOGO, $logos, true)) {
-            $logo = DEFAULT_LOGO;
-        } else {
-            $logo = $logos === [] ? '' : $logos[0];
+/**
+ * Ein Textfeld aus der verschachtelten Adresszeile, oder der Rückfallwert.
+ *
+ * @param array<string, mixed> $query
+ * @param list<string>         $path
+ */
+function field(array $query, array $path, ?string $fallback): ?string
+{
+    $found = $query;
+
+    foreach ($path as $segment) {
+        if (!is_array($found) || !array_key_exists($segment, $found)) {
+            return $fallback;
         }
+
+        $found = $found[$segment];
     }
 
-    return ['url' => $url, 'logo' => $logo, 'errors' => $errors];
+    return is_string($found) ? $found : $fallback;
+}
+
+/**
+ * @param array<string, mixed> $query
+ * @param list<string>         $path
+ */
+function checked(array $query, array $path): bool
+{
+    $found = $query;
+
+    foreach ($path as $segment) {
+        if (!is_array($found) || !array_key_exists($segment, $found)) {
+            return false;
+        }
+
+        $found = $found[$segment];
+    }
+
+    return (bool) $found;
+}
+
+/**
+ * @param list<string> $logos
+ */
+function defaultLogo(array $logos): ?string
+{
+    if (in_array(DEFAULT_LOGO, $logos, true)) {
+        return DEFAULT_LOGO;
+    }
+
+    return $logos === [] ? null : $logos[0];
+}
+
+/**
+ * @param list<string> $logos
+ */
+function knownLogo(?string $logo, array $logos): ?string
+{
+    if ($logo === null) {
+        return null;
+    }
+
+    $name = basename($logo);
+
+    return in_array($name, $logos, true) ? $name : null;
 }
 
 /**

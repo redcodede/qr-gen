@@ -25,6 +25,48 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 - Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
   ankommt
 
+## [0.10.0] - 2026-09-14
+
+Das Konfigurationsmodell, und eine Demo-Seite, die beide Ebenen zeigt.
+
+### Hinzugefügt
+
+- **`Qr\Settings`** mit vier Klassen. `GlobalSettings` hält, was überhaupt
+  angeboten wird und was gilt, wenn nichts anderes dasteht. `PageSettings` hält,
+  was eine einzelne Seite will. `EffectiveSettings` verrechnet beides.
+  `Variant` gibt den beiden Code-Arten feste Namen
+- **Die Vorrangregel ist Code und Test, nicht Absprache.** Global steht, was
+  angeboten wird; pro Seite steht, was diese Seite ausmacht; im Zweifel gewinnt
+  die Seite. Ein global abgeschalteter Typ lässt sich von einer Seite nicht
+  zurückholen, und ein leeres Feld heißt "der globale Wert gilt" und nicht "es
+  soll keinen geben"
+- **`EffectiveSettings` merkt sich, woher ein Wert stammt.** Das ist keine
+  Bequemlichkeit: wer eine unerwartete URL vor sich hat, muss ohne Suchen
+  erkennen können, ob sie aus der Seite oder aus den globalen Einstellungen kommt
+- 17 Tests dafür, Fall für Fall. Das ist die Sorte Regel, die man für
+  offensichtlich hält und dann doch herumdreht, sobald sie an drei Stellen
+  gleichzeitig gilt
+
+### Geändert
+
+- **Die Demo-Seite zeigt jetzt drei Bereiche statt eines Formulars**: globale
+  Einstellungen, Seiten-Einstellungen und Ausgabe, farblich getrennt, dazu die
+  Kennzahlen als vierter. Sie übt damit die Form, die das Plugin bekommt: die
+  obere Ebene wird die Control-Panel-Seite, die untere die Felder im Blueprint
+- Der Ausgabebereich nennt für URL und Bildmarke, **aus welcher Ebene** der Wert
+  stammt
+- Die Download-Knöpfe folgen den globalen Schaltern, und ein Panel erscheint nur,
+  wenn seine Variante nach beiden Ebenen übrig bleibt
+- Gespeichert wird weiterhin nichts. Beide Ebenen stehen in der Adresszeile,
+  damit ein Zustand teilbar ist und kein Zustand liegen bleibt
+- `EffectiveSettings::from()` hieß zwischenzeitlich `resolve()`. Der Test, der
+  die Framework-Freiheit des Kerns erzwingt, sucht unter anderem nach
+  `resolve(`, weil das ein globaler Laravel-Helfer ist. Ein gleichnamiger
+  Methodenname ist dort ein Falsch-positiv; umbenennen ist billiger als den Test
+  aufzuweichen, und `from()` passt zu `fromArray()`, `fromMarkup()` und
+  `fromBinary()` im Rest des Pakets
+- Zwei Textschlüssel sind mit dem alten Formular weggefallen
+
 ## [0.9.0] - 2026-09-14
 
 Das Gerüst der Statamic-Hülle. Noch nichts davon ist sichtbar; es ist das, woran

@@ -22,9 +22,27 @@ return [
         . 'request encodes and renders from scratch, and a download regenerates rather than '
         . 'fetching a stored file.',
 
-    'form.url.label' => 'URL',
-    'form.logo.label' => 'Artwork',
     'form.logo.none' => 'none in demo/logos',
+
+    'group.global.heading' => 'Global settings',
+    'group.global.note' => 'Applies to the whole site. Later the Control Panel page. '
+        . 'This is what gets offered at all, and what applies when a page says nothing.',
+    'group.page.heading' => 'Page settings',
+    'group.page.note' => 'Applies to this one page. Later the Blueprint fields. '
+        . 'Leaving a field empty means the global value applies. In doubt the page wins.',
+    'group.output.heading' => 'Output',
+    'group.output.note' => 'What the two levels produce together.',
+
+    'form.variants.label' => 'These codes are offered',
+    'form.downloads.label' => 'These formats are offered',
+    'form.defaultUrl.label' => 'Default URL',
+    'form.defaultLogo.label' => 'Default artwork',
+    'form.pageUrl.label' => 'Target URL of this page',
+    'form.pageLogo.label' => 'Artwork for this page',
+    'form.pageVariants.label' => 'This page shows',
+    'form.pageVariants.blocked' => 'Switched off globally, so it cannot be chosen here.',
+    'form.inherit' => 'global: :value',
+    'form.inherit.empty' => 'nothing set',
     'form.submit' => 'Generate',
     'form.reset' => 'Reset',
     'form.fixed.heading' => 'Fixed settings',
@@ -43,6 +61,18 @@ return [
         . 'The PNG is rasterised — 8-bit indexed, anti-aliased, at the ordered print size — which '
         . 'makes it the one for screens, office documents and email, where an SVG is a nuisance.',
     'panel.png.refused' => 'There is no PNG of this artwork. :reason',
+
+    'resolution.url' => 'URL:',
+    'resolution.logo' => 'Artwork:',
+    'resolution.none' => 'none',
+    'resolution.from.page' => 'from the page',
+    'resolution.from.global' => 'global',
+    'resolution.from.nowhere' => 'set nowhere',
+
+    'output.nothing' => 'No variant selected. There is nothing to show, and that is a valid '
+        . 'setting rather than an error.',
+    'output.noDownloads' => 'Both formats are switched off globally. The codes appear, but '
+        . 'nothing can be downloaded.',
 
     'facts.heading' => 'What came out',
     'facts.payload' => 'Payload',
@@ -101,6 +131,8 @@ return [
         . 'fringe. That edge is exactly what a scanner measures. Neither PNG nor SVG can carry '
         . 'CMYK at all; the conversion happens in prepress.',
 
+    'error.url.missing' => 'There is no URL. Enter one in the page settings, or set a default '
+        . 'URL in the global settings.',
     'error.url.tooLong' => 'The URL is :length bytes long. This page accepts at most :max.',
     'error.url.notHttp' => 'That is not an http or https URL. The encoder itself takes any string, '
         . 'but this is about URLs, so the page insists on one.',

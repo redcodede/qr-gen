@@ -8,7 +8,7 @@ Mitte, **beide als SVG und als druckfertiges PNG**. Mit Demo-Seite und
 Downloads. Noch **nicht** dabei: die Statamic-Anbindung. Was hier unter
 „geplant" steht, existiert nicht.
 
-Geprüft am 14.09.2026 auf PHP 8.4: **392 Tests, 25891 Assertions, grün.**
+Geprüft am 14.09.2026 auf PHP 8.4: **409 Tests, 26028 Assertions, grün.**
 
 ---
 
@@ -55,6 +55,9 @@ Zuschnitt in zwei Stufen.
 - [x] Demo-Seite mit beiden Varianten, Kennzahlen und Download
 - [x] **Gerüst der Statamic-Hülle**: ServiceProvider mit Fieldset- und
       View-Namensraum, `config/qr-gen.php`, Testharness auf `orchestra/testbench`
+- [x] **Konfigurationsmodell mit zwei Ebenen**: global, was angeboten wird und
+      was gilt, wenn nichts anderes dasteht; pro Seite, was diese Seite
+      ausmacht. Im Zweifel gewinnt die Seite
 - [x] Test, der die Framework-Freiheit des Kerns erzwingt
 - [x] Rundlauf-Test, der das SVG zurück in eine Matrix liest
 
@@ -845,6 +848,11 @@ src/
       PngLogo.php          fremdes PNG → Data-URI plus Pixel, ohne Metadaten
       LogoBox.php          gewünschter Kasten in Modulen, prüft die Platzierung
       LogoPlacement.php    wo der Kasten dann liegt
+    Settings/
+      GlobalSettings.php   was angeboten wird, und die Rückfallwerte
+      PageSettings.php     was eine einzelne Seite will; null heißt "nicht gesetzt"
+      EffectiveSettings.php beides verrechnet, samt Herkunft jedes Werts
+      Variant.php          die beiden Code-Arten, mit festen Namen
     Render/
       SvgRenderer.php      Matrix → SVG, räumt den Logokasten frei
       SvgOptions.php       unveränderliche Darstellungseinstellungen
@@ -955,9 +963,10 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.7.0` | Eigener Rasterisierer: Bildmarke auch im PNG, beide Codes in beiden Formaten |
 | `0.8.0` | Bildmarke darf ein PNG sein: eigener Dekoder, Skalierer, Größenempfehlung |
 | `0.9.0` | Gerüst der Statamic-Hülle: ServiceProvider, Konfiguration, Testharness |
-| `0.10.0` | geplant: Einstellungen im Control Panel |
-| `0.11.0` | geplant: Frontend-Komponente, in der GVÖ-Seite lauffähig |
-| `0.12.0` | geplant: Code- und Token-Erzeugung |
+| `0.10.0` | Konfigurationsmodell mit zwei Ebenen, Demo-Seite nach Bereichen getrennt |
+| `0.11.0` | geplant: Einstellungen im Control Panel |
+| `0.12.0` | geplant: Frontend-Komponente, in der GVÖ-Seite lauffähig |
+| `0.13.0` | geplant: Code- und Token-Erzeugung |
 | `1.0.0` | in Produktion abgenommen, öffentliche API stabil |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):

@@ -25,9 +25,27 @@ return [
         . 'nichts auf die Platte geschrieben: jede Anfrage kodiert und rendert von neuem, und der '
         . 'Download erzeugt neu, statt eine Datei zu holen.',
 
-    'form.url.label' => 'URL',
-    'form.logo.label' => 'Bildmarke',
     'form.logo.none' => 'keine in demo/logos',
+
+    'group.global.heading' => 'Globale Einstellungen',
+    'group.global.note' => 'Gilt für die ganze Seite. Später die Seite im Control Panel. '
+        . 'Hier steht, was überhaupt angeboten wird und was gilt, wenn eine Seite nichts sagt.',
+    'group.page.heading' => 'Seiten-Einstellungen',
+    'group.page.note' => 'Gilt für diese eine Seite. Später die Felder im Blueprint. '
+        . 'Leer lassen heißt: der globale Wert gilt. Im Zweifel gewinnt die Seite.',
+    'group.output.heading' => 'Ausgabe',
+    'group.output.note' => 'Was aus beiden Ebenen zusammen entsteht.',
+
+    'form.variants.label' => 'Diese Codes werden angeboten',
+    'form.downloads.label' => 'Diese Formate werden angeboten',
+    'form.defaultUrl.label' => 'Default-URL',
+    'form.defaultLogo.label' => 'Default-Bildmarke',
+    'form.pageUrl.label' => 'Ziel-URL dieser Seite',
+    'form.pageLogo.label' => 'Bildmarke dieser Seite',
+    'form.pageVariants.label' => 'Diese Seite zeigt',
+    'form.pageVariants.blocked' => 'Global abgeschaltet, deshalb hier nicht wählbar.',
+    'form.inherit' => 'global: :value',
+    'form.inherit.empty' => 'nichts hinterlegt',
     'form.submit' => 'Erzeugen',
     'form.reset' => 'Zurücksetzen',
     'form.fixed.heading' => 'Feste Vorgaben',
@@ -47,6 +65,18 @@ return [
         . 'Druckgröße — und damit das Richtige für Bildschirm, Office und E-Mail, wo ein SVG '
         . 'Ärger macht.',
     'panel.png.refused' => 'Von dieser Bildmarke gibt es kein PNG. :reason',
+
+    'resolution.url' => 'URL:',
+    'resolution.logo' => 'Bildmarke:',
+    'resolution.none' => 'keine',
+    'resolution.from.page' => 'aus der Seite',
+    'resolution.from.global' => 'global',
+    'resolution.from.nowhere' => 'nirgends gesetzt',
+
+    'output.nothing' => 'Keine Variante ausgewählt. Es gibt nichts zu zeigen, und das ist eine '
+        . 'gültige Einstellung, kein Fehler.',
+    'output.noDownloads' => 'Beide Formate sind global abgeschaltet. Die Codes erscheinen, '
+        . 'herunterladen lässt sich nichts.',
 
     'facts.heading' => 'Was herausgekommen ist',
     'facts.payload' => 'Nutzlast',
@@ -106,6 +136,8 @@ return [
         . 'farbigen Saum auf. Genau diese Kante vermisst ein Scanner. Weder PNG noch SVG können '
         . 'CMYK überhaupt tragen; die Umwandlung passiert im Umbruch.',
 
+    'error.url.missing' => 'Es gibt keine URL. Trag eine in den Seiten-Einstellungen ein oder '
+        . 'hinterleg eine Default-URL in den globalen Einstellungen.',
     'error.url.tooLong' => 'Die URL ist :length Bytes lang. Diese Seite nimmt höchstens :max.',
     'error.url.notHttp' => 'Das ist keine http- oder https-URL. Der Encoder selbst nimmt jede '
         . 'Zeichenkette, aber hier geht es um URLs, also besteht die Seite darauf.',

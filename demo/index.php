@@ -20,6 +20,7 @@ namespace Redcodede\QrGen\Demo;
 use Redcodede\QrGen\Qr\Exception\QrGenException;
 use Redcodede\QrGen\Qr\Logo\PngLogo;
 use Redcodede\QrGen\Qr\Preset;
+use Redcodede\QrGen\Qr\Settings\Variant;
 
 require __DIR__ . '/bootstrap.php';
 
@@ -29,6 +30,13 @@ header('Cache-Control: no-store, must-revalidate');
 
 $texts = texts($_GET);
 $input = readInput($_GET, $texts);
+
+// Die zwei Konfigurationsebenen und ihr Ergebnis. Alles Weitere auf dieser
+// Seite rechnet mit den aufgelösten Werten in $input['url'] und $input['logo']
+// und muss von den Ebenen nichts wissen.
+$global = $input['global'];
+$page = $input['page'];
+$effective = $input['effective'];
 
 $matrix = null;
 $plain = null;
@@ -168,19 +176,67 @@ function e(?string $value): string
 
     .lede { color: var(--muted); margin: 0 0 28px; }
 
-    form {
-        display: grid;
-        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) auto;
-        gap: 14px;
-        align-items: end;
-        padding: 18px;
+    form { margin: 0; }
+
+    /* Drei Bereiche, drei Farben. Die Seite muss nicht aussehen wie Statamic,
+       aber sie muss auf einen Blick zeigen, wohin eine Einstellung gehört: was
+       global gilt, was die Seite bestimmt, und was dabei herauskommt. */
+    .group {
+        margin-bottom: 22px;
         background: var(--card);
         border: 1px solid var(--line);
+        border-left: 3px solid var(--group);
         border-radius: 10px;
-        margin-bottom: 12px;
     }
 
-    @media (max-width: 640px) { form { grid-template-columns: 1fr; } }
+    .group > header { padding: 13px 18px; border-bottom: 1px solid var(--line); }
+    .group > header h2 { margin: 0; color: var(--group); }
+    .group > header p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+
+    .group-body { padding: 18px; }
+
+    .group-global { --group: #3a6ea5; }
+    .group-page { --group: #4a7c59; }
+    .group-output { --group: var(--accent); }
+    .group-facts { --group: var(--line); }
+    .group-facts > header h2 { color: var(--muted); }
+
+    @media (prefers-color-scheme: dark) {
+        .group-global { --group: #7aa6d6; }
+        .group-page { --group: #7fb490; }
+    }
+
+    .fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+    @media (max-width: 700px) { .fields { grid-template-columns: 1fr; } }
+
+    .switches { display: flex; flex-wrap: wrap; gap: 8px 16px; padding-top: 4px; }
+
+    .switch { display: flex; align-items: center; gap: 7px; font-size: 14px; }
+    .switch input { margin: 0; }
+    .switch.disabled { color: var(--muted); }
+
+    .resolution {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 8px 22px;
+        margin-bottom: 18px;
+        font-size: 13px;
+    }
+
+    @media (max-width: 700px) { .resolution { grid-template-columns: 1fr; } }
+
+    .resolution > div { display: flex; gap: 8px; min-width: 0; }
+    .resolution dt { flex: none; color: var(--muted); margin: 0; }
+    .resolution dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+    .resolution .tag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .tag-page { color: #4a7c59; }
+    .tag-global { color: #3a6ea5; }
+    .tag-nowhere { color: var(--accent); }
+
+    @media (prefers-color-scheme: dark) {
+        .tag-page { color: #7fb490; }
+        .tag-global { color: #7aa6d6; }
+    }
 
     label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
 
@@ -318,22 +374,111 @@ function e(?string $value): string
         one thing and the form shows another.
     */ ?>
     <form method="get" action="index.php" autocomplete="off">
-        <div>
-            <label for="url"><?= e($texts->get('form.url.label')) ?></label>
-            <input type="text" id="url" name="url" value="<?= e($input['url']) ?>" spellcheck="false">
-        </div>
+        <?php /*
+            Ein nicht angehaktes Kästchen schickt gar nichts. Ohne diese Marke
+            liesse sich "abgewählt" nicht von "zum ersten Mal geöffnet"
+            unterscheiden, und nichts liesse sich je abschalten.
+        */ ?>
+        <input type="hidden" name="configured" value="1">
+        <?php if ($texts->locale() !== 'de'): ?>
+            <input type="hidden" name="lang" value="<?= e($texts->locale()) ?>">
+        <?php endif; ?>
 
-        <div>
-            <label for="logo"><?= e($texts->get('form.logo.label')) ?></label>
-            <select id="logo" name="logo">
-                <?php if ($logos === []): ?>
-                    <option value=""><?= e($texts->get('form.logo.none')) ?></option>
-                <?php endif; ?>
-                <?php foreach ($logos as $file): ?>
-                    <option value="<?= e($file) ?>"<?= $file === $input['logo'] ? ' selected' : '' ?>><?= e($file) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </div>
+        <section class="group group-global">
+            <header>
+                <h2><?= e($texts->get('group.global.heading')) ?></h2>
+                <p><?= e($texts->get('group.global.note')) ?></p>
+            </header>
+            <div class="group-body">
+                <div class="fields">
+                    <div>
+                        <label><?= e($texts->get('form.variants.label')) ?></label>
+                        <div class="switches">
+                            <label class="switch">
+                                <input type="checkbox" name="g[variants][plain]" value="1"<?= $global->offersPlain() ? ' checked' : '' ?>>
+                                <?= e($texts->get('panel.plain')) ?>
+                            </label>
+                            <label class="switch">
+                                <input type="checkbox" name="g[variants][logo]" value="1"<?= $global->offersLogo() ? ' checked' : '' ?>>
+                                <?= e($texts->get('panel.logo')) ?>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label><?= e($texts->get('form.downloads.label')) ?></label>
+                        <div class="switches">
+                            <label class="switch">
+                                <input type="checkbox" name="g[downloads][svg]" value="1"<?= $global->offersSvg() ? ' checked' : '' ?>>
+                                SVG
+                            </label>
+                            <label class="switch">
+                                <input type="checkbox" name="g[downloads][png]" value="1"<?= $global->offersPng() ? ' checked' : '' ?>>
+                                PNG
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="g-url"><?= e($texts->get('form.defaultUrl.label')) ?></label>
+                        <input type="text" id="g-url" name="g[url]" value="<?= e($global->defaultUrl()) ?>" spellcheck="false">
+                    </div>
+
+                    <div>
+                        <label for="g-logo"><?= e($texts->get('form.defaultLogo.label')) ?></label>
+                        <select id="g-logo" name="g[logo]">
+                            <option value=""><?= e($texts->get('form.logo.none')) ?></option>
+                            <?php foreach ($logos as $file): ?>
+                                <option value="<?= e($file) ?>"<?= $file === $global->defaultLogo() ? ' selected' : '' ?>><?= e($file) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="group group-page">
+            <header>
+                <h2><?= e($texts->get('group.page.heading')) ?></h2>
+                <p><?= e($texts->get('group.page.note')) ?></p>
+            </header>
+            <div class="group-body">
+                <div class="fields">
+                    <div>
+                        <label for="p-url"><?= e($texts->get('form.pageUrl.label')) ?></label>
+                        <input type="text" id="p-url" name="p[url]" value="<?= e($page->url()) ?>"
+                               placeholder="<?= e($global->defaultUrl() ?? $texts->get('form.inherit.empty')) ?>" spellcheck="false">
+                    </div>
+
+                    <div>
+                        <label for="p-logo"><?= e($texts->get('form.pageLogo.label')) ?></label>
+                        <select id="p-logo" name="p[logo]">
+                            <option value=""><?= e($texts->get('form.inherit', [
+                                'value' => $global->defaultLogo() ?? $texts->get('form.logo.none'),
+                            ])) ?></option>
+                            <?php foreach ($logos as $file): ?>
+                                <option value="<?= e($file) ?>"<?= $file === $page->logo() ? ' selected' : '' ?>><?= e($file) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label><?= e($texts->get('form.pageVariants.label')) ?></label>
+                        <div class="switches">
+                            <?php foreach ([Variant::PLAIN => 'panel.plain', Variant::LOGO => 'panel.logo'] as $variant => $key): ?>
+                                <?php $offered = $variant === Variant::PLAIN ? $global->offersPlain() : $global->offersLogo(); ?>
+                                <label class="switch<?= $offered ? '' : ' disabled' ?>"
+                                       title="<?= $offered ? '' : e($texts->get('form.pageVariants.blocked')) ?>">
+                                    <input type="checkbox" name="p[variants][]" value="<?= e($variant) ?>"
+                                           <?= $page->wants($variant) ? ' checked' : '' ?><?= $offered ? '' : ' disabled' ?>>
+                                    <?= e($texts->get($key)) ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <div class="buttons">
             <button type="submit"><?= e($texts->get('form.submit')) ?></button>
@@ -370,7 +515,45 @@ function e(?string $value): string
         'light' => Preset::LIGHT_COLOR,
     ])) ?></div>
 
+    <section class="group group-output">
+        <header>
+            <h2><?= e($texts->get('group.output.heading')) ?></h2>
+            <p><?= e($texts->get('group.output.note')) ?></p>
+        </header>
+        <div class="group-body">
+
+    <?php /*
+        Woher der Wert kommt, ist keine Bequemlichkeit: wer eine unerwartete URL
+        vor sich hat, muss ohne Suchen erkennen, ob sie aus der Seite oder aus
+        den globalen Einstellungen stammt.
+    */ ?>
+    <dl class="resolution">
+        <div>
+            <dt><?= e($texts->get('resolution.url')) ?></dt>
+            <dd>
+                <code><?= e($effective->url() ?? $texts->get('resolution.none')) ?></code>
+                <span class="tag tag-<?= e($effective->urlSource()) ?>"><?= e($texts->get('resolution.from.' . $effective->urlSource())) ?></span>
+            </dd>
+        </div>
+        <div>
+            <dt><?= e($texts->get('resolution.logo')) ?></dt>
+            <dd>
+                <code><?= e($effective->logo() ?? $texts->get('resolution.none')) ?></code>
+                <span class="tag tag-<?= e($effective->logoSource()) ?>"><?= e($texts->get('resolution.from.' . $effective->logoSource())) ?></span>
+            </dd>
+        </div>
+    </dl>
+
+    <?php if (!$effective->showsAnything()): ?>
+        <p class="failure"><?= e($texts->get('output.nothing')) ?></p>
+    <?php endif; ?>
+
+    <?php if (!$global->offersAnyDownload()): ?>
+        <p class="hint"><?= e($texts->get('output.noDownloads')) ?></p>
+    <?php endif; ?>
+
     <div class="cols">
+        <?php if ($effective->showsPlain()): ?>
         <div class="panel">
             <h2><?= e($texts->get('panel.plain')) ?></h2>
             <?php if ($plain !== null): ?>
@@ -382,22 +565,30 @@ function e(?string $value): string
                     <?php endif; ?>
                 </div>
                 <div class="actions">
-                    <a class="btn-link" href="<?= e(link_($query, ['download' => '1'])) ?>"><?= e($texts->get('panel.download.svg')) ?></a>
-                    <a class="btn-link" href="<?= e(link_($query, ['format' => 'png', 'download' => '1'])) ?>"><?= e($texts->get('panel.download.png')) ?></a>
+                    <?php if ($effective->offersSvg()): ?>
+                        <a class="btn-link" href="<?= e(link_($query, ['download' => '1'])) ?>"><?= e($texts->get('panel.download.svg')) ?></a>
+                    <?php endif; ?>
+                    <?php if ($effective->offersPng()): ?>
+                        <a class="btn-link" href="<?= e(link_($query, ['format' => 'png', 'download' => '1'])) ?>"><?= e($texts->get('panel.download.png')) ?></a>
+                    <?php endif; ?>
                     <a class="btn-link btn-secondary" href="<?= e(link_($query)) ?>" target="_blank" rel="noopener"><?= e($texts->get('panel.raw')) ?></a>
                 </div>
             <?php else: ?>
                 <p class="failure"><?= e($plainFailure ?? $texts->get('panel.nothing')) ?></p>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
 
+        <?php if ($effective->showsLogo()): ?>
         <div class="panel">
             <h2><?= e($texts->get('panel.logo')) ?></h2>
             <?php if ($withLogo !== null && $input['logo'] !== ''): ?>
                 <div class="preview"><?= $withLogo ?></div>
                 <div class="actions">
-                    <a class="btn-link" href="<?= e(link_($query, ['variant' => 'logo', 'download' => '1'])) ?>"><?= e($texts->get('panel.download.svg')) ?></a>
-                    <?php if ($logoPngRejection === null): ?>
+                    <?php if ($effective->offersSvg()): ?>
+                        <a class="btn-link" href="<?= e(link_($query, ['variant' => 'logo', 'download' => '1'])) ?>"><?= e($texts->get('panel.download.svg')) ?></a>
+                    <?php endif; ?>
+                    <?php if ($effective->offersPng() && $logoPngRejection === null): ?>
                         <a class="btn-link" href="<?= e(link_($query, ['variant' => 'logo', 'format' => 'png', 'download' => '1'])) ?>"><?= e($texts->get('panel.download.png')) ?></a>
                     <?php endif; ?>
                     <a class="btn-link btn-secondary" href="<?= e(link_($query, ['variant' => 'logo'])) ?>" target="_blank" rel="noopener"><?= e($texts->get('panel.raw')) ?></a>
@@ -411,11 +602,16 @@ function e(?string $value): string
                 <p class="failure"><?= e($logoFailure ?? $texts->get('panel.nothing')) ?></p>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
     </div>
 
+        </div>
+    </section>
+
     <?php if ($matrix !== null): ?>
-        <div class="panel facts">
-            <h2><?= e($texts->get('facts.heading')) ?></h2>
+        <section class="group group-facts">
+            <header><h2><?= e($texts->get('facts.heading')) ?></h2></header>
+            <div class="group-body">
             <div class="cols">
                 <table>
                     <tr>
@@ -549,7 +745,8 @@ function e(?string $value): string
                     <?php endif; ?>
                 </table>
             </div>
-        </div>
+            </div>
+        </section>
 
         <?php if ($withLogo !== null): ?>
             <details>
