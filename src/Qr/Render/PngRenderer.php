@@ -127,6 +127,28 @@ final class PngRenderer implements QrRenderer
     }
 
     /**
+     * The area the artwork will occupy in output pixels, or null without a logo.
+     *
+     * This is the number a raster logo has to meet. Below it the file is being
+     * enlarged and goes soft; a vector logo does not care. Worth asking before
+     * a delivery is commissioned rather than after.
+     *
+     * @return array{0: int, 1: int}|null Width and height in pixels
+     */
+    public function artworkPixels(ModuleMatrix $matrix): ?array
+    {
+        $placement = $this->placement($matrix);
+
+        if ($placement === null) {
+            return null;
+        }
+
+        $scale = $this->pixelsPerModule($matrix);
+
+        return [$placement->drawableWidth() * $scale, $placement->drawableHeight() * $scale];
+    }
+
+    /**
      * Same box, same rules as the SVG renderer — deliberately, so a logo cannot
      * land in one place on the vector and another on the raster.
      */

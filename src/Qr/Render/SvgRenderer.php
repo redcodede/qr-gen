@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Redcodede\QrGen\Qr\Render;
 
+use Redcodede\QrGen\Qr\Contract\RasterArtwork;
 use Redcodede\QrGen\Qr\Contract\QrRenderer;
 use Redcodede\QrGen\Qr\Exception\InvalidArgument;
 use Redcodede\QrGen\Qr\Logo\LogoPlacement;
@@ -31,6 +32,8 @@ final class SvgRenderer implements QrRenderer
 {
     private const NS = 'http://www.w3.org/2000/svg';
 
+    private const XLINK_NS = 'http://www.w3.org/1999/xlink';
+
     /** @var SvgOptions */
     private $options;
 
@@ -54,9 +57,10 @@ final class SvgRenderer implements QrRenderer
         }
 
         $svg .= sprintf(
-            '<svg xmlns="%s" width="%d" height="%d" viewBox="0 0 %d %d" '
+            '<svg xmlns="%s"%s width="%d" height="%d" viewBox="0 0 %d %d" '
             . 'shape-rendering="crispEdges" role="img">',
             self::NS,
+            $this->namespaces(),
             $pixels,
             $pixels,
             $extent,
@@ -99,6 +103,23 @@ final class SvgRenderer implements QrRenderer
     public function fileExtension(): string
     {
         return 'svg';
+    }
+
+    /**
+     * The xlink namespace, declared only when something uses it.
+     *
+     * Raster artwork is embedded as an <image>, and that element's reference is
+     * written in both spellings so that print software predating SVG 2 finds
+     * it. The older one is namespaced, and an undeclared prefix makes the file
+     * invalid XML — which some readers forgive and others refuse outright.
+     * Vector artwork uses neither, and its files are left byte for byte as they
+     * were.
+     */
+    private function namespaces(): string
+    {
+        return $this->options->logo() instanceof RasterArtwork
+            ? ' xmlns:xlink="' . self::XLINK_NS . '"'
+            : '';
     }
 
     private function placement(ModuleMatrix $matrix): ?LogoPlacement

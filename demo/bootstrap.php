@@ -27,6 +27,7 @@ use Redcodede\QrGen\Qr\Exception\QrGenException;
 use Redcodede\QrGen\Qr\Logo\LogoBox;
 use Redcodede\QrGen\Qr\Logo\LogoFit;
 use Redcodede\QrGen\Qr\Logo\LogoFitResult;
+use Redcodede\QrGen\Qr\Logo\PngLogo;
 use Redcodede\QrGen\Qr\Logo\SvgLogo;
 use Redcodede\QrGen\Qr\ModuleMatrix;
 use Redcodede\QrGen\Qr\Raster\LogoRaster;
@@ -116,13 +117,17 @@ function texts(array $query): Translator
 }
 
 /**
- * The SVG files sitting in demo/logos, by filename.
+ * The artwork sitting in demo/logos, by filename.
+ *
+ * Both kinds are offered. A vector original is the better delivery every time,
+ * but a PNG is what often arrives, and the package takes it.
  *
  * @return list<string>
  */
 function availableLogos(): array
 {
-    $found = glob(LOGO_DIR . '/*.svg') ?: [];
+    $found = array_merge(glob(LOGO_DIR . '/*.svg') ?: [], glob(LOGO_DIR . '/*.png') ?: []);
+    sort($found);
 
     return array_values(array_map('basename', $found));
 }
@@ -183,11 +188,17 @@ function encode(string $url): ModuleMatrix
 }
 
 /**
- * Reads the chosen artwork and hands its markup to the sanitiser.
+ * Reads the chosen artwork and hands the bytes to whichever class understands
+ * them.
  *
  * Reading the file happens here, in the demo, not in the package: the core
- * takes markup rather than a path, so the same artwork can come from a Statamic
- * asset, a fixture or a delivery folder without the package caring which.
+ * takes bytes rather than a path, so the same artwork can come from a Statamic
+ * asset, a fixture or a delivery folder without the package caring which. The
+ * extension picks the class, and both classes refuse rather than repair, so a
+ * file that is not what its name claims is rejected by the reader that opens
+ * it.
+ *
+ * @throws \Redcodede\QrGen\Qr\Exception\QrGenException if the file cannot be used
  */
 function logo(string $filename): ?Logo
 {
@@ -201,7 +212,11 @@ function logo(string $filename): ?Logo
         return null;
     }
 
-    return SvgLogo::fromMarkup((string) file_get_contents($path));
+    $bytes = (string) file_get_contents($path);
+
+    return strtolower(pathinfo($filename, PATHINFO_EXTENSION)) === 'png'
+        ? PngLogo::fromBinary($bytes)
+        : SvgLogo::fromMarkup($bytes);
 }
 
 function svgRenderer(string $logoFile, bool $standalone, bool $withLogo): SvgRenderer
@@ -268,7 +283,13 @@ function pngRejection(string $logoFile, bool $withLogo): ?string
         return $cache[$logoFile];
     }
 
-    $artwork = logo($logoFile);
+    try {
+        $artwork = logo($logoFile);
+    } catch (QrGenException $exception) {
+        // A file that cannot be read at all has no PNG either, and the reason
+        // is the same one the panel will show for the SVG.
+        return $cache[$logoFile] = $exception->getMessage();
+    }
 
     return $cache[$logoFile] = $artwork === null ? null : LogoRaster::rejectionFor($artwork);
 }

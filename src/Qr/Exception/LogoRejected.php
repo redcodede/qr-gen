@@ -186,4 +186,41 @@ final class LogoRejected extends InvalidArgumentException implements QrGenExcept
             . 'Put the opacity on the individual shapes, or take the SVG.'
         );
     }
+
+    /**
+     * These four come from the PNG reader. A raster logo needs no sanitising —
+     * a PNG cannot hold a script or a reference to anything outside itself —
+     * so what is left to refuse is a file this package cannot read.
+     */
+    public static function notAPng(): self
+    {
+        return new self(
+            'The artwork does not start with a PNG signature. Supply an SVG or a PNG; JPEG, GIF, '
+            . 'TIFF and WebP are not read.'
+        );
+    }
+
+    public static function undecodablePng(string $reason): self
+    {
+        return new self('The PNG could not be read: ' . $reason);
+    }
+
+    public static function interlacedPng(): self
+    {
+        return new self(
+            'The PNG is interlaced, which this reader does not unpick. Interlacing exists to show '
+            . 'a rough image early over a slow line and does nothing for artwork. Save it again '
+            . 'with interlacing switched off.'
+        );
+    }
+
+    public static function pngTooLarge(int $width, int $height): self
+    {
+        return new self(sprintf(
+            'The PNG is %d × %d pixels, which is far more than a logo a centimetre wide can use '
+            . 'and more than this package will expand into memory. Scale it down first.',
+            $width,
+            $height
+        ));
+    }
 }

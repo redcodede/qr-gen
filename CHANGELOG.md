@@ -23,6 +23,60 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
   Braucht einen PNG-Dekoder im Paket; die Vektor-Bildmarke ist erledigt
 - Elliptische Bögen (`A`) und Konturen im Rasterisierer, falls eine Zeichnung
   sie je braucht. Bisher hat keine
+- Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
+  ankommt
+
+## [0.8.0] - 2026-09-14
+
+Die Bildmarke darf jetzt auch ein PNG sein.
+
+### Hinzugefügt
+
+- **`Qr\Logo\PngLogo`** — das Gegenstück zu `SvgLogo`, mit demselben Vertrag,
+  also nehmen beide Renderer es ohne Unterschied. Im SVG landet die Datei als
+  `<image>` mit Data-URI, im PNG wird sie umgerechnet und einkomponiert
+- **`Qr\Raster\PngDecoder`** — ein PNG-Leser nach der Spezifikation, ohne
+  Bildextension: alle fünf Farbtypen, Bittiefen von 1 bis 16, alle fünf
+  Zeilenfilter, `tRNS` in allen drei Formen. Sechzehn Bit werden auf acht
+  gebracht, weil nichts dahinter mehr tragen kann. Ausgabe ist RGBA als
+  **Binärstring**, vier Bytes je Pixel: dieselben Pixel als PHP-Array kosteten
+  Dutzende Megabyte
+- **`Qr\Raster\RasterScaler`** — verkleinert über den Flächenmittelwert,
+  vergrößert bilinear. **Alpha wird vormultipliziert und danach wieder
+  herausgerechnet**; ohne das mischt sich die Farbe unter durchsichtigen Pixeln
+  in jede Kante und die Marke bekommt einen dunklen Saum
+- **`Qr\Contract\RasterArtwork`** — daran erkennen die Renderer, dass eine
+  Bildmarke schon Pixel ist und nicht gezeichnet werden muss
+- **`PngRenderer::artworkPixels()`**, dazu `PngLogo::isSharpEnoughFor()` und
+  `recommendedPixels()`. Bei den Werten des Projekts sind das **288 × 288 px**;
+  darunter wird hochskaliert und weich. Die Demo-Seite zeigt Soll und Ist
+  nebeneinander
+- Demo-Seite: PNG-Dateien in `demo/logos` stehen zur Auswahl
+- 51 Tests. Die Prüffälle für den Dekoder werden Byte für Byte im Test gebaut,
+  damit neben den erwarteten Pixeln steht, welche Bytes sie erzeugt haben —
+  und damit Kombinationen abgedeckt sind, die hier bisher keine Datei benutzt:
+  Vier-Bit-Paletten, Sechzehn-Bit-Kanäle, Grau mit transparentem Wert
+
+### Geändert
+
+- **Metadaten werden aus eingebetteten PNGs entfernt.** `tEXt`, `iTXt`, EXIF
+  und Farbprofile reisen sonst mit; der Name einer Grafikerin oder die
+  Koordinaten einer Kamera haben in einem Symbol auf einer Verpackung nichts
+  verloren. Die Datei wird mit den Bildchunks neu geschrieben, sonst nichts
+- Der SVG-Renderer deklariert `xmlns:xlink`, **aber nur wenn eine Rastermarke
+  im Spiel ist**. Vektorausgaben bleiben Byte für Byte, wie sie waren
+
+### Nicht enthalten, mit Absicht
+
+- **Interlacing wird abgelehnt.** Adam7 legt das Bild in sieben ineinander
+  verschränkten Durchgängen ab, jeder mit eigener Geometrie. Es ist eine Option
+  für den Bildaufbau über eine langsame Leitung und nützt Druckvorlagen nichts.
+  Die Ablehnung nennt das Häkchen, das umzulegen ist
+- **Die Referenz im `<image>` steht nur als `xlink:href`.** Beide Schreibweisen
+  trügen die Datei zweimal, und bei fünfzig Kilobyte je Kopie ist das kein
+  Rundungsfehler. Die alte Schreibweise ist die, die überall funktioniert —
+  SVG 2 hat sie für veraltet erklärt und verlangt trotzdem von jedem Renderer,
+  sie zu verstehen
 
 ## [0.7.0] - 2026-09-14
 

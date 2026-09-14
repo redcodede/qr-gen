@@ -17,6 +17,8 @@ declare(strict_types=1);
 
 namespace Redcodede\QrGen\Demo;
 
+use Redcodede\QrGen\Qr\Exception\QrGenException;
+use Redcodede\QrGen\Qr\Logo\PngLogo;
 use Redcodede\QrGen\Qr\Preset;
 
 require __DIR__ . '/bootstrap.php';
@@ -81,9 +83,26 @@ if ($matrix !== null && $input['logo'] !== '' && $logoPngRejection === null) {
     $logoPngBytes = $rendered === null ? null : strlen($rendered);
 }
 
+// What the printed size asks of raster artwork, and what was supplied. A
+// vector logo does not care; a PNG below this figure is being enlarged.
+$artworkPixels = null;
+$logoPixels = null;
+
 $png = null;
 
 if ($matrix !== null) {
+    $artworkPixels = pngRenderer($input['logo'], true)->artworkPixels($matrix);
+
+    try {
+        $artwork = logo($input['logo']);
+
+        if ($artwork instanceof PngLogo) {
+            $logoPixels = [$artwork->pixelWidth(), $artwork->pixelHeight()];
+        }
+    } catch (QrGenException $exception) {
+        // Already reported next to the artwork panel.
+    }
+
     $pngRenderer = pngRenderer();
     $png = [
         'pixels' => $pngRenderer->pixelWidth($matrix),
@@ -485,6 +504,26 @@ function e(?string $value): string
                                 'bytes' => number_format($pngBytes, 0, ',', '.'),
                             ])) ?></td>
                         </tr>
+                        <?php if ($artworkPixels !== null): ?>
+                            <tr>
+                                <th><?= e($texts->get('facts.artworkArea')) ?></th>
+                                <td>
+                                    <?= e($texts->get('facts.artworkArea.value', [
+                                        'width' => $artworkPixels[0],
+                                        'height' => $artworkPixels[1],
+                                    ])) ?>
+                                    <?php if ($logoPixels !== null): ?>
+                                        <br>
+                                        <small><?= e($texts->get(
+                                            $logoPixels[0] >= $artworkPixels[0] && $logoPixels[1] >= $artworkPixels[1]
+                                                ? 'facts.artworkArea.enough'
+                                                : 'facts.artworkArea.short',
+                                            ['width' => $logoPixels[0], 'height' => $logoPixels[1]]
+                                        )) ?></small>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
                         <?php if ($logoPngBytes !== null): ?>
                             <tr>
                                 <th><?= e($texts->get('facts.pngLogo')) ?></th>

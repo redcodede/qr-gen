@@ -37,7 +37,7 @@ return [
     'panel.download.png' => 'Download PNG',
     'panel.raw' => 'Open raw',
     'panel.nothing' => 'Nothing rendered.',
-    'panel.noLogo' => 'No SVG in demo/logos. Drop one in and reload.',
+    'panel.noLogo' => 'No SVG or PNG in demo/logos. Drop one in and reload.',
     'panel.png.whichFormat' => 'Both formats show the same drawing in the same place. The SVG '
         . 'is what goes to the printer: vector, scalable to any size, crisp at every one of them. '
         . 'The PNG is rasterised — 8-bit indexed, anti-aliased, at the ordered print size — which '
@@ -72,6 +72,11 @@ return [
     'facts.svgSize.value' => ':plain vs :logo bytes',
     'facts.png' => 'PNG',
     'facts.png.value' => ':pixels × :pixels px, :perModule px per module, 1 bit, :bytes bytes',
+    'facts.artworkArea' => 'Area the artwork fills',
+    'facts.artworkArea.value' => ':width × :height px in the printed PNG',
+    'facts.artworkArea.enough' => 'Supplied :width × :height px — enough, it is being reduced',
+    'facts.artworkArea.short' => 'Supplied only :width × :height px — it is being enlarged and '
+        . 'will look soft. Ask for a larger file',
     'facts.pngLogo' => 'PNG with artwork',
     'facts.pngLogo.value' => ':bytes bytes, 8-bit indexed',
     'facts.printSize' => 'Printed size',

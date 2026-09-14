@@ -8,7 +8,7 @@ Mitte, **beide als SVG und als druckfertiges PNG**. Mit Demo-Seite und
 Downloads. Noch **nicht** dabei: die Statamic-Anbindung. Was hier unter
 „geplant" steht, existiert nicht.
 
-Geprüft am 14.09.2026 auf PHP 8.4: **335 Tests, 24788 Assertions, grün.**
+Geprüft am 14.09.2026 auf PHP 8.4: **386 Tests, 25872 Assertions, grün.**
 
 ---
 
@@ -35,6 +35,9 @@ Zuschnitt in zwei Stufen.
 - [x] Matrix → SVG, ein einziger `<path>`, verlustfrei skalierbar
 - [x] **Logo in der Mitte**, mit Ruhezone darum, jedes Seitenverhältnis
 - [x] **Sanitizer für fremde SVGs**, Whitelist statt Filter
+- [x] **Bildmarke auch als PNG**, mit eigenem PNG-Dekoder: alle fünf Farbtypen,
+      alle Bittiefen, alle fünf Zeilenfilter, Transparenz. Metadaten werden
+      abgeschnitten
 - [x] **Funktionsmuster-Prüfung:** ein Logokasten über Such-, Takt- oder
       Formatmustern wird abgewiesen, nicht gerendert. Ausrichtungsmuster
       werden davon unterschieden, weil sie ein Kompromiss und kein Fehler sind
@@ -61,10 +64,10 @@ Zuschnitt in zwei Stufen.
 - [ ] Code- und Token-Erzeugung, `CodeRepository`-Interface
 - [ ] Statamic-Hülle: ServiceProvider, Artisan-Command, Auflösungs-Route,
       Download-Seite
-- [ ] Bildmarke als **Raster** annehmen, falls sie nur als PNG geliefert wird.
-      Braucht einen PNG-**Dekoder**; die Vektor-Bildmarke ist erledigt
 - [ ] Elliptische Bögen (`A`) und Konturen im Rasterisierer. Bisher nicht
       gebraucht: keine der vorliegenden Zeichnungen benutzt beides
+- [ ] Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
+      ankommt. Bis dahin nennt die Ablehnung das Häkchen, das umzulegen ist
 
 ### Stufe 2 — später, im Website-Relaunch
 
@@ -241,6 +244,13 @@ Deckungsstufen. Das Auge zählt auf einer gebogenen Kante bei etwa acht auf. Was
 es bringt: ein dünnes Detail — der Querstrich eines Buchstabens, die Lücke in
 einem Ring — wird grau, statt herauszufallen oder auf volle Deckung zu springen.
 Herausfallen ist das, was eine kleine Marke kaputt aussehen lässt.
+
+Für eine Bildmarke, die schon Pixel ist, entfällt das alles: `PngDecoder`
+liest sie, `RasterScaler` bringt sie auf die Zielgröße, fertig. Beim Skalieren
+wird **Alpha vormultipliziert und danach wieder herausgerechnet** — ohne das
+mischt sich die Farbe unter vollständig durchsichtigen Pixeln in jede Kante,
+und die Marke bekommt einen dunklen Saum, den niemand gezeichnet hat. Verkleinert
+wird über die Fläche gemittelt, vergrößert bilinear interpoliert.
 
 **Was er nicht kann, lehnt er ab.** Elliptische Bögen, Konturen und
 Gruppendeckkraft werden **beim Namen genannt und verweigert**, nicht genähert.
@@ -499,6 +509,51 @@ LogoBox::of(15, 9, 1);                                   // breit, von Hand
 LogoBox::forAspectRatio($logo->width() / $logo->height(), 11);   // aus dem Logo
 ```
 
+#### Wenn die Bildmarke ein PNG ist
+
+Kommt sie als Raster, ist der Aufruf derselbe — nur die Klasse wechselt:
+
+```php
+use Redcodede\QrGen\Qr\Logo\PngLogo;
+
+$logo = PngLogo::fromBinary(file_get_contents('/pfad/zum/logo.png'));
+
+$options = PngOptions::default()->withLogo($logo, LogoBox::square(11, 1));
+```
+
+`PngLogo` erfüllt `Logo` wie `SvgLogo`, also nehmen beide Renderer sie ohne
+Unterschied. Im SVG landet die Datei als `<image>` mit Data-URI, im PNG wird
+sie auf die Zielgröße umgerechnet und einkomponiert.
+
+**Ein Raster ist schlechter als ein Vektor, und daran kann das Paket nichts
+ändern.** Was es kann, ist es nicht schlimmer zu machen, als die Datei erlaubt,
+und vorher zu sagen, wie viele Pixel die Druckgröße verlangt:
+
+```php
+[$breite, $hoehe] = (new PngRenderer($options))->artworkPixels($matrix);
+// 288 x 288 bei 50 mm und 600 dpi
+
+$logo->isSharpEnoughFor($breite, $hoehe);      // false heißt: wird vergrößert
+$logo->recommendedPixels($breite, $hoehe);     // was anzufordern wäre
+```
+
+Bei den festgelegten Werten des Projekts — 50 mm, 600 dpi, Kasten 11, Rand 1 —
+sind das **288 × 288 px**. Darunter wird hochskaliert und das Ergebnis weich;
+darüber wird verkleinert, und da verhält sich ein Raster gut. Die Demo-Seite
+zeigt beide Zahlen nebeneinander und sagt, welcher Fall vorliegt.
+
+Zwei Dinge macht `PngLogo` ungefragt:
+
+- **Metadaten fallen weg.** Ein PNG kann kein Skript tragen, aber `tEXt`,
+  `iTXt`, EXIF und Farbprofile — und die reisen mit. Der Name einer
+  Grafikerin oder die GPS-Koordinaten einer Kamera hätten in einem Symbol
+  nichts verloren, das auf eine Verpackung gedruckt wird. Die Datei wird mit
+  den Bildchunks neu geschrieben, sonst nichts
+- **Eingebettet, nie verlinkt.** Im SVG steht die ganze Datei als Data-URI.
+  Ein `<image href="https://…">` würde den Browser des Betrachters die Datei
+  nachholen lassen — der einzige echte Abfluss im ganzen Entwurf — und in der
+  Druckerei als leerer Kasten ankommen
+
 Beide Kantenlängen müssen **ungerade** sein. Ein QR-Symbol ist immer ungerade
 (17 + 4 × Version), eine gerade Kantenlänge läge einen halben Modul neben dem
 Raster und räumte Teile von Modulen frei statt ganze.
@@ -733,7 +788,7 @@ Demo die Form, die das Plugin bekommt, und nicht eine größere.
 | `demo/index.php` | Formular, **beide Varianten nebeneinander**, Kennzahlen, Download-Knöpfe. Kein Text im Code, alles aus dem Katalog |
 | `demo/image.php` | liefert ein Bild allein; `?format=png`, `?variant=logo`, `?download=1` |
 | `demo/bootstrap.php` | Autoload, Eingabeprüfung, Objektaufbau |
-| `demo/logos/*.svg` | Testlogos. Jede Datei hier wird von `RealWorldLogoTest` durch die ganze Kette geschickt |
+| `demo/logos/*.svg`, `*.png` | Testlogos, Vektor und Raster. Jedes SVG hier wird von `RealWorldLogoTest` durch die ganze Kette geschickt |
 
 `?lang=en` schaltet auf Englisch. Das Formular bietet es nicht an — genau das
 ist mit „auf Abruf" gemeint.
@@ -755,10 +810,12 @@ src/
       QrEncoder.php        Zeichenkette → Matrix (Schritte 1–6)
       QrRenderer.php       Matrix → Datei-Bytes (Schritt 7)
       Logo.php             Markup plus Eigengröße
+      RasterArtwork.php    Bildmarke, die schon Pixel ist
     Encoder/
       BaconQrEncoder.php   Adapter auf bacon/bacon-qr-code
     Logo/
       SvgLogo.php          Sanitizer: fremdes SVG → einbettbares Markup
+      PngLogo.php          fremdes PNG → Data-URI plus Pixel, ohne Metadaten
       LogoBox.php          gewünschter Kasten in Modulen, prüft die Platzierung
       LogoPlacement.php    wo der Kasten dann liegt
     Render/
@@ -773,6 +830,8 @@ src/
       ScanlineFiller.php   Scanline-Füllung, überabgetastet
       LogoRaster.php       Markup durchlaufen, Farbe vererben, komponieren
       Palette.php          Farben → Palettenindizes
+      PngDecoder.php       PNG → RGBA, ohne Bildextension
+      RasterScaler.php     umrechnen, mit vormultipliziertem Alpha
     Exception/             QrGenException, InvalidArgument, EncodingFailed, LogoRejected
     ErrorCorrection.php    die vier Stufen der Norm
     ModuleMatrix.php       die Grenze zwischen Kodieren und Zeichnen
@@ -864,8 +923,9 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.5.0` | Textsammlung DE/EN, `Qr\Preset` mit den festgelegten Werten |
 | `0.6.0` | Druckfertiges PNG ohne Bildextension, Download für beide Formate |
 | `0.7.0` | Eigener Rasterisierer: Bildmarke auch im PNG, beide Codes in beiden Formaten |
-| `0.8.0` | geplant: Code- und Token-Erzeugung |
-| `0.9.0` | geplant: Statamic-Hülle, in der GVÖ-Seite lauffähig |
+| `0.8.0` | Bildmarke darf ein PNG sein: eigener Dekoder, Skalierer, Größenempfehlung |
+| `0.9.0` | geplant: Code- und Token-Erzeugung |
+| `0.10.0` | geplant: Statamic-Hülle, in der GVÖ-Seite lauffähig |
 | `1.0.0` | in Produktion abgenommen, öffentliche API stabil |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):

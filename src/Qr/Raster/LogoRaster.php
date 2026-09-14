@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Redcodede\QrGen\Qr\Raster;
 
 use Redcodede\QrGen\Qr\Contract\Logo;
+use Redcodede\QrGen\Qr\Contract\RasterArtwork;
 use Redcodede\QrGen\Qr\Exception\LogoRejected;
 
 /**
@@ -69,6 +70,12 @@ final class LogoRaster
     ): array {
         $pixels = array_fill(0, max(0, $width * $height), $backdrop);
 
+        if ($logo instanceof RasterArtwork) {
+            self::stamp($logo, $placement, $width, $height, $pixels);
+
+            return $pixels;
+        }
+
         self::walk($logo->markup(), $placement, $width, $height, $pixels);
 
         return $pixels;
@@ -83,6 +90,13 @@ final class LogoRaster
      */
     public static function rejectionFor(Logo $logo): ?string
     {
+        // Artwork that is already pixels has nothing left to refuse: whatever
+        // could go wrong with it went wrong when the file was read, and a
+        // PngLogo that exists is a PngLogo that decoded.
+        if ($logo instanceof RasterArtwork) {
+            return null;
+        }
+
         $nothing = null;
 
         try {
@@ -161,6 +175,91 @@ final class LogoRaster
 
         if (count($stack) !== 1) {
             throw LogoRejected::unbalancedMarkup();
+        }
+    }
+
+    /**
+     * Resamples raster artwork to the size it will occupy and composites it.
+     *
+     * The target rectangle comes from running the placement over the artwork's
+     * own corners. The renderers only ever build that matrix out of a
+     * translation and a uniform scale, so the two corners describe the
+     * rectangle exactly; a rotation would make this a bounding box, and nothing
+     * here builds one.
+     *
+     * @param list<int> $pixels
+     */
+    private static function stamp(
+        RasterArtwork $logo,
+        Transform $placement,
+        int $width,
+        int $height,
+        array &$pixels
+    ): void {
+        $sourceWidth = $logo->pixelWidth();
+        $sourceHeight = $logo->pixelHeight();
+
+        $nearX = $placement->applyX(0.0, 0.0);
+        $nearY = $placement->applyY(0.0, 0.0);
+        $farX = $placement->applyX((float) $sourceWidth, (float) $sourceHeight);
+        $farY = $placement->applyY((float) $sourceWidth, (float) $sourceHeight);
+
+        $left = (int) round(min($nearX, $farX));
+        $top = (int) round(min($nearY, $farY));
+        $targetWidth = max(1, (int) round(abs($farX - $nearX)));
+        $targetHeight = max(1, (int) round(abs($farY - $nearY)));
+
+        $scaled = RasterScaler::resample(
+            $logo->pixels(),
+            $sourceWidth,
+            $sourceHeight,
+            $targetWidth,
+            $targetHeight
+        );
+
+        for ($y = 0; $y < $targetHeight; $y++) {
+            $row = $top + $y;
+
+            if ($row < 0 || $row >= $height) {
+                continue;
+            }
+
+            $rowStart = $y * $targetWidth * 4;
+            $destinationRow = $row * $width;
+
+            for ($x = 0; $x < $targetWidth; $x++) {
+                $column = $left + $x;
+
+                if ($column < 0 || $column >= $width) {
+                    continue;
+                }
+
+                $at = $rowStart + ($x * 4);
+                $alpha = ord($scaled[$at + 3]);
+
+                if ($alpha === 0) {
+                    continue;
+                }
+
+                $index = $destinationRow + $column;
+
+                if ($alpha === 255) {
+                    $pixels[$index] = (ord($scaled[$at]) << 16)
+                        | (ord($scaled[$at + 1]) << 8)
+                        | ord($scaled[$at + 2]);
+
+                    continue;
+                }
+
+                $weight = $alpha / 255;
+                $rest = 1.0 - $weight;
+                $under = $pixels[$index];
+
+                $pixels[$index] =
+                    ((int) round((ord($scaled[$at]) * $weight) + ((($under >> 16) & 0xFF) * $rest)) << 16)
+                    | ((int) round((ord($scaled[$at + 1]) * $weight) + ((($under >> 8) & 0xFF) * $rest)) << 8)
+                    | (int) round((ord($scaled[$at + 2]) * $weight) + (($under & 0xFF) * $rest));
+            }
         }
     }
 

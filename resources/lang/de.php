@@ -40,7 +40,7 @@ return [
     'panel.download.png' => 'PNG herunterladen',
     'panel.raw' => 'Direkt öffnen',
     'panel.nothing' => 'Nichts gerendert.',
-    'panel.noLogo' => 'Kein SVG in demo/logos. Leg eines hinein und lade neu.',
+    'panel.noLogo' => 'Kein SVG und kein PNG in demo/logos. Leg eines hinein und lade neu.',
     'panel.png.whichFormat' => 'Beide Formate zeigen dieselbe Zeichnung, an derselben Stelle. '
         . 'In die Druckerei geht das SVG: Vektor, beliebig skalierbar, gestochen scharf in jeder '
         . 'Größe. Das PNG ist gerastert — 8 Bit indiziert, kantengeglättet, in der bestellten '
@@ -76,6 +76,11 @@ return [
     'facts.svgSize.value' => ':plain gegen :logo Bytes',
     'facts.png' => 'PNG',
     'facts.png.value' => ':pixels × :pixels px, :perModule px je Modul, 1 Bit, :bytes Bytes',
+    'facts.artworkArea' => 'Zeichenfläche der Bildmarke',
+    'facts.artworkArea.value' => ':width × :height px im gedruckten PNG',
+    'facts.artworkArea.enough' => 'Vorlage :width × :height px — reicht, wird verkleinert',
+    'facts.artworkArea.short' => 'Vorlage nur :width × :height px — wird vergrößert und '
+        . 'entsprechend weich. Eine größere Vorlage anfordern',
     'facts.pngLogo' => 'PNG mit Bildmarke',
     'facts.pngLogo.value' => ':bytes Bytes, 8 Bit indiziert',
     'facts.printSize' => 'Gedruckte Größe',
