@@ -12,8 +12,9 @@
  *   image.php?url=…&variant=logo                 SVG with artwork
  *   image.php?url=…&format=png&download=1        as a file
  *
- * A PNG with artwork does not exist — see pngAvailable() — and a request for one
- * comes back as SVG rather than as a symbol with a hole in it.
+ * Both formats carry artwork. Where the rasteriser cannot draw a particular
+ * logo — see pngAvailable() — a request for its PNG comes back as SVG rather
+ * than as a symbol with a hole in it.
  */
 
 declare(strict_types=1);
@@ -33,7 +34,7 @@ if ($input['errors'] !== []) {
 }
 
 $withLogo = isset($_GET['variant']) && $_GET['variant'] === 'logo';
-$format = isset($_GET['format']) && $_GET['format'] === 'png' && pngAvailable($withLogo) ? 'png' : 'svg';
+$format = isset($_GET['format']) && $_GET['format'] === 'png' && pngAvailable($input['logo'], $withLogo) ? 'png' : 'svg';
 
 [$image, $failure] = tryRender($input['url'], $input['logo'], true, $withLogo, $format);
 

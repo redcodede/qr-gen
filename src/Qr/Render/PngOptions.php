@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Redcodede\QrGen\Qr\Render;
 
+use Redcodede\QrGen\Qr\Contract\Logo;
 use Redcodede\QrGen\Qr\Exception\InvalidArgument;
+use Redcodede\QrGen\Qr\Logo\LogoBox;
 
 /**
  * Settings for the PNG renderer, expressed the way print work is ordered:
@@ -63,9 +65,61 @@ final class PngOptions
     /** @var bool */
     private $transparentBackground = false;
 
+    /** @var Logo|null */
+    private $logo;
+
+    /** @var LogoBox|null */
+    private $logoBox;
+
     public static function default(): self
     {
         return new self();
+    }
+
+    /**
+     * Places artwork in the middle of the symbol, as the SVG renderer does.
+     *
+     * Same box, same placement rules, same refusal over a function pattern —
+     * the two renderers share LogoBox precisely so a logo cannot sit in one
+     * place on the vector and another on the raster.
+     *
+     * What differs is that the PNG has to draw the artwork itself rather than
+     * hand the markup on, so a logo the rasteriser cannot draw is refused at
+     * render time. Redcodede\QrGen\Qr\Raster\LogoRaster::rejectionFor() answers
+     * that question in advance, for a caller that would rather not offer a
+     * download that cannot be produced.
+     */
+    public function withLogo(Logo $logo, LogoBox $box): self
+    {
+        $clone = clone $this;
+        $clone->logo = $logo;
+        $clone->logoBox = $box;
+
+        return $clone;
+    }
+
+    public function withoutLogo(): self
+    {
+        $clone = clone $this;
+        $clone->logo = null;
+        $clone->logoBox = null;
+
+        return $clone;
+    }
+
+    public function logo(): ?Logo
+    {
+        return $this->logo;
+    }
+
+    public function logoBox(): ?LogoBox
+    {
+        return $this->logoBox;
+    }
+
+    public function hasLogo(): bool
+    {
+        return $this->logo !== null && $this->logoBox !== null;
     }
 
     /**

@@ -111,4 +111,79 @@ final class LogoRejected extends InvalidArgumentException implements QrGenExcept
             . 'the printing system renders as something else or as nothing.'
         );
     }
+
+    /**
+     * The refusals below come from the PNG rasteriser rather than from the
+     * sanitiser, and they mean something narrower: the artwork is safe to embed
+     * and the SVG renderer draws it, but this package cannot turn it into
+     * pixels itself. Whoever sees one of these still gets the vector file.
+     */
+    public static function unsupportedPathCommand(string $command): self
+    {
+        return new self(sprintf(
+            'A path uses the "%s" command — an elliptical arc — which the PNG rasteriser does '
+            . 'not draw. It draws lines and Bézier curves. Export the file again with arcs '
+            . 'converted to curves, or take the SVG, which is unaffected.',
+            $command
+        ));
+    }
+
+    public static function unreadablePath(string $reason): self
+    {
+        return new self('A path could not be read: ' . $reason);
+    }
+
+    public static function unreadablePoints(): self
+    {
+        return new self(
+            'A polygon or polyline has an odd number of coordinates, so the last point is '
+            . 'incomplete and the outline would close somewhere the artwork does not.'
+        );
+    }
+
+    public static function unreadableTransform(string $list): self
+    {
+        return new self(sprintf(
+            'The transform "%s" could not be read. Understood are matrix, translate, scale, '
+            . 'rotate, skewX and skewY.',
+            $list
+        ));
+    }
+
+    public static function unreadableColor(string $value): self
+    {
+        return new self(sprintf(
+            'The colour "%s" could not be read. Use a hex value such as #009879, an rgb() '
+            . 'value, or one of the basic colour names.',
+            $value
+        ));
+    }
+
+    public static function unrasterisableElement(string $element): self
+    {
+        return new self(sprintf(
+            'The PNG rasteriser has no rule for <%s>.',
+            $element
+        ));
+    }
+
+    public static function strokedArtwork(string $element): self
+    {
+        return new self(sprintf(
+            'A <%s> carries a stroke. The PNG rasteriser fills outlines and does not draw '
+            . 'strokes: joins, caps and dashes are a second geometry engine beside the filler. '
+            . 'Expand strokes to outlines in the drawing program, or take the SVG.',
+            $element
+        ));
+    }
+
+    public static function groupOpacity(): self
+    {
+        return new self(
+            'A <g> is partly transparent. Group opacity fades the group as a whole, so '
+            . 'overlapping children do not show through one another — the PNG rasteriser '
+            . 'composites element by element and would draw that differently from the SVG. '
+            . 'Put the opacity on the individual shapes, or take the SVG.'
+        );
+    }
 }

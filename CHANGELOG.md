@@ -19,8 +19,59 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
   Download-Seite, Flat-File-Repository
 - `statamic/cms` und `extra.laravel.providers` in der `composer.json`, sobald
   der ServiceProvider existiert
-- Raster-Logo als Data-URI, falls kein SVG geliefert wird
-- PNG-Ausgabe ohne `gd`, über `zlib` und `crc32()`
+- Bildmarke als **Raster** annehmen, falls sie nur als PNG geliefert wird.
+  Braucht einen PNG-Dekoder im Paket; die Vektor-Bildmarke ist erledigt
+- Elliptische Bögen (`A`) und Konturen im Rasterisierer, falls eine Zeichnung
+  sie je braucht. Bisher hat keine
+
+## [0.7.0] - 2026-09-14
+
+Die Bildmarke auch im PNG. Beide Codes gibt es jetzt in beiden Formaten.
+
+### Hinzugefügt
+
+- **`Qr\Raster`** — ein eigener Rasterisierer, weiterhin ohne Bildextension.
+  Ein SVG reicht die Marke an den Betrachter weiter und lässt ihn zeichnen; ein
+  PNG muss selbst zeichnen. Sechs Klassen: `Transform` (affine 2 × 3-Matrix und
+  `transform`-Listen), `PathFlattener` (`d`-Attribut zu Streckenzügen),
+  `ShapeFlattener` (rect, circle, ellipse, polygon, polyline über die
+  Pfadgrammatik), `ScanlineFiller` (Nonzero und Even-Odd, 4 × 4
+  überabgetastet), `LogoRaster` (Markup durchlaufen, Farbe vererben,
+  komponieren) und `Palette`
+- **`PngOptions::withLogo()`**, mit derselben `LogoBox` wie der SVG-Renderer.
+  Daran hängt, dass die zwei Dateien dasselbe Bild zeigen und die Marke nicht
+  im Vektor an einer und im Raster an einer anderen Stelle sitzt
+- **`LogoRaster::rejectionFor()`** — beantwortet vorab, ob eine Zeichnung sich
+  rastern lässt, damit eine Oberfläche keinen Download anbietet, der scheitert
+- Demo-Seite: **PNG-Download auch für den Code mit Bildmarke**, und wo das
+  nicht geht, der Grund an der Stelle des Knopfs
+- 84 Tests. Der Füller wird als **Bild** geprüft — kleine Formen, Deckung
+  Zeichen für Zeichen gegen eine erwartete Zeichnung, weil ein Windungsfehler,
+  eine Halbpixelverschiebung und eine ausgelaufene Spanne so in derselben
+  Zusicherung auffallen. Dazu ein Rundlauf, der die fertige Datei wieder in
+  Chunks zerlegt, inflatet und **jedes Modul außerhalb des Logokastens** mit
+  der Matrix vergleicht, aus der sie entstand
+
+### Geändert
+
+- **Das PNG mit Bildmarke ist 8 Bit indiziert** statt 1 Bit. Die Marke bringt
+  eigene Farben und gebogene Kanten mit, die bei dieser Größe Kantenglättung
+  brauchen; beides passt nicht in ein Bit. **Das PNG ohne Bildmarke bleibt
+  unverändert bei 1 Bit** und zwei Palettenfarben. Palette bleibt es in beiden
+  Fällen: flache Zeichnungen ergeben wenige Farben, die GVÖ-Marke landet bei 34
+  von 256
+- `pngRenderer()`, `rendererFor()` und `pngAvailable()` in der Demo nehmen jetzt
+  die Bildmarke entgegen. `cheaperFormat()` verglich für die Logo-Variante
+  fälschlich gegen das PNG **ohne** Marke
+
+### Nicht enthalten, mit Absicht
+
+- **Elliptische Bögen, Konturen und Gruppendeckkraft** werden **beim Namen
+  genannt und abgelehnt**, nicht genähert. Ein Raster, das still vom Vektor
+  derselben Marke abweicht, ist der Fehler, den vor der Auflage niemand
+  bemerkt. Eine Ablehnung kostet das PNG dieser einen Zeichnung und sonst
+  nichts: der SVG-Renderer nimmt dieselbe Datei anstandslos. Keine der
+  vorliegenden Zeichnungen benutzt eines der drei — geprüft, nicht vermutet
 
 ## [0.6.0] - 2026-09-10
 

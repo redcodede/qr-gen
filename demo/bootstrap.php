@@ -29,6 +29,7 @@ use Redcodede\QrGen\Qr\Logo\LogoFit;
 use Redcodede\QrGen\Qr\Logo\LogoFitResult;
 use Redcodede\QrGen\Qr\Logo\SvgLogo;
 use Redcodede\QrGen\Qr\ModuleMatrix;
+use Redcodede\QrGen\Qr\Raster\LogoRaster;
 use Redcodede\QrGen\Qr\Preset;
 use Redcodede\QrGen\Qr\Render\PngRenderer;
 use Redcodede\QrGen\Qr\Render\SvgRenderer;
@@ -218,35 +219,63 @@ function svgRenderer(string $logoFile, bool $standalone, bool $withLogo): SvgRen
     return new SvgRenderer($options);
 }
 
-function pngRenderer(): PngRenderer
+function pngRenderer(string $logoFile = '', bool $withLogo = false): PngRenderer
 {
-    return new PngRenderer(Preset::pngOptions());
+    $options = Preset::pngOptions();
+
+    if ($withLogo) {
+        $artwork = logo($logoFile);
+
+        if ($artwork !== null) {
+            $options = $options->withLogo($artwork, box());
+        }
+    }
+
+    return new PngRenderer($options);
 }
 
 /**
- * The renderer for a requested format. PNG carries no artwork, so a request for
- * one comes back as SVG rather than as a symbol with a hole where the logo
- * should be.
+ * The renderer for a requested format. Both formats now carry artwork, and both
+ * place it with the same LogoBox, so the two files are the same picture.
  */
 function rendererFor(string $format, string $logoFile, bool $standalone, bool $withLogo): QrRenderer
 {
-    return $format === 'png' && !$withLogo
-        ? pngRenderer()
+    return $format === 'png'
+        ? pngRenderer($logoFile, $withLogo)
         : svgRenderer($logoFile, $standalone, $withLogo);
 }
 
 /**
- * PNG is offered for the plain symbol only.
+ * Why this artwork cannot go into a PNG, or null if it can.
  *
- * Putting artwork into a raster would mean rasterising vector paths — beziers,
- * arcs, fill rules — which is a 2D rasteriser rather than a hundred lines of
- * chunk writing. It is also the wrong deliverable: a print shop takes vector
- * artwork, and whoever lays out the page can export a raster from the SVG at
- * whatever size they need.
+ * The rasteriser draws a narrower subset than the SVG renderer will embed:
+ * elliptical arcs, strokes and group opacity are refused by name rather than
+ * approximated. Asking in advance means the page can leave the download out and
+ * say why, instead of offering a button that fails.
+ *
+ * Memoised because the page asks twice — once to decide on the button, once for
+ * the figures beside it — and the answer cannot change within a request.
  */
-function pngAvailable(bool $withLogo): bool
+function pngRejection(string $logoFile, bool $withLogo): ?string
 {
-    return !$withLogo;
+    static $cache = [];
+
+    if (!$withLogo) {
+        return null;
+    }
+
+    if (array_key_exists($logoFile, $cache)) {
+        return $cache[$logoFile];
+    }
+
+    $artwork = logo($logoFile);
+
+    return $cache[$logoFile] = $artwork === null ? null : LogoRaster::rejectionFor($artwork);
+}
+
+function pngAvailable(string $logoFile, bool $withLogo): bool
+{
+    return pngRejection($logoFile, $withLogo) === null;
 }
 
 /**
@@ -281,11 +310,11 @@ function cheaperFormat(string $url, string $logoFile, bool $withLogo): array
     [$svg] = tryRender($url, $logoFile, false, $withLogo);
     $svgBytes = strlen((string) $svg);
 
-    if (!pngAvailable($withLogo)) {
+    if (!pngAvailable($logoFile, $withLogo)) {
         return ['svg', 0, $svgBytes];
     }
 
-    [$png] = tryRender($url, $logoFile, false, false, 'png');
+    [$png] = tryRender($url, $logoFile, false, $withLogo, 'png');
     $pngBytes = strlen((string) $png);
 
     return [$pngBytes > 0 && $pngBytes < $svgBytes ? 'png' : 'svg', $pngBytes, $svgBytes];

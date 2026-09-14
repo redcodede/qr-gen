@@ -38,11 +38,11 @@ return [
     'panel.raw' => 'Open raw',
     'panel.nothing' => 'Nothing rendered.',
     'panel.noLogo' => 'No SVG in demo/logos. Drop one in and reload.',
-    'panel.png.unavailable' => 'For print the SVG is the right format: vector, scalable to any '
-        . 'size, crisp at every one of them. There is no PNG with artwork here because that would '
-        . 'mean rasterising vector paths — beziers, arcs, fill rules — which is a 2D rasteriser, '
-        . 'not a hundred lines. Anyone who needs a raster with artwork exports one from the SVG at '
-        . 'the size they need while laying out the page.',
+    'panel.png.whichFormat' => 'Both formats show the same drawing in the same place. The SVG '
+        . 'is what goes to the printer: vector, scalable to any size, crisp at every one of them. '
+        . 'The PNG is rasterised — 8-bit indexed, anti-aliased, at the ordered print size — which '
+        . 'makes it the one for screens, office documents and email, where an SVG is a nuisance.',
+    'panel.png.refused' => 'There is no PNG of this artwork. :reason',
 
     'facts.heading' => 'What came out',
     'facts.payload' => 'Payload',
@@ -72,6 +72,8 @@ return [
     'facts.svgSize.value' => ':plain vs :logo bytes',
     'facts.png' => 'PNG',
     'facts.png.value' => ':pixels × :pixels px, :perModule px per module, 1 bit, :bytes bytes',
+    'facts.pngLogo' => 'PNG with artwork',
+    'facts.pngLogo.value' => ':bytes bytes, 8-bit indexed',
     'facts.printSize' => 'Printed size',
     'facts.printSize.value' => ':size mm at :dpi dpi — good for :ordered mm with no upscaling',
     'facts.preview' => 'Preview shows',

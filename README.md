@@ -4,11 +4,11 @@
 > Laufzeit-Abhängigkeiten, keine Bildextension, kein Framework im Kern.
 
 **Status: URL rein, zwei Codes raus** — einer ohne, einer mit Bildmarke in der
-Mitte, als SVG; dazu ein druckfertiges PNG für den schlichten. Mit Demo-Seite
-und Downloads. Noch **nicht** dabei: die Statamic-Anbindung. Was hier unter
+Mitte, **beide als SVG und als druckfertiges PNG**. Mit Demo-Seite und
+Downloads. Noch **nicht** dabei: die Statamic-Anbindung. Was hier unter
 „geplant" steht, existiert nicht.
 
-Geprüft am 10.09.2026 auf PHP 8.4: **251 Tests, 12282 Assertions, grün.**
+Geprüft am 14.09.2026 auf PHP 8.4: **335 Tests, 24788 Assertions, grün.**
 
 ---
 
@@ -41,8 +41,13 @@ Zuschnitt in zwei Stufen.
 - [x] **`LogoFit`: die niedrigste Stufe finden, bei der ein Kasten überlebt** —
       statt jemanden rätseln zu lassen, warum ein Kasten bei H passt und bei M
       nicht
-- [x] **Druckfertiges PNG ohne `gd` und ohne `imagick`**, 1 Bit, zwei Farben,
-      mit `pHYs`-Auflösung und aus der physischen Größe berechnet
+- [x] **Druckfertiges PNG ohne `gd` und ohne `imagick`**, mit `pHYs`-Auflösung
+      und aus der physischen Größe berechnet. 1 Bit und zwei Farben ohne
+      Bildmarke, 8 Bit indiziert mit
+- [x] **Eigener Rasterisierer für die Bildmarke im PNG** — Pfade flachlegen,
+      Scanline-Füllung mit Nonzero und Even-Odd, 4 × 4 überabgetastet. Was er
+      nicht zeichnet — Bögen, Konturen, Gruppendeckkraft — **lehnt er beim Namen
+      ab, statt es zu nähern**
 - [x] Textsammlung DE/EN, Deutsch als Standard
 - [x] Demo-Seite mit beiden Varianten, Kennzahlen und Download
 - [x] Test, der die Framework-Freiheit des Kerns erzwingt
@@ -56,8 +61,10 @@ Zuschnitt in zwei Stufen.
 - [ ] Code- und Token-Erzeugung, `CodeRepository`-Interface
 - [ ] Statamic-Hülle: ServiceProvider, Artisan-Command, Auflösungs-Route,
       Download-Seite
-- [ ] Raster-Bildmarke, falls die Bildmarke nur als PNG kommt. Braucht einen
-      PNG-**Dekoder**, damit sie sich einrechnen lässt
+- [ ] Bildmarke als **Raster** annehmen, falls sie nur als PNG geliefert wird.
+      Braucht einen PNG-**Dekoder**; die Vektor-Bildmarke ist erledigt
+- [ ] Elliptische Bögen (`A`) und Konturen im Rasterisierer. Bisher nicht
+      gebraucht: keine der vorliegenden Zeichnungen benutzt beides
 
 ### Stufe 2 — später, im Website-Relaunch
 
@@ -126,14 +133,36 @@ use Redcodede\QrGen\Qr\Render\SvgRenderer;
 
 $svg = (new SvgRenderer(Preset::svgOptions()))->render($matrix);
 $png = (new PngRenderer(Preset::pngOptions()))->render($matrix);
+
+// Mit Bildmarke, in beiden Formaten. Derselbe LogoBox in beiden Aufrufen —
+// daran hängt, dass die zwei Dateien dasselbe Bild zeigen.
+$logo = SvgLogo::fromMarkup(file_get_contents('logo.svg'));
+$box = Preset::logoBox();
+
+$svgMitMarke = (new SvgRenderer(Preset::svgOptions()->withLogo($logo, $box)))->render($matrix);
+$pngMitMarke = (new PngRenderer(Preset::pngOptions()->withLogo($logo, $box)))->render($matrix);
+```
+
+Ob eine Bildmarke als PNG geht, lässt sich **vorher** fragen, statt einen
+Download anzubieten, der scheitert:
+
+```php
+use Redcodede\QrGen\Qr\Raster\LogoRaster;
+
+$grund = LogoRaster::rejectionFor($logo);   // null heißt: geht
+
+if ($grund !== null) {
+    // Der Text nennt das Konstrukt und was dagegen zu tun ist.
+}
 ```
 
 | | SVG | PNG |
 |---|---|---|
 | Skalierbar | beliebig | nein |
-| Bildmarke | **ja** | nein, siehe unten |
+| Bildmarke | **ja** | **ja**, siehe unten |
 | Für die Druckerei | **das richtige Format** | Beilage |
-| Briefing-URL | 3.952 B | **1.184 × 1.184 px, 1.136 B** |
+| Briefing-URL, ohne Marke | 3.952 B | **1.184 × 1.184 px, 1 Bit, 1.136 B** |
+| Briefing-URL, mit Marke | 5.129 B | 1.184 × 1.184 px, 8 Bit, 10.018 B |
 
 ### Das PNG ist aus der Druckgröße gerechnet, nicht aus einer Pixelzahl
 
@@ -163,10 +192,17 @@ druckfertigen.** Ohne diesen Chunk platziert ein Layoutprogramm die Datei mit
 seiner eigenen Annahme — meist 72 dpi — und der Code landet achtmal zu groß,
 woraufhin ihn jemand nach Augenmaß verkleinert.
 
-**1 Bit, zwei Palettenfarben.** Genau das ist ein QR-Code und genau das will
-ein RIP für Strichzeichnungen: keine Kantenglättung, die eine Modulkante
-aufweicht, kein Graustufenwert, den eine Maschine rastern muss, und eine Datei
-von einem Kilobyte statt von einem Megabyte.
+**Ohne Bildmarke: 1 Bit, zwei Palettenfarben.** Genau das ist ein QR-Code und
+genau das will ein RIP für Strichzeichnungen: keine Kantenglättung, die eine
+Modulkante aufweicht, kein Graustufenwert, den eine Maschine rastern muss, und
+eine Datei von einem Kilobyte statt von einem Megabyte.
+
+**Mit Bildmarke: 8 Bit, weiterhin Palette.** Die Marke bringt eigene Farben und
+gebogene Kanten mit, die bei dieser Größe Kantenglättung brauchen; beides passt
+nicht in ein Bit. Palette bleibt es trotzdem, weil flache Zeichnungen wenige
+Farben ergeben — die GVÖ-Marke landet bei 34 von 256 möglichen. Ein Byte je
+Pixel ist ein Drittel von RGB, und die Module kosten weiter zwei
+Paletteneinträge ohne jede Glättung in ihrer Nähe.
 
 ### Farbmodus: was mitzugeben ist
 
@@ -177,22 +213,67 @@ Rich Black.** Ein aus vier Farben gemischtes Schwarz braucht vier passgenaue
 Platten, und wo sie nicht passen, weicht eine Modulkante zu einem farbigen Saum
 auf — genau die Kante, die ein Scanner vermisst.
 
-### Warum das PNG keine Bildmarke trägt
+### Wie die Bildmarke ins PNG kommt
 
-Dafür müssten Vektorpfade gerastert werden: Bézierkurven, Bögen, Füllregeln.
-Das ist ein 2D-Rasterisierer, nicht hundert Zeilen Chunk-Schreiben, und dafür
-bräuchte es `imagick` mit librsvg — also genau die Abhängigkeit, die dieses
-Paket nicht hat.
+Ein SVG reicht die Marke an den Betrachter weiter und lässt ihn zeichnen. Ein
+PNG muss selbst zeichnen, und dafür liegt in `Qr\Raster` ein eigener
+Rasterisierer — vier Klassen, keine Bildextension:
 
-Es ist aber auch die falsche Frage. **Für den Druck ist das SVG das
-Lieferformat**: eine Druckerei nimmt Vektor, und wer das Layout macht,
-exportiert daraus ein Raster in jeder gewünschten Größe. Das PNG ist die
-Beilage für digitale Verwendung und für Empfänger, die mit SVG nicht umgehen.
+| | |
+|---|---|
+| `Transform` | affine 2 × 3-Matrix, `transform`-Listen, Verschachtelung |
+| `PathFlattener` | `d` → Streckenzüge in **Gerätepixeln**, Kurven adaptiv unterteilt |
+| `ShapeFlattener` | rect, circle, ellipse, polygon, polyline → Pfadgrammatik |
+| `ScanlineFiller` | Scanline-Füllung, Nonzero und Even-Odd, 4 × 4 überabgetastet |
+| `LogoRaster` | läuft durch das Markup, vererbt Farbe, komponiert in Dokumentreihenfolge |
+| `Palette` | Farben → Indizes, mit Reduktion als Auffanglinie |
 
-Wenn wirklich ein Raster mit Bildmarke aus dem Paket kommen soll, ist der Weg
-eine **Raster-Bildmarke** (die GVÖ hat ihr Logo als PNG) plus ein PNG-Dekoder
-im Paket. Das ist machbar, kostet aber die 1-Bit-Schärfe, weil die Ausgabe dann
-8 Bit Farbe sein muss.
+Drei Entscheidungen darin sind erklärungsbedürftig.
+
+**Die Toleranz wird in Pixeln gemessen, nicht in Kurvenparametern.** Deshalb
+wird die Transformationsmatrix schon beim Flachlegen angewandt und nicht danach:
+eine Kurve wird so lange geteilt, bis die Sehne **auf der Seite** nicht mehr von
+ihr abweicht. Eine Marke in neun Modulen und dieselbe Marke auf einem Plakat
+bekommen dann jede die Anzahl Segmente, die sie braucht.
+
+**Überabgetastet statt analytisch.** Sechzehn Proben je Pixel ergeben siebzehn
+Deckungsstufen. Das Auge zählt auf einer gebogenen Kante bei etwa acht auf. Was
+es bringt: ein dünnes Detail — der Querstrich eines Buchstabens, die Lücke in
+einem Ring — wird grau, statt herauszufallen oder auf volle Deckung zu springen.
+Herausfallen ist das, was eine kleine Marke kaputt aussehen lässt.
+
+**Was er nicht kann, lehnt er ab.** Elliptische Bögen, Konturen und
+Gruppendeckkraft werden **beim Namen genannt und verweigert**, nicht genähert.
+Ein Raster, das still von dem Vektor derselben Marke abweicht, ist der Fehler,
+den vor der Auflage niemand bemerkt. Eine Ablehnung kostet das PNG dieser einen
+Marke und sonst nichts: der SVG-Renderer nimmt dieselbe Datei anstandslos, und
+die Demo bietet dann eben nur den Vektor an.
+
+Keine der vorliegenden Zeichnungen benutzt eines der drei — geprüft, nicht
+vermutet. `LogoRaster::rejectionFor()` beantwortet die Frage vorab.
+
+**Für den Druck bleibt das SVG das Lieferformat.** Eine Druckerei nimmt Vektor.
+Das PNG ist die Beilage für Bildschirm, Office und E-Mail, wo ein SVG Ärger
+macht — jetzt eben mit Bildmarke statt ohne.
+
+#### Wie geprüft wurde, dass da das Richtige steht
+
+Ein QR-Code, der falsch ist, sieht nicht falsch aus, und für eine gerasterte
+Bildmarke gilt dasselbe. Drei Schichten:
+
+- **Der Füller wird als Bild geprüft.** `ScanlineFillerTest` zeichnet kleine
+  Formen und vergleicht die Deckung Zeichen für Zeichen mit einer erwarteten
+  Zeichnung. Ein Windungsfehler, eine Halbpixelverschiebung und eine
+  ausgelaufene Spanne fallen damit in derselben Zusicherung auf
+- **Die Module werden zurückgelesen.** `PngRendererLogoTest` zerlegt die
+  fertige Datei wieder in Chunks, inflatet sie und vergleicht **jedes Modul
+  außerhalb des Logokastens** mit der Matrix, aus der sie entstand
+- **Eine unabhängige Instanz.** Dasselbe Symbol einmal durch diesen
+  Rasterisierer und einmal durch `imagick` — nicht im Test, weil das Paket
+  imagick nicht verlangt, aber bei der Entwicklung gemessen. Ergebnis im
+  Logokasten: 3,2 % der Pixel weichen überhaupt ab, praktisch alle davon am
+  Rand einer Fläche, und **16 von 173.056 abseits jeder Kante**. Das ist
+  Kantenglättung, keine Geometrie
 
 ## Texte und Sprachen
 
@@ -683,10 +764,15 @@ src/
     Render/
       SvgRenderer.php      Matrix → SVG, räumt den Logokasten frei
       SvgOptions.php       unveränderliche Darstellungseinstellungen
-      PngRenderer.php      Matrix → 1-Bit-PNG, von Hand, ohne Bildextension
+      PngRenderer.php      Matrix → PNG, von Hand, ohne Bildextension
       PngOptions.php       Auflösung und Druckgröße statt Pixelmaße
-      PngRenderer.php      Matrix → 1-Bit-PNG, von Hand, ohne Bildextension
-      PngOptions.php       Auflösung und Druckgröße statt Pixelmaße
+    Raster/                zeichnet die Bildmarke ins PNG
+      Transform.php        affine Matrix, transform-Listen
+      PathFlattener.php    d-Attribut → Streckenzüge in Gerätepixeln
+      ShapeFlattener.php   rect, circle, ellipse, polygon → Pfadgrammatik
+      ScanlineFiller.php   Scanline-Füllung, überabgetastet
+      LogoRaster.php       Markup durchlaufen, Farbe vererben, komponieren
+      Palette.php          Farben → Palettenindizes
     Exception/             QrGenException, InvalidArgument, EncodingFailed, LogoRejected
     ErrorCorrection.php    die vier Stufen der Norm
     ModuleMatrix.php       die Grenze zwischen Kodieren und Zeichnen
@@ -777,8 +863,9 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.4.2` | Formularzustand der Demo: kein Autofill, kein Mausrad, Reset-Knopf |
 | `0.5.0` | Textsammlung DE/EN, `Qr\Preset` mit den festgelegten Werten |
 | `0.6.0` | Druckfertiges PNG ohne Bildextension, Download für beide Formate |
-| `0.4.0` | geplant: Code- und Token-Erzeugung |
-| `0.5.0` | geplant: Statamic-Hülle, in der GVÖ-Seite lauffähig |
+| `0.7.0` | Eigener Rasterisierer: Bildmarke auch im PNG, beide Codes in beiden Formaten |
+| `0.8.0` | geplant: Code- und Token-Erzeugung |
+| `0.9.0` | geplant: Statamic-Hülle, in der GVÖ-Seite lauffähig |
 | `1.0.0` | in Produktion abgenommen, öffentliche API stabil |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):

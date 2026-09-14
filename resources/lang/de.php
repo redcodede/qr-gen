@@ -41,11 +41,12 @@ return [
     'panel.raw' => 'Direkt öffnen',
     'panel.nothing' => 'Nichts gerendert.',
     'panel.noLogo' => 'Kein SVG in demo/logos. Leg eines hinein und lade neu.',
-    'panel.png.unavailable' => 'Für den Druck ist das SVG das richtige Format: Vektor, beliebig '
-        . 'skalierbar, gestochen scharf in jeder Größe. Ein PNG mit Bildmarke gibt es hier nicht, '
-        . 'weil dafür Vektorpfade gerastert werden müssten — Bézierkurven, Bögen, Füllregeln — und '
-        . 'das ist ein 2D-Rasterisierer und keine hundert Zeilen. Wer ein Raster mit Bildmarke '
-        . 'braucht, exportiert es beim Layout aus dem SVG in der benötigten Größe.',
+    'panel.png.whichFormat' => 'Beide Formate zeigen dieselbe Zeichnung, an derselben Stelle. '
+        . 'In die Druckerei geht das SVG: Vektor, beliebig skalierbar, gestochen scharf in jeder '
+        . 'Größe. Das PNG ist gerastert — 8 Bit indiziert, kantengeglättet, in der bestellten '
+        . 'Druckgröße — und damit das Richtige für Bildschirm, Office und E-Mail, wo ein SVG '
+        . 'Ärger macht.',
+    'panel.png.refused' => 'Von dieser Bildmarke gibt es kein PNG. :reason',
 
     'facts.heading' => 'Was herausgekommen ist',
     'facts.payload' => 'Nutzlast',
@@ -75,6 +76,8 @@ return [
     'facts.svgSize.value' => ':plain gegen :logo Bytes',
     'facts.png' => 'PNG',
     'facts.png.value' => ':pixels × :pixels px, :perModule px je Modul, 1 Bit, :bytes Bytes',
+    'facts.pngLogo' => 'PNG mit Bildmarke',
+    'facts.pngLogo.value' => ':bytes Bytes, 8 Bit indiziert',
     'facts.printSize' => 'Gedruckte Größe',
     'facts.printSize.value' => ':size mm bei :dpi dpi — ordentlich für :ordered mm, ohne '
         . 'Hochskalieren',

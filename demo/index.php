@@ -71,6 +71,16 @@ $drawable = $box - (2 * $margin);
     ? cheaperFormat($input['url'], $input['logo'], false)
     : ['svg', 0, 0];
 
+// Asked once, up here, because it decides both the download button and the
+// figures next to it.
+$logoPngRejection = pngRejection($input['logo'], true);
+$logoPngBytes = null;
+
+if ($matrix !== null && $input['logo'] !== '' && $logoPngRejection === null) {
+    [$rendered] = tryRender($input['url'], $input['logo'], false, true, 'png');
+    $logoPngBytes = $rendered === null ? null : strlen($rendered);
+}
+
 $png = null;
 
 if ($matrix !== null) {
@@ -368,9 +378,14 @@ function e(?string $value): string
                 <div class="preview"><?= $withLogo ?></div>
                 <div class="actions">
                     <a class="btn-link" href="<?= e(link_($query, ['variant' => 'logo', 'download' => '1'])) ?>"><?= e($texts->get('panel.download.svg')) ?></a>
+                    <?php if ($logoPngRejection === null): ?>
+                        <a class="btn-link" href="<?= e(link_($query, ['variant' => 'logo', 'format' => 'png', 'download' => '1'])) ?>"><?= e($texts->get('panel.download.png')) ?></a>
+                    <?php endif; ?>
                     <a class="btn-link btn-secondary" href="<?= e(link_($query, ['variant' => 'logo'])) ?>" target="_blank" rel="noopener"><?= e($texts->get('panel.raw')) ?></a>
                 </div>
-                <p class="hint"><?= e($texts->get('panel.png.unavailable')) ?></p>
+                <p class="hint"><?= e($logoPngRejection === null
+                    ? $texts->get('panel.png.whichFormat')
+                    : $texts->get('panel.png.refused', ['reason' => $logoPngRejection])) ?></p>
             <?php elseif ($input['logo'] === ''): ?>
                 <p class="failure"><?= e($texts->get('panel.noLogo')) ?></p>
             <?php else: ?>
@@ -470,6 +485,14 @@ function e(?string $value): string
                                 'bytes' => number_format($pngBytes, 0, ',', '.'),
                             ])) ?></td>
                         </tr>
+                        <?php if ($logoPngBytes !== null): ?>
+                            <tr>
+                                <th><?= e($texts->get('facts.pngLogo')) ?></th>
+                                <td><?= e($texts->get('facts.pngLogo.value', [
+                                    'bytes' => number_format($logoPngBytes, 0, ',', '.'),
+                                ])) ?></td>
+                            </tr>
+                        <?php endif; ?>
                         <tr>
                             <th><?= e($texts->get('facts.printSize')) ?></th>
                             <td><?= e($texts->get('facts.printSize.value', [
