@@ -1,43 +1,56 @@
 {{#
     Die Ausgabe des Tags {{ qr_gen }}.
 
-    Bewusst schlicht und mit eigenen Klassen: die Seite, die das Addon
-    einbindet, bringt ihr eigenes Aussehen mit. Wer die Darstellung ändern
-    will, veröffentlicht diese View nach resources/views/vendor/qr-gen/ und
-    passt sie dort an, statt das Paket anzufassen.
+    Der Aufbau ist die eine Zusicherung, die diese Vorlage macht: der Kopf mit
+    Überschrift und Einleitung steht **über** den Codes und nicht daneben. Wer
+    die Codes nebeneinander stellt, tut das in `.qr-gen-panels`; der Text ist
+    dort kein Element und kann deshalb nicht in eine Spalte rutschen.
 
-    Alle Texte kommen aus resources/lang. Das Paket hat zwei Sprachen, und die
-    Seite, die es einbindet, kann mehr haben — eine fest eingebaute Zeichenkette
-    wäre in der zweiten Sprache falsch und würde es niemandem sagen.
+    Aussehen bringt das Paket keins mit. Die Klassen der Knöpfe kommen als
+    Parameter, damit eine Seite ihre eigenen einsetzen kann, ohne diese Vorlage
+    zu kopieren. Wer mehr ändern will, veröffentlicht sie nach
+    resources/views/vendor/qr-gen/ und passt sie dort an.
+
+    Alle Texte kommen aus den Einstellungen oder aus resources/lang. Eine fest
+    eingebaute Zeichenkette wäre in der zweiten Sprache falsch und würde es
+    niemandem sagen.
+
+    Die Einleitung ist fertiges Markup: sie enthält die verlinkte Adresse und
+    ist im Tag maskiert worden. Antlers maskiert nicht von sich aus.
 
     Die Vorschau steht als SVG direkt im Markup. Das kostet keine zweite
     Anfrage, und der Betrachter sieht dieselbe Zeichnung, die er herunterlädt.
 #}}
 
 <div class="qr-gen">
+
+  <header class="qr-gen-header">
+    <{{ heading_level }} class="qr-gen-heading">{{ heading }}</{{ heading_level }}>
+    <p class="qr-gen-lead">{{ lead }}</p>
+  </header>
+
   {{ if nothing }}
     <p class="qr-gen-empty">{{ trans:qr-gen::texts.panel.nothing }}</p>
-  {{ else }}
-    <p class="qr-gen-intro">{{ trans:qr-gen::texts.panel.intro }}</p>
   {{ /if }}
 
-  {{ panels }}
-    <div class="qr-gen-panel qr-gen-panel--{{ variant }}">
-      <h2 class="qr-gen-title">
-        {{ if variant == "plain" }}{{ trans:qr-gen::texts.panel.plain }}{{ else }}{{ trans:qr-gen::texts.panel.logo }}{{ /if }}
-      </h2>
+  <div class="qr-gen-panels">
+    {{ panels }}
+      <div class="qr-gen-panel qr-gen-panel--{{ variant }}">
+        <h2 class="qr-gen-title">{{ if variant == "plain" }}{{ trans:qr-gen::texts.panel.plain }}{{ else }}{{ trans:qr-gen::texts.panel.logo }}{{ /if }}</h2>
 
-      {{ if failure }}
-        <p class="qr-gen-failure">{{ trans:qr-gen::texts.panel.failure grund="{failure}" }}</p>
-      {{ else }}
-        <div class="qr-gen-preview" role="img" aria-label="{{ if with_logo }}{{ trans:qr-gen::texts.panel.alt.logo }}{{ else }}{{ trans:qr-gen::texts.panel.alt }}{{ /if }}">{{ preview }}</div>
+        {{ if failure }}
+          <p class="qr-gen-failure">{{ trans:qr-gen::texts.panel.failure grund="{failure}" }}</p>
+        {{ else }}
+          <div class="qr-gen-preview" role="img" aria-label="{{ if with_logo }}{{ trans:qr-gen::texts.panel.alt.logo }}{{ else }}{{ trans:qr-gen::texts.panel.alt }}{{ /if }}">{{ preview }}</div>
 
-        <div class="qr-gen-actions">
-          {{ if svg }}<a class="qr-gen-download" href="{{ svg }}">{{ trans:qr-gen::texts.panel.download.svg }}</a>{{ /if }}
-          {{ if png }}<a class="qr-gen-download" href="{{ png }}">{{ trans:qr-gen::texts.panel.download.png }}</a>{{ /if }}
-          <a class="qr-gen-raw" href="{{ raw }}" target="_blank" rel="noopener">{{ trans:qr-gen::texts.panel.raw }}</a>
-        </div>
-      {{ /if }}
-    </div>
-  {{ /panels }}
+          <div class="qr-gen-actions">
+            {{ if svg }}<a class="{{ button_class }}" href="{{ svg }}">{{ trans:qr-gen::texts.panel.download.svg }}</a>{{ /if }}
+            {{ if png }}<a class="{{ button_class }}" href="{{ png }}">{{ trans:qr-gen::texts.panel.download.png }}</a>{{ /if }}
+            <a class="{{ button_class_secondary }}" href="{{ raw }}" target="_blank" rel="noopener">{{ trans:qr-gen::texts.panel.raw }}</a>
+          </div>
+        {{ /if }}
+      </div>
+    {{ /panels }}
+  </div>
+
 </div>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Redcodede\QrGen\Statamic\Settings;
 
 use Statamic\Facades\Blueprint;
+use Statamic\Facades\Site;
 
 /**
  * Der Blueprint der Einstellungsseite.
@@ -33,7 +34,66 @@ final class SettingsBlueprint
 
     public static function make(): \Statamic\Fields\Blueprint
     {
-        return Blueprint::makeFromSections([
+        return Blueprint::makeFromSections(self::sections());
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private static function sections(): array
+    {
+        return array_merge(self::fixedSections(), self::textSections());
+    }
+
+    /**
+     * Ein Abschnitt je Sprachfassung, mit Überschrift und Einleitung der
+     * Seite. Welche Fassungen es gibt, weiß die Seite und nicht das Paket,
+     * deshalb kommen sie aus Statamic statt aus einer Liste hier.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    private static function textSections(): array
+    {
+        $mehrere = Site::hasMultiple();
+        $abschnitte = [];
+
+        foreach (Site::all() as $site) {
+            $handle = $site->handle();
+
+            $abschnitte['texts_' . $handle] = [
+                'display' => $mehrere
+                    ? __('qr-gen::texts.cp.section.texts.site', ['site' => $site->name()])
+                    : __('qr-gen::texts.cp.section.texts'),
+                'fields' => [
+                    SettingsStore::textField($handle, 'title') => [
+                        'type' => 'text',
+                        'input_type' => 'text',
+                        'display' => __('qr-gen::texts.cp.texts.title'),
+                        'instructions' => __('qr-gen::texts.cp.texts.title.hint'),
+                        'instructions_position' => 'above',
+                        'width' => 50,
+                    ],
+                    SettingsStore::textField($handle, 'lead') => [
+                        'type' => 'text',
+                        'input_type' => 'text',
+                        'display' => __('qr-gen::texts.cp.texts.lead'),
+                        'instructions' => __('qr-gen::texts.cp.texts.lead.hint'),
+                        'instructions_position' => 'above',
+                        'width' => 50,
+                    ],
+                ],
+            ];
+        }
+
+        return $abschnitte;
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private static function fixedSections(): array
+    {
+        return [
             'variants' => [
                 'display' => __('qr-gen::texts.cp.section.variants'),
                 'fields' => [
@@ -68,7 +128,7 @@ final class SettingsBlueprint
                     ],
                 ],
             ],
-        ]);
+        ];
     }
 
     /**

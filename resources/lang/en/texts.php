@@ -151,6 +151,8 @@ return [
         . 'nothing else. A page may override these values; in case of doubt the page wins.',
 
     'cp.section.variants' => 'What is offered',
+    'cp.section.texts' => 'Text on the page',
+    'cp.section.texts.site' => 'Text on the page (:site)',
     'cp.section.defaults' => 'Fallback values',
     'cp.section.fixed' => 'Settled values',
 
@@ -191,15 +193,27 @@ return [
     'cp.fixed.container.hint' => 'Where artwork lives when a path arrives without a container. '
         . 'An installation fact, so it sits in config/qr-gen.php and not here.',
 
+    'cp.texts.title' => 'Heading',
+    'cp.texts.title.hint' => 'Leave empty for the text that ships with the package.',
+    'cp.texts.lead' => 'Lead',
+    'cp.texts.lead.hint' => '{url} is replaced by the address the code points to, and linked. '
+        . 'Leave empty for the text that ships with the package.',
+
     'cp.permission' => 'Change QR code settings',
     'cp.saved' => 'Saved.',
     'cp.nothing' => 'No variant is ticked. No page will show a code.',
     'cp.noDownload' => 'No format is ticked. The codes can then be looked at but not taken away.',
 
     // The panels on the site.
+    //
+    // Heading and lead sit here only as a fallback: they are text the site
+    // owns, and can be set per language in the control panel. The labels of
+    // the two codes stay here, because they name what this package produces
+    // and change with it.
 
-    'panel.intro' => 'To download and pass on. The SVG goes to the printer, the PNG is the '
-        . 'companion for screen, office and email.',
+    'page.title' => 'QR codes',
+    'page.lead' => 'QR codes for {url} to download, for digital and print',
+
     'panel.failure' => 'This code was not produced: :grund',
     'panel.alt' => 'QR code',
     'panel.alt.logo' => 'QR code with artwork',

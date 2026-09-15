@@ -20,6 +20,37 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 - Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
   ankommt
 
+## [0.13.0] - 2026-09-15
+
+Die Ausgabe auf der Seite, nach der ersten Abnahme.
+
+### Hinzugefügt
+
+- **Überschrift und Einleitung der Seite kommen aus den Einstellungen**, ein
+  Block je Sprachfassung. Welche Fassungen es gibt, weiß die Seite und nicht
+  das Paket, deshalb kommen sie aus Statamic. In der Einleitung wird `{url}`
+  durch die Adresse ersetzt und dabei verlinkt
+- Ein leeres Feld heißt **„nimm den mitgelieferten Text"** und nicht „zeig
+  nichts". Der mitgelieferte Text steht deshalb auch nicht vorausgefüllt im
+  Formular: wer ihn einmal speichert, hat ihn von da an als eigenen und bekommt
+  eine spätere Verbesserung des Pakets nicht mehr mit
+- Die Tag-Parameter `heading`, `button_class` und `button_class_secondary`.
+  Damit setzt eine Seite ihre eigenen Knöpfe und die passende
+  Überschriftenebene ein, ohne die Vorlage zu kopieren
+
+### Geändert
+
+- **Der Kopf der Ausgabe steht über den Codes und nicht daneben.** Überschrift
+  und Einleitung lagen im selben Flex-Container wie die Panels und wurden
+  damit zu einer Spalte neben einem Code. Sie sitzen jetzt außerhalb von
+  `.qr-gen-panels`, wodurch der Fehler nicht wieder eingebaut werden kann
+- Die Links unter den Codes sind Knöpfe, mit Klassen, die von außen kommen
+
+### Entfernt
+
+- Der erklärende Hinweistext über den Panels. Die Einleitung sagt dasselbe an
+  der Stelle, an der jemand sie liest, und sie ist einstellbar
+
 ## [0.12.0] - 2026-09-15
 
 Die Einstellungen im Control Panel, und der Textkatalog kommt endlich dort an,
@@ -643,7 +674,8 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/redcodede/qr-gen/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/redcodede/qr-gen/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/redcodede/qr-gen/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/redcodede/qr-gen/compare/v0.9.0...v0.10.0

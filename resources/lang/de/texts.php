@@ -157,6 +157,8 @@ return [
         . 'gewinnt die Seite.',
 
     'cp.section.variants' => 'Was angeboten wird',
+    'cp.section.texts' => 'Texte auf der Seite',
+    'cp.section.texts.site' => 'Texte auf der Seite (:site)',
     'cp.section.defaults' => 'Rückfallwerte',
     'cp.section.fixed' => 'Feste Vorgaben',
 
@@ -197,6 +199,12 @@ return [
     'cp.fixed.container.hint' => 'Wo Bildmarken liegen, wenn ein Pfad ohne Container-Angabe '
         . 'kommt. Eine Installationstatsache, deshalb in config/qr-gen.php und nicht hier.',
 
+    'cp.texts.title' => 'Überschrift',
+    'cp.texts.title.hint' => 'Leer lassen für den mitgelieferten Text.',
+    'cp.texts.lead' => 'Einleitung',
+    'cp.texts.lead.hint' => '{url} wird durch die Adresse ersetzt, die im Code steht, und dabei '
+        . 'verlinkt. Leer lassen für den mitgelieferten Text.',
+
     'cp.permission' => 'QR-Code-Einstellungen ändern',
     'cp.saved' => 'Gespeichert.',
     'cp.nothing' => 'Es ist keine Variante angehakt. Damit erscheint auf keiner Seite ein Code.',
@@ -204,9 +212,15 @@ return [
         . 'mitzunehmen.',
 
     // Die Panels in der Seite.
+    //
+    // Titel und Einleitung stehen hier nur als Rückfall: sie sind Text, den
+    // die Seite besitzt, und lassen sich je Sprachfassung im Control Panel
+    // setzen. Die Beschriftung der beiden Codes bleibt dagegen hier, weil sie
+    // benennt, was dieses Paket erzeugt, und sich mit ihm ändert.
 
-    'panel.intro' => 'Zum Herunterladen und Weitergeben. Das SVG geht in die Druckerei, das PNG '
-        . 'ist die Beilage für Bildschirm, Office und E-Mail.',
+    'page.title' => 'QR Codes',
+    'page.lead' => 'QR Codes für {url} zum Herunterladen für digital und Print',
+
     'panel.failure' => 'Dieser Code ist nicht entstanden: :grund',
     'panel.alt' => 'QR-Code',
     'panel.alt.logo' => 'QR-Code mit Bildmarke',

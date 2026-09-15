@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Redcodede\QrGen\Statamic\Settings;
 
 use Redcodede\QrGen\Qr\Settings\GlobalSettings;
+use Statamic\Facades\Site;
 use Statamic\Facades\YAML;
 
 /**
@@ -82,6 +83,48 @@ final class SettingsStore
     }
 
     /**
+     * Die Schlüssel der Texte, die eine Seite selbst besitzt.
+     *
+     * Titel und Einleitung stehen auf der Seite und gehören ihr, nicht dem
+     * Paket: eine andere Installation will dort etwas anderes lesen. Die
+     * Beschriftung der beiden Codes bleibt dagegen im Katalog, weil sie
+     * benennt, was dieses Paket erzeugt, und sich mit ihm ändert.
+     *
+     * @var list<string>
+     */
+    public const TEXTS = ['title', 'lead'];
+
+    /**
+     * Ein Seitentext für eine Sprachfassung.
+     *
+     * Erst das, was im Control Panel steht. Ist dort nichts hinterlegt, der
+     * mitgelieferte Text in der Sprache dieser Fassung — und wenn das Paket
+     * die Sprache nicht kennt, der deutsche. Ein leeres Feld heißt „nimm den
+     * mitgelieferten" und nicht „zeig nichts".
+     *
+     * @param string|null $site Handle der Sprachfassung, `null` für die aktuelle
+     */
+    public static function text(string $key, ?string $site = null): string
+    {
+        $site = $site ?? Site::current()->handle();
+
+        $gespeichert = self::stored()['texts'][$site][$key] ?? null;
+
+        if (is_string($gespeichert) && trim($gespeichert) !== '') {
+            return trim($gespeichert);
+        }
+
+        $sprache = optional(Site::get($site))->shortLocale() ?? 'de';
+        $schluessel = 'qr-gen::texts.page.' . $key;
+
+        $text = __($schluessel, [], $sprache);
+
+        // Kennt das Paket die Sprache nicht, gibt Laravel den Schlüssel selbst
+        // zurück, und zwar ohne Fehler. Dann lieber Deutsch als der Schlüssel.
+        return is_string($text) && $text !== $schluessel ? $text : (string) __($schluessel, [], 'de');
+    }
+
+    /**
      * @param array<string, mixed> $values Die flachen Werte aus dem Formular
      */
     public static function save(array $values): void
@@ -115,7 +158,49 @@ final class SettingsStore
             ],
             'logo' => self::firstAsset($values['default_logo'] ?? null),
             'url' => self::trimmedOrNull($values['default_url'] ?? null),
+            'texts' => self::textsFromForm($values),
         ];
+    }
+
+    /**
+     * Die Texte liegen je Sprachfassung, im Formular flach als
+     * `text_{fassung}_{schluessel}`. Eine Fassung ohne einen einzigen Text
+     * taucht in der Datei nicht auf: ein Block aus lauter `null` sagt nichts
+     * und wäre nur eine Zeile mehr, die jemand lesen muss.
+     *
+     * @param array<string, mixed> $values
+     *
+     * @return array<string, array<string, string>>
+     */
+    private static function textsFromForm(array $values): array
+    {
+        $texte = [];
+
+        foreach (self::sites() as $handle) {
+            foreach (self::TEXTS as $key) {
+                $wert = self::trimmedOrNull($values[self::textField($handle, $key)] ?? null);
+
+                if ($wert !== null) {
+                    $texte[$handle][$key] = $wert;
+                }
+            }
+        }
+
+        return $texte;
+    }
+
+    /** Der Feldname im Formular. An einer Stelle, weil ihn zwei Seiten kennen. */
+    public static function textField(string $site, string $key): string
+    {
+        return 'text_' . $site . '_' . $key;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function sites(): array
+    {
+        return Site::all()->map->handle()->values()->all();
     }
 
     /**
@@ -125,7 +210,7 @@ final class SettingsStore
      */
     public static function toForm(GlobalSettings $settings): array
     {
-        return [
+        $werte = [
             'variant_plain' => $settings->offersPlain(),
             'variant_logo' => $settings->offersLogo(),
             'download_svg' => $settings->offersSvg(),
@@ -133,6 +218,20 @@ final class SettingsStore
             'default_logo' => $settings->defaultLogo(),
             'default_url' => $settings->defaultUrl(),
         ];
+
+        // Nur was tatsächlich gespeichert ist. Der mitgelieferte Text gehört
+        // nicht ins Formular: er stünde dort wie ein eigener, und wer ihn
+        // einmal speichert, hat ihn von da an als eigenen und bekommt eine
+        // spätere Verbesserung des Pakets nicht mehr mit.
+        $gespeichert = self::stored()['texts'] ?? [];
+
+        foreach (self::sites() as $handle) {
+            foreach (self::TEXTS as $key) {
+                $werte[self::textField($handle, $key)] = $gespeichert[$handle][$key] ?? null;
+            }
+        }
+
+        return $werte;
     }
 
     /**

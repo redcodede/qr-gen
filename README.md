@@ -846,6 +846,16 @@ Downloads:
 | `url` | die Adresse, die im Code steht. Ohne sie gibt der Tag nichts aus |
 | `logo` | Asset-Pfad der Bildmarke, mit oder ohne Container (`assets::pfad`) |
 | `variants` | `plain`, `logo` oder `plain\|logo`. Ohne Angabe beides, soweit global erlaubt |
+| `heading` | Ebene der Überschrift: `h1` bis `h4`, voreingestellt `h1` |
+| `button_class` | Klasse der Download-Knöpfe, voreingestellt `qr-gen-button` |
+| `button_class_secondary` | Klasse für „direkt öffnen" |
+
+Die beiden Klassenparameter sind da, damit eine Seite ihre eigenen Knöpfe
+einsetzen kann, ohne die Vorlage zu kopieren:
+
+```antlers
+{{ qr_gen :url="ziel_url" button_class="button" button_class_secondary="button outline" }}
+```
 
 Aus einer Seite heraus mit Werten aus dem Eintrag:
 
@@ -866,9 +876,29 @@ Anfrage neu, es gibt also keine gespeicherte Kopie, und eine
 zwischengespeicherte wäre die einzige.
 
 Die Ausgabe ist die View `qr-gen::panels` mit eigenen Klassen und ohne
-mitgeliefertes Aussehen. Wer sie ändern will, veröffentlicht sie nach
-`resources/views/vendor/qr-gen/` und passt sie dort an, statt das Paket
-anzufassen.
+mitgeliefertes Aussehen. Wer mehr ändern will als die Knopfklassen,
+veröffentlicht sie nach `resources/views/vendor/qr-gen/` und passt sie dort an,
+statt das Paket anzufassen.
+
+**Der Aufbau ist die eine Zusicherung, die die Vorlage macht:**
+
+```
+.qr-gen
+  .qr-gen-header      Überschrift und Einleitung
+  .qr-gen-panels      die Codes
+    .qr-gen-panel
+```
+
+Der Kopf steht **über** den Codes und ist kein Element von `.qr-gen-panels`.
+Wer die Codes nebeneinander stellt, tut das an dieser einen Stelle, und Text
+kann dabei nicht in eine Spalte neben einen Code rutschen.
+
+Überschrift und Einleitung kommen aus den globalen Einstellungen, je
+Sprachfassung, mit den mitgelieferten Texten als Rückfall. In der Einleitung
+wird `{url}` durch die Adresse ersetzt und dabei verlinkt. Die Einleitung
+kommt als fertiges Markup in die Vorlage, weil Antlers nicht von sich aus
+maskiert — so ist an genau einer Stelle maskiert, und eine Vorlage, die sie
+ausgibt, kann nichts falsch machen.
 
 `Statamic\Artwork::load()` löst den Logo-Pfad zu einem Asset auf und
 entscheidet an der Dateiendung zwischen `PngLogo` und `SvgLogo`. Es ist die
@@ -879,8 +909,18 @@ der Hülle. Fehlt das Asset oder lehnt der Sanitizer es ab, gibt es **kein
 ### Im Control Panel
 
 Unter **Werkzeuge → QR-Codes** stehen die globalen Einstellungen: welche Codes
-angeboten werden, welche Formate zum Herunterladen, dazu Default-Bildmarke und
-Default-URL.
+angeboten werden, welche Formate zum Herunterladen, Default-Bildmarke und
+Default-URL, dazu Überschrift und Einleitung der Seite — **ein Block je
+Sprachfassung**, die Fassungen kommen aus Statamic und nicht aus einer Liste im
+Paket.
+
+Ein leeres Textfeld heißt „nimm den mitgelieferten Text" und nicht „zeig
+nichts". Deshalb steht der mitgelieferte Text auch nicht vorausgefüllt im
+Formular: wer ihn einmal speichert, hat ihn von da an als eigenen und bekommt
+eine spätere Verbesserung des Pakets nicht mehr mit.
+
+Die Beschriftung der beiden Codes bleibt im Textkatalog und ist keine
+Einstellung: sie benennt, was das Paket erzeugt, und ändert sich mit ihm.
 
 Die Seite rendert Statamics eigene `publish-form`-Komponente. Kein eigenes
 Vue, kein Build im Paket: Speichern, Validierung, Toast und Strg+S kommen mit,
@@ -1116,7 +1156,8 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.10.0` | Konfigurationsmodell mit zwei Ebenen, Demo-Seite nach Bereichen getrennt |
 | `0.11.0` | Frontend-Komponente: Tag, Bild-Route, Logging, in der GVÖ-Seite lauffähig |
 | `0.12.0` | Einstellungen im Control Panel, Fieldset, Texte in der Hülle |
-| `0.13.0` | geplant: Code- und Token-Erzeugung |
+| `0.13.0` | Seitentexte je Sprachfassung, Aufbau und Knöpfe der Ausgabe |
+| `0.14.0` | geplant: Code- und Token-Erzeugung |
 | `1.0.0` | in Produktion abgenommen, öffentliche API stabil |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):

@@ -22,6 +22,13 @@ final class SettingsStoreTest extends TestCase
 
         $app['config']->set('qr-gen', require __DIR__ . '/../../config/qr-gen.php');
         $app['config']->set('qr-gen.settings_path', $this->tempDirectory . '/qr-gen/settings.yaml');
+
+        // Zwei Fassungen, damit „je Sprachfassung" tatsächlich geprüft wird
+        // und nicht nur der Einzelfall.
+        $app['config']->set('statamic.sites.sites', [
+            'default' => ['name' => 'Deutsch', 'locale' => 'de_DE', 'url' => '/'],
+            'en' => ['name' => 'English', 'locale' => 'en_US', 'url' => '/en/'],
+        ]);
     }
 
     public function testOhneDateiGiltDieKonfiguration(): void
@@ -129,6 +136,13 @@ final class SettingsStoreTest extends TestCase
             'default_logo' => 'marken/probe.svg',
         ];
 
+        // Jede Fassung bekommt eigene Texte, damit der Rundlauf keine
+        // auslässt, egal wie viele es sind.
+        foreach (SettingsStore::sites() as $handle) {
+            $eingabe[SettingsStore::textField($handle, 'title')] = 'Codes ' . $handle;
+            $eingabe[SettingsStore::textField($handle, 'lead')] = 'Codes ' . $handle . ' für {url}';
+        }
+
         SettingsStore::save($eingabe);
 
         $zurueck = SettingsStore::toForm(SettingsStore::global());
@@ -160,6 +174,60 @@ final class SettingsStoreTest extends TestCase
             'downloads' => ['svg' => true, 'png' => true],
             'logo' => null,
             'url' => null,
+            'texts' => [],
         ], SettingsStore::stored());
+    }
+
+    /**
+     * Ein leeres Textfeld heißt „nimm den mitgelieferten Text" und nicht
+     * „zeig nichts". Sonst stünde auf der Seite eine leere Überschrift, sobald
+     * jemand die Einstellungen einmal speichert, ohne dort etwas einzutragen.
+     */
+    public function testOhneEigenenTextGiltDerMitgelieferteInDerSpracheDerFassung(): void
+    {
+        SettingsStore::save(['variant_plain' => true]);
+
+        self::assertSame('QR Codes', SettingsStore::text('title', 'default'));
+        self::assertSame('QR codes', SettingsStore::text('title', 'en'));
+
+        self::assertStringContainsString('{url}', SettingsStore::text('lead', 'default'));
+        self::assertStringContainsString('{url}', SettingsStore::text('lead', 'en'));
+    }
+
+    /**
+     * Ein eigener Text gilt für seine Fassung und nur für sie. Sonst wäre die
+     * Einstellung „je Sprachfassung" keine.
+     */
+    public function testEinEigenerTextGiltNurFuerSeineFassung(): void
+    {
+        SettingsStore::save([
+            SettingsStore::textField('default', 'title') => 'Codes zum Mitnehmen',
+        ]);
+
+        self::assertSame('Codes zum Mitnehmen', SettingsStore::text('title', 'default'));
+        self::assertSame('QR codes', SettingsStore::text('title', 'en'));
+    }
+
+    public function testEinEigenerTextGewinnt(): void
+    {
+        SettingsStore::save([
+            SettingsStore::textField('default', 'title') => '  Codes zum Mitnehmen  ',
+        ]);
+
+        self::assertSame('Codes zum Mitnehmen', SettingsStore::text('title', 'default'));
+    }
+
+    /**
+     * Eine Sprachfassung ohne einen einzigen eigenen Text taucht in der Datei
+     * nicht auf. Ein Block aus lauter `null` sagt nichts und wäre nur eine
+     * Zeile mehr, die jemand lesen muss.
+     */
+    public function testEineFassungOhneTexteStehtNichtInDerDatei(): void
+    {
+        SettingsStore::save([
+            SettingsStore::textField('default', 'title') => 'Codes',
+        ]);
+
+        self::assertSame(['default' => ['title' => 'Codes']], SettingsStore::stored()['texts']);
     }
 }
