@@ -846,7 +846,7 @@ Downloads:
 | `url` | die Adresse, die im Code steht. Ohne sie gibt der Tag nichts aus |
 | `logo` | Asset-Pfad der Bildmarke, mit oder ohne Container (`assets::pfad`) |
 | `variants` | `plain`, `logo` oder `plain\|logo`. Ohne Angabe beides, soweit global erlaubt |
-| `heading` | Ebene der Überschrift: `h1` bis `h4`, voreingestellt `h1` |
+| `heading` | Ebene der Überschrift: `h1` bis `h5`, voreingestellt `h1`. Die Beschriftung der Codes rückt mit |
 | `button_class` | Klasse der Download-Knöpfe, voreingestellt `qr-gen-button` |
 | `button_class_secondary` | Klasse für „direkt öffnen" |
 
@@ -884,14 +884,29 @@ statt das Paket anzufassen.
 
 ```
 .qr-gen
-  .qr-gen-header      Überschrift und Einleitung
-  .qr-gen-panels      die Codes
+  .qr-gen-header        Überschrift und Einleitung
+  .qr-gen-panels        die Codes, hier wird nebeneinander gestellt
     .qr-gen-panel
+      .qr-gen-title     welcher Code das ist
+      .qr-gen-preview
+      .qr-gen-actions
+        .qr-gen-downloads   die Formate, gehören zusammen
+        der Knopf zum Ansehen, eine Stufe darunter
 ```
 
-Der Kopf steht **über** den Codes und ist kein Element von `.qr-gen-panels`.
+Zwei Aussagen über die Ordnung stecken darin, beides keine Geschmacksfragen:
+
+**Der Kopf steht über den Codes und ist kein Element von `.qr-gen-panels`.**
 Wer die Codes nebeneinander stellt, tut das an dieser einen Stelle, und Text
 kann dabei nicht in eine Spalte neben einen Code rutschen.
+
+**Die beiden Formate stehen in einem eigenen Kasten**, der Knopf zum Ansehen
+daneben und nicht darin. Dieselbe Sache gehört zusammen, das Nebenher eine
+Stufe tiefer.
+
+Die Beschriftung eines Codes steht eine Überschriftenstufe unter der der
+Ausgabe: bei `heading="h2"` also `h3`. Sie ist der Überschrift untergeordnet,
+und das ergibt sich aus dem Aufbau, nicht aus dem Aussehen.
 
 Überschrift und Einleitung kommen aus den globalen Einstellungen, je
 Sprachfassung, mit den mitgelieferten Texten als Rückfall. In der Einleitung
@@ -1157,6 +1172,7 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.11.0` | Frontend-Komponente: Tag, Bild-Route, Logging, in der GVÖ-Seite lauffähig |
 | `0.12.0` | Einstellungen im Control Panel, Fieldset, Texte in der Hülle |
 | `0.13.0` | Seitentexte je Sprachfassung, Aufbau und Knöpfe der Ausgabe |
+| `0.13.1` | Knöpfe nach Zusammengehörigkeit, Beschriftung eine Stufe tiefer |
 | `0.14.0` | geplant: Code- und Token-Erzeugung |
 | `1.0.0` | in Produktion abgenommen, öffentliche API stabil |
 

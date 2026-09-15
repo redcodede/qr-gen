@@ -1,10 +1,21 @@
 {{#
     Die Ausgabe des Tags {{ qr_gen }}.
 
-    Der Aufbau ist die eine Zusicherung, die diese Vorlage macht: der Kopf mit
-    Überschrift und Einleitung steht **über** den Codes und nicht daneben. Wer
-    die Codes nebeneinander stellt, tut das in `.qr-gen-panels`; der Text ist
-    dort kein Element und kann deshalb nicht in eine Spalte rutschen.
+    Der Aufbau ist die eine Zusicherung, die diese Vorlage macht:
+
+    .qr-gen
+      .qr-gen-header      Überschrift und Einleitung
+      .qr-gen-panels      die Codes, hier wird nebeneinander gestellt
+        .qr-gen-panel
+          .qr-gen-actions
+            .qr-gen-downloads   die Formate, gehören zusammen
+            der Knopf zum Ansehen, eine Stufe darunter
+
+    Der Kopf steht **über** den Codes und ist kein Element von
+    `.qr-gen-panels`; Text kann deshalb nicht in eine Spalte neben einen Code
+    rutschen. Und die beiden Formate stehen in einem eigenen Kasten, damit sie
+    beieinander bleiben und das Ansehen darunter — das ist eine Aussage über
+    die Ordnung, nicht über das Aussehen, und gehört deshalb hierher.
 
     Aussehen bringt das Paket keins mit. Die Klassen der Knöpfe kommen als
     Parameter, damit eine Seite ihre eigenen einsetzen kann, ohne diese Vorlage
@@ -36,7 +47,7 @@
   <div class="qr-gen-panels">
     {{ panels }}
       <div class="qr-gen-panel qr-gen-panel--{{ variant }}">
-        <h2 class="qr-gen-title">{{ if variant == "plain" }}{{ trans:qr-gen::texts.panel.plain }}{{ else }}{{ trans:qr-gen::texts.panel.logo }}{{ /if }}</h2>
+        <{{ panel_heading_level }} class="qr-gen-title">{{ if variant == "plain" }}{{ trans:qr-gen::texts.panel.plain }}{{ else }}{{ trans:qr-gen::texts.panel.logo }}{{ /if }}</{{ panel_heading_level }}>
 
         {{ if failure }}
           <p class="qr-gen-failure">{{ trans:qr-gen::texts.panel.failure grund="{failure}" }}</p>
@@ -44,8 +55,10 @@
           <div class="qr-gen-preview" role="img" aria-label="{{ if with_logo }}{{ trans:qr-gen::texts.panel.alt.logo }}{{ else }}{{ trans:qr-gen::texts.panel.alt }}{{ /if }}">{{ preview }}</div>
 
           <div class="qr-gen-actions">
-            {{ if svg }}<a class="{{ button_class }}" href="{{ svg }}">{{ trans:qr-gen::texts.panel.download.svg }}</a>{{ /if }}
-            {{ if png }}<a class="{{ button_class }}" href="{{ png }}">{{ trans:qr-gen::texts.panel.download.png }}</a>{{ /if }}
+            <div class="qr-gen-downloads">
+              {{ if svg }}<a class="{{ button_class }}" href="{{ svg }}">{{ trans:qr-gen::texts.panel.download.svg }}</a>{{ /if }}
+              {{ if png }}<a class="{{ button_class }}" href="{{ png }}">{{ trans:qr-gen::texts.panel.download.png }}</a>{{ /if }}
+            </div>
             <a class="{{ button_class_secondary }}" href="{{ raw }}" target="_blank" rel="noopener">{{ trans:qr-gen::texts.panel.raw }}</a>
           </div>
         {{ /if }}

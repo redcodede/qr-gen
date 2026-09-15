@@ -36,6 +36,9 @@ class QrGen extends Tags
     /** Steht in der Einleitung fuer die Adresse, die im Code steckt. */
     private const URL_PLACEHOLDER = '{url}';
 
+    /** @var list<string> */
+    private const HEADING_LEVELS = ['h1', 'h2', 'h3', 'h4', 'h5'];
+
     public function index(): string
     {
         $global = SettingsStore::global();
@@ -79,7 +82,8 @@ class QrGen extends Tags
             'url' => $url,
             'nothing' => $panels === [],
             'heading' => SettingsStore::text('title'),
-            'heading_level' => self::headingLevel((string) $this->params->get('heading', 'h1')),
+            'heading_level' => $ebene = self::headingLevel((string) $this->params->get('heading', 'h1')),
+            'panel_heading_level' => self::nextLevel($ebene),
             'lead' => self::lead($url),
             'button_class' => (string) $this->params->get('button_class', 'qr-gen-button'),
             'button_class_secondary' => (string) $this->params->get(
@@ -120,6 +124,24 @@ class QrGen extends Tags
     {
         $level = strtolower(trim($level));
 
-        return in_array($level, ['h1', 'h2', 'h3', 'h4'], true) ? $level : 'h1';
+        return in_array($level, self::HEADING_LEVELS, true) ? $level : 'h1';
+    }
+
+    /**
+     * Die Beschriftung eines Codes ist der Ueberschrift der Ausgabe
+     * untergeordnet und steht deshalb eine Stufe darunter. Wie gross sie
+     * aussieht, entscheidet die Seite; welche Stufe sie hat, ergibt sich aus
+     * dem Aufbau und ist keine Geschmacksfrage.
+     */
+    private static function nextLevel(string $level): string
+    {
+        $stelle = array_search($level, self::HEADING_LEVELS, true);
+        $letzte = count(self::HEADING_LEVELS) - 1;
+
+        if ($stelle === false) {
+            return self::HEADING_LEVELS[1];
+        }
+
+        return self::HEADING_LEVELS[min($stelle + 1, $letzte)];
     }
 }

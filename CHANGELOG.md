@@ -20,6 +20,19 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 - Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
   ankommt
 
+## [0.13.1] - 2026-09-15
+
+### Geändert
+
+- **Die beiden Download-Knöpfe stehen in einem eigenen Kasten**
+  (`.qr-gen-downloads`), der Knopf zum Ansehen daneben statt darin. Vorher
+  lagen alle drei in einer Zeile und brachen nach Platz statt nach
+  Zusammengehörigkeit um
+- **Die Beschriftung eines Codes steht eine Überschriftenstufe unter der der
+  Ausgabe.** Sie war fest `h2`, unabhängig davon, in welcher Ebene die
+  Überschrift darüber stand. Wo `h1` und `h2` in einer Seite unterschiedlich
+  groß sind, stand die Beschriftung damit größer da als die Überschrift
+
 ## [0.13.0] - 2026-09-15
 
 Die Ausgabe auf der Seite, nach der ersten Abnahme.
@@ -674,7 +687,8 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.13.1...HEAD
+[0.13.1]: https://github.com/redcodede/qr-gen/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/redcodede/qr-gen/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/redcodede/qr-gen/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/redcodede/qr-gen/compare/v0.10.0...v0.11.0
