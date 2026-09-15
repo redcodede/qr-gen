@@ -118,7 +118,10 @@ abstract class TestCase extends OrchestraTestCase
             'redcodede/qr-gen' => [
                 'id' => 'redcodede/qr-gen',
                 'slug' => 'qr-gen',
-                'version' => '0.9.0',
+                // Was ein Quell-Einbau meldet. Eine feste Zahl waere eine
+                // Angabe, die bei jeder Freigabe veraltet, ohne dass ein Test
+                // darauf anspringt.
+                'version' => 'dev-main',
                 'namespace' => 'Redcodede\\QrGen\\Statamic',
                 'autoload' => 'src/Statamic',
                 'provider' => ServiceProvider::class,

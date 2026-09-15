@@ -20,6 +20,47 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 - Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
   ankommt
 
+## [1.0.0] - 2026-09-15
+
+**Die erste Freigabe.** Der Funktionsumfang steht, die öffentliche API ist ab
+hier stabil, und Breaking Changes brauchen von nun an einen neuen Major.
+
+Was das Paket kann, steht ausführlich in der [README](README.md); hier nur der
+Umriss, weil dies der erste Eintrag ist, den jemand ohne Vorgeschichte liest:
+
+- **URL → QR-Code**, als SVG und als druckfertiges PNG, je mit und ohne
+  Bildmarke in der Mitte. Die Bildmarke darf ein SVG oder ein PNG sein
+- **Ohne `gd` und ohne `imagick`.** Rasterisierer, PNG-Dekoder und PNG-Encoder
+  liegen im Paket. Zwei Laufzeit-Abhängigkeiten: `bacon/bacon-qr-code` und
+  `statamic/cms`
+- **Der Kern ist framework-frei**, und ein Test erzwingt das. Statamic 3 und
+  Statamic 6 lassen sich nicht mit einer Fassung bedienen; bleibt die
+  Fachlogik frei davon, ist der Umzug eine neue Hülle statt einer zweiten
+  Umsetzung
+- **Statamic-Hülle:** der Tag `{{ qr_gen }}`, eine signierte Bild-Route, eine
+  Einstellungsseite unter „Werkzeuge" mit eigener Berechtigung, ein Fieldset
+  für Blueprints, Texte in DE und EN
+- **Nichts wird gespeichert.** Jede Anfrage kodiert und rendert von neuem, der
+  Download erzeugt neu statt eine Datei zu holen
+- **Verarbeitete Adressen stehen in keinem Log.** `EncodingFailed` nennt die
+  Länge der Nutzlast, die Hülle Host und Länge
+
+Was ausdrücklich **nicht** dazugehört und in der README unter „Offene Punkte"
+steht: ein abgenommener Andruck. `1.0.0` sagt, dass der Funktionsumfang steht,
+nicht dass ein gedruckter Code auf dem echten Material gelesen wird. Das
+entscheidet ein Andruck in Originalgröße.
+
+Geprüft auf PHP 8.4: 429 Tests, 26254 Assertions, grün.
+
+### Geändert
+
+- Die README beschreibt den Stand statt eines Plans. Der Kopf behauptete
+  weiterhin, die Statamic-Anbindung fehle
+- Der Abschnitt zur Demo-Seite sagt jetzt auch, **was sie nicht prüft**: sie
+  bringt eigenes Markup mit und rendert die View `qr-gen::panels` nicht. Wer
+  an der Darstellung arbeitet, tut das in der Hülle
+- `composer.lock` ist aus dem Composer-Dist genommen
+
 ## [0.13.1] - 2026-09-15
 
 ### Geändert
@@ -687,7 +728,8 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.13.1...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/redcodede/qr-gen/compare/v0.13.1...v1.0.0
 [0.13.1]: https://github.com/redcodede/qr-gen/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/redcodede/qr-gen/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/redcodede/qr-gen/compare/v0.11.0...v0.12.0

@@ -13,3 +13,4 @@
 /.gitignore       export-ignore
 /phpunit.xml      export-ignore
 /CHANGELOG.md     export-ignore
+/composer.lock    export-ignore

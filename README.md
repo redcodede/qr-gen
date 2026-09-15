@@ -3,12 +3,20 @@
 > Erzeugt aus einer URL einen QR-Code als SVG und als druckfertiges PNG. Zwei
 > Laufzeit-Abhängigkeiten, keine Bildextension, kein Framework im Kern.
 
-**Status: URL rein, zwei Codes raus** — einer ohne, einer mit Bildmarke in der
-Mitte, **beide als SVG und als druckfertiges PNG**. Mit Demo-Seite und
-Downloads. Noch **nicht** dabei: die Statamic-Anbindung. Was hier unter
-„geplant" steht, existiert nicht.
+**Status: `1.0.0`, die erste Freigabe.** URL rein, zwei Codes raus — einer
+ohne, einer mit Bildmarke in der Mitte, **beide als SVG und als druckfertiges
+PNG**. Dazu die Statamic-Anbindung: ein Tag für die Seite, eine signierte
+Bild-Route, eine Einstellungsseite im Control Panel und ein Fieldset für
+Blueprints. Was hier unter „geplant" steht, existiert nicht.
 
-Geprüft am 14.09.2026 auf PHP 8.4: **409 Tests, 26028 Assertions, grün.**
+Geprüft am 15.09.2026 auf PHP 8.4: **429 Tests, 26254 Assertions, grün.**
+
+**`1.0.0` heißt: der Funktionsumfang der Erstfreigabe steht und die öffentliche
+API ist ab hier stabil.** Es heißt nicht, dass ein Andruck abgenommen wäre —
+der steht aus, siehe [Offene Punkte](#offene-punkte). Wer das Paket einsetzt,
+bekommt dieselben Dateien wie der Andruck sie bekommen wird; ob sie auf dem
+echten Material gelesen werden, entscheidet der Andruck und nicht dieses
+Repository.
 
 ---
 
@@ -992,14 +1000,20 @@ echo $matrix->toAsciiArt();
 
 ## Demo-Seite
 
-`demo/` ist der Docroot des DDEV-Containers und läuft auf denselben Klassen,
-die später die Statamic-Hülle aufruft. Wenn es dort geht, geht es dort auch —
-und wenn es aufhört zu gehen, liegt es am Paket und nicht am Klebstoff.
+`demo/` ist der Docroot des DDEV-Containers und läuft auf denselben Klassen
+wie die Statamic-Hülle: Encoder, `Qr\Settings`, `Qr\Preset`, beide Renderer.
+Wer daran etwas ändert und die Demo aufruft, sieht es sofort, ohne Statamic
+hochzufahren.
+
+**Was die Demo nicht teilt, ist die Ausgabe.** `demo/index.php` bringt eigenes
+Markup mit; die View `qr-gen::panels`, die auf einer Seite erscheint, kommt
+dort nicht vor. Wer an der Darstellung arbeitet, tut das in der Hülle und
+nicht hier — die Demo prüft den Kern, nicht die Seite.
 
 **Zwei Eingaben: die URL und welche Bildmarke.** Alles andere kommt aus
-`Qr\Preset`, weil alles andere entschieden ist. Die Statamic-Hülle wird
-dieselben zwei Eingaben haben — eine Ziel-URL und ein Asset-Pfad — also übt die
-Demo die Form, die das Plugin bekommt, und nicht eine größere.
+`Qr\Preset`, weil alles andere entschieden ist. Dieselben zwei Eingaben nimmt
+der Tag, also übt die Demo die Form, die das Plugin hat, und nicht eine
+größere.
 
 | Datei | |
 |---|---|
@@ -1173,8 +1187,8 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.12.0` | Einstellungen im Control Panel, Fieldset, Texte in der Hülle |
 | `0.13.0` | Seitentexte je Sprachfassung, Aufbau und Knöpfe der Ausgabe |
 | `0.13.1` | Knöpfe nach Zusammengehörigkeit, Beschriftung eine Stufe tiefer |
-| `0.14.0` | geplant: Code- und Token-Erzeugung |
-| `1.0.0` | in Produktion abgenommen, öffentliche API stabil |
+| `1.0.0` | **Erstfreigabe.** Funktionsumfang steht, öffentliche API ab hier stabil |
+| `1.1.0` | geplant: Code- und Token-Erzeugung |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):
 `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `build:`. Ein `!`
@@ -1199,11 +1213,36 @@ einen `repositories`-Eintrag auf dieses Repo:
 composer require redcodede/qr-gen
 ```
 
+**`composer audit` wird danach 35 Hinweise mehr melden als vorher, und keiner
+davon kommt aus diesem Paket.** Sie stammen aus `statamic/cms ^3.4` und dessen
+Abhängigkeiten. 3.4.17 ist das Ende der 3.4-Linie, 8.83 das Ende der
+Laravel-8-Linie; die Hinweise lassen sich innerhalb dieser Vorgaben nicht
+schließen, sondern nur durch einen Versionssprung. Wer sie dieser Erweiterung
+zuschreibt, sucht an der falschen Stelle: ihre eigenen Laufzeit-Abhängigkeiten
+sind `bacon/bacon-qr-code` und `statamic/cms`, sonst nichts.
+
+Das Paket ist privat. Wer es installiert, braucht Lesezugriff auf das Repo:
+per SSH-Schlüssel oder per Token in der `auth.json` des Zielprojekts.
+
 Für die lokale Entwicklung stattdessen ein Path-Repository auf das Verzeichnis
-mit diesem Repo. Im GVÖ-Projekt steht es seit dem 15.09.2026, zusammen mit
-einem DDEV-Override, der `../qr-gen` nach `/var/www/qr-gen` in den Container
-hängt: ein Path-Repository zeigt auf einen Pfad, den der Container sonst nicht
-hat, und Composer legt dafür einen Symlink an, der ins Leere zeigt.
+mit diesem Repo:
+
+```json
+{
+    "repositories": [
+        { "type": "path", "url": "../qr-gen", "options": { "symlink": true } }
+    ]
+}
+```
+
+Im GVÖ-Projekt steht das seit dem 15.09.2026, zusammen mit einem
+DDEV-Override, der `../qr-gen` nach `/var/www/qr-gen` in den Container hängt:
+ein Path-Repository zeigt auf einen Pfad, den der Container sonst nicht hat,
+und Composer legt dafür einen Symlink an, der ins Leere zeigt.
+
+**Vor einem Deploy muss aus dem Path- ein `vcs`-Repository werden.** Ein
+Path-Repository zeigt auf ein Verzeichnis neben dem Projekt, das es auf keinem
+anderen Rechner und auf keinem Server gibt; `composer install` scheitert dort.
 
 `extra.laravel.providers` zeigt auf `Redcodede\QrGen\Statamic\ServiceProvider`,
 und die `autoload.psr-4` führt neben `Redcodede\QrGen\` einen zweiten,

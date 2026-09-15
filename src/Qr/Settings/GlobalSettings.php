@@ -8,10 +8,11 @@ namespace Redcodede\QrGen\Qr\Settings;
  * Was die Erweiterung überhaupt anbietet, und was gilt, wenn nichts anderes
  * dasteht.
  *
- * Die obere der beiden Ebenen. Später wird sie im Control Panel gepflegt und
- * in einer YAML abgelegt; heute füllt die Demo-Seite sie aus der Adresszeile.
- * Beide bauen dasselbe Objekt, deshalb steht es hier im Kern und nicht in der
- * Statamic-Hülle: es kennt kein Framework und lässt sich ohne eines prüfen.
+ * Die obere der beiden Ebenen. Im Control Panel gepflegt und in einer YAML
+ * abgelegt (siehe `Statamic\Settings\SettingsStore`); die Demo-Seite füllt
+ * dasselbe Objekt aus der Adresszeile. Beide bauen es, deshalb steht es hier
+ * im Kern und nicht in der Statamic-Hülle: es kennt kein Framework und lässt
+ * sich ohne eines prüfen.
  *
  * **Ein hier abgeschalteter Typ steht einer Seite nicht zur Verfügung.** Das
  * ist der Sinn der oberen Ebene. Ohne diese Regel liesse sich eine Seite auf
