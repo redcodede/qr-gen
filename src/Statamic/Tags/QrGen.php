@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Redcodede\QrGen\Statamic\Tags;
 
 use Redcodede\QrGen\Qr\Settings\EffectiveSettings;
-use Redcodede\QrGen\Qr\Settings\GlobalSettings;
 use Redcodede\QrGen\Qr\Settings\PageSettings;
 use Redcodede\QrGen\Qr\Settings\Variant;
 use Redcodede\QrGen\Statamic\Artwork;
+use Redcodede\QrGen\Statamic\Settings\SettingsStore;
 use Redcodede\QrGen\Statamic\Symbols;
 use Statamic\Tags\Tags;
 
@@ -29,7 +29,7 @@ class QrGen extends Tags
 
     public function index(): string
     {
-        $global = GlobalSettings::fromArray((array) config('qr-gen', []));
+        $global = SettingsStore::global();
 
         $page = PageSettings::empty()
             ->withUrl($this->params->get('url'))

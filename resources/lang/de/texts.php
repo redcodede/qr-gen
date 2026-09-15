@@ -147,4 +147,67 @@ return [
         . 'sind die Funktionsmuster: Such-, Takt- und Formatmuster tragen keine Fehlerkorrektur, '
         . 'und ein Kasten darüber wird abgewiesen. Ob der gedruckte Code gelesen wird, entscheidet '
         . 'ein Andruck in Originalgröße auf dem echten Material, nicht diese Seite.',
+
+    // Die Seite im Control Panel.
+
+    'cp.nav' => 'QR-Codes',
+    'cp.title' => 'QR-Codes',
+    'cp.intro' => 'Hier steht, was die Erweiterung überhaupt anbietet und was gilt, wenn eine '
+        . 'Seite nichts anderes sagt. Eine Seite kann diese Werte überschreiben; im Zweifel '
+        . 'gewinnt die Seite.',
+
+    'cp.section.variants' => 'Was angeboten wird',
+    'cp.section.defaults' => 'Rückfallwerte',
+    'cp.section.fixed' => 'Feste Vorgaben',
+
+    'cp.variants.plain' => 'Code ohne Bildmarke',
+    'cp.variants.plain.hint' => 'Der schlichte Code. Ohne ihn bleibt nur die Variante mit '
+        . 'Bildmarke, und die gibt es nur, wo eine Bildmarke hinterlegt ist.',
+    'cp.variants.logo' => 'Code mit Bildmarke',
+    'cp.variants.logo.hint' => 'Erscheint nur, wo eine Bildmarke hinterlegt ist — global oder '
+        . 'an der Seite. Ohne Bildmarke entfällt er lautlos, das ist keine Fehlkonfiguration.',
+
+    'cp.downloads.svg' => 'SVG herunterladen',
+    'cp.downloads.svg.hint' => 'Das Format für die Druckerei. Verlustfrei skalierbar.',
+    'cp.downloads.png' => 'PNG herunterladen',
+    'cp.downloads.png.hint' => 'Die Beilage für Bildschirm, Office und E-Mail. Gerechnet aus '
+        . 'der Druckgröße, nicht aus einer Pixelzahl.',
+
+    'cp.defaultLogo' => 'Default-Bildmarke',
+    'cp.defaultLogo.hint' => 'Gilt, wo eine Seite keine eigene angibt. SVG ist die bessere '
+        . 'Zulieferung, ein PNG geht auch. Leer lassen ist erlaubt: dann gibt es die Variante '
+        . 'mit Bildmarke nur dort, wo eine Seite selbst eine mitbringt.',
+    'cp.defaultUrl' => 'Default-URL',
+    'cp.defaultUrl.hint' => 'Gilt, wo eine Seite keine eigene angibt. Eine volle Adresse mit '
+        . 'http oder https. Verarbeitet wird, was dasteht — kein Ergänzen oder Entfernen von www.',
+
+    'cp.fixed.hint' => 'Diese Werte sind entschieden, nicht eingestellt. Ein freigegebener '
+        . 'Andruck gilt für genau sie, und ein Feld, an dem jemand im Vorbeigehen dreht, würde '
+        . 'ihn ungültig machen, ohne dass es auffällt. Zu ändern in Qr\\Preset.',
+    'cp.fixed.box' => 'Logokasten',
+    'cp.fixed.box.value' => ':box Module, davon :margin Rand',
+    'cp.fixed.moduleSize' => 'Modulgröße',
+    'cp.fixed.quietZone' => 'Ruhezone',
+    'cp.fixed.modules' => ':count Module',
+    'cp.fixed.print' => 'Druckgröße',
+    'cp.fixed.print.value' => ':size mm bei :dpi dpi',
+    'cp.fixed.level' => 'Fehlerkorrektur',
+    'cp.fixed.level.value' => 'wird ausgerechnet, nicht gewählt',
+    'cp.fixed.container' => 'Asset-Container',
+    'cp.fixed.container.hint' => 'Wo Bildmarken liegen, wenn ein Pfad ohne Container-Angabe '
+        . 'kommt. Eine Installationstatsache, deshalb in config/qr-gen.php und nicht hier.',
+
+    'cp.permission' => 'QR-Code-Einstellungen ändern',
+    'cp.saved' => 'Gespeichert.',
+    'cp.nothing' => 'Es ist keine Variante angehakt. Damit erscheint auf keiner Seite ein Code.',
+    'cp.noDownload' => 'Es ist kein Format angehakt. Die Codes sind dann nur zu sehen, nicht '
+        . 'mitzunehmen.',
+
+    // Die Panels in der Seite.
+
+    'panel.intro' => 'Zum Herunterladen und Weitergeben. Das SVG geht in die Druckerei, das PNG '
+        . 'ist die Beilage für Bildschirm, Office und E-Mail.',
+    'panel.failure' => 'Dieser Code ist nicht entstanden: :grund',
+    'panel.alt' => 'QR-Code',
+    'panel.alt.logo' => 'QR-Code mit Bildmarke',
 ];

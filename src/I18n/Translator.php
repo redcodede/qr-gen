@@ -20,10 +20,12 @@ use Redcodede\QrGen\Qr\Exception\InvalidArgument;
  * it is reached by asking for the locale, which is what "available on demand"
  * has to mean if it is to be true.
  *
- * The catalogue format is Laravel's — a `return` array with dotted keys and
- * `:name` placeholders — so the same files can later be loaded by Laravel's
- * own translator in the Statamic shell without being touched. One set of
- * texts, not two.
+ * The catalogue is laid out the way Laravel's FileLoader expects —
+ * `resources/lang/{locale}/texts.php`, a `return` array with dotted keys and
+ * `:name` placeholders — so the Statamic shell reaches the same files through
+ * `__('qr-gen::texts.key')` without a second copy existing. The layout matters
+ * as much as the format: a flat `resources/lang/de.php` has the right contents
+ * and is invisible to `loadTranslationsFrom()`.
  */
 final class Translator
 {
@@ -137,7 +139,7 @@ final class Translator
      */
     private static function load(string $locale): array
     {
-        $path = dirname(__DIR__, 2) . '/resources/lang/' . $locale . '.php';
+        $path = dirname(__DIR__, 2) . '/resources/lang/' . $locale . '/texts.php';
 
         if (!is_file($path)) {
             throw InvalidArgument::missingCatalogue($locale, $path);

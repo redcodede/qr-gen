@@ -8,9 +8,9 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 
 ### Geplant
 
-- **Einstellungen im Control Panel.** Bis dahin gilt `config/qr-gen.php`
-- **Fieldset für den Blueprint einer Seite.** Bis dahin setzt die aufrufende
-  Seite die Werte als Tag-Parameter, wie es die GVÖ-Seite tut
+- **Ein eigener Fieldtype für die Varianten.** Heute lässt sich eine Seite auf
+  „mit Bildmarke" stellen, während der Typ global abgeschaltet ist; es kommt
+  dann nichts, ohne dass im Formular stünde warum
 - Code- und Token-Erzeugung, `CodeRepository`-Interface, Flat-File-Repository
 - Logger per Konstruktor injiziert (PSR-3) statt per `logger()`-Helfer, und
   Ablehnungen nach Stufen getrennt: ein zu großer Logokasten ist `warning`, ein
@@ -19,6 +19,47 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
   sie je braucht. Bisher hat keine
 - Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
   ankommt
+
+## [0.12.0] - 2026-09-15
+
+Die Einstellungen im Control Panel, und der Textkatalog kommt endlich dort an,
+wo er gebraucht wird.
+
+### Hinzugefügt
+
+- **Die Einstellungsseite unter „Werkzeuge → QR-Codes".** Vier Schalter für die
+  Varianten und die Formate, dazu Default-Bildmarke und Default-URL.
+  **Kein eigenes JavaScript und kein Build im Paket:** die Seite rendert
+  Statamics eigene `publish-form`-Komponente, die Speichern, Validierung, Toast
+  und Strg+S schon kann. Denselben Weg geht Statamic für seine Globals
+- **`SettingsStore`** legt die Werte in `content/qr-gen/settings.yaml` ab, in
+  derselben Form wie `config/qr-gen.php`, und legt sie über die Konfiguration.
+  Was in der YAML fehlt, kommt aus der Konfiguration: eine halb geschriebene
+  Datei legt die Erweiterung nicht still, und ein Schalter, den eine ältere
+  Fassung noch nicht kannte, fällt auf seinen Standard statt auf `false`
+- **Unter `content/` und nicht unter `storage/`**, weil die Datei versioniert
+  und mitgesichert gehört: sie ist Konfiguration, nicht Zwischenstand
+- **Eine eigene Berechtigung `configure qr-gen`** mit eigener Gruppe in den
+  Rollen. Eine abgeschaltete Variante nimmt einer ganzen Seite ihre Codes, und
+  das soll niemand im Vorbeigehen können
+- **Das Fieldset `qr-gen::qr_code`** für den Blueprint einer Seite, mit
+  `qr_url`, `qr_logo` und `qr_variants`. Ein Angebot, keine Vorschrift: wer die
+  Werte anders herleitet, gibt sie weiter direkt als Tag-Parameter mit
+
+### Geändert
+
+- **Die Hülle benutzt den Textkatalog.** Die Panels hatten deutsche
+  Zeichenketten fest eingebaut, während 89 Schlüssel in zwei Sprachen danebenlagen
+  und niemand sie las. Jetzt kommt jeder Text über Laravels Übersetzer, der die
+  Sprache der Seite kennt
+- **Der Katalog liegt in `resources/lang/{sprache}/texts.php`** statt flach in
+  `resources/lang/{sprache}.php`. Laravels `FileLoader` sucht unter
+  `{pfad}/{sprache}/{gruppe}.php` und fand die flache Datei nicht — der Aufruf
+  kam als der Schlüssel selbst zurück, ohne Fehler. Der Kommentar im
+  `Translator` behauptete seit `0.5.0` das Gegenteil; die Form stimmte, der
+  Zuschnitt nicht
+- Die Vorschau bekommt ein `aria-label` und die Panels einen erklärenden
+  Hinweistext, beides aus dem Katalog
 
 ## [0.11.0] - 2026-09-15
 
@@ -602,7 +643,8 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/redcodede/qr-gen/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/redcodede/qr-gen/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/redcodede/qr-gen/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/redcodede/qr-gen/compare/v0.8.0...v0.9.0

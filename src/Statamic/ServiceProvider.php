@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Redcodede\QrGen\Statamic;
 
+use Redcodede\QrGen\Statamic\Http\Controllers\CP\SettingsController;
 use Redcodede\QrGen\Statamic\Tags\QrGen;
+use Statamic\Facades\CP\Nav;
+use Statamic\Facades\Permission;
 use Statamic\Providers\AddonServiceProvider;
 
 /**
@@ -52,5 +55,46 @@ class ServiceProvider extends AddonServiceProvider
      */
     protected $routes = [
         'actions' => __DIR__ . '/../../routes/actions.php',
+        'cp' => __DIR__ . '/../../routes/cp.php',
     ];
+
+    public function bootAddon(): void
+    {
+        $this->bootPermission();
+        $this->bootNav();
+    }
+
+    /**
+     * Ohne eigene Berechtigung dürfte jeder, der ins Control Panel kommt, die
+     * Einstellungen ändern. Eine abgeschaltete Variante nimmt einer ganzen
+     * Seite ihre Codes, und das soll niemand im Vorbeigehen können.
+     *
+     * Über `extend` und nicht direkt: die Rückrufe laufen erst, wenn Statamic
+     * die Berechtigungen einsammelt. Eine direkte Registrierung beim Booten
+     * käme je nach Reihenfolge zu früh.
+     */
+    private function bootPermission(): void
+    {
+        Permission::extend(function () {
+            Permission::group('qr-gen', __('qr-gen::texts.cp.title'), function () {
+                Permission::register(SettingsController::PERMISSION)
+                    ->label(__('qr-gen::texts.cp.permission'));
+            });
+        });
+    }
+
+    /**
+     * Der Eintrag steht unter „Werkzeuge", neben Formularen und Hilfsmitteln,
+     * und nicht zwischen den Inhalten: er konfiguriert die Erweiterung, er
+     * pflegt nichts.
+     */
+    private function bootNav(): void
+    {
+        Nav::extend(function ($nav) {
+            $nav->tools(__('qr-gen::texts.cp.nav'))
+                ->route('qr-gen.settings')
+                ->icon('grid')
+                ->can(SettingsController::PERMISSION);
+        });
+    }
 }

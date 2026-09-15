@@ -142,4 +142,65 @@ return [
         . 'the function patterns: finder, timing and format patterns carry no error correction, and '
         . 'a box over one is refused. Whether the printed code scans is settled by a proof at final '
         . 'size on the real material, not by this page.',
+
+    // The control panel page.
+
+    'cp.nav' => 'QR codes',
+    'cp.title' => 'QR codes',
+    'cp.intro' => 'This is what the extension offers at all, and what applies when a page says '
+        . 'nothing else. A page may override these values; in case of doubt the page wins.',
+
+    'cp.section.variants' => 'What is offered',
+    'cp.section.defaults' => 'Fallback values',
+    'cp.section.fixed' => 'Settled values',
+
+    'cp.variants.plain' => 'Code without artwork',
+    'cp.variants.plain.hint' => 'The plain code. Without it only the artwork variant remains, and '
+        . 'that one exists only where artwork is set.',
+    'cp.variants.logo' => 'Code with artwork',
+    'cp.variants.logo.hint' => 'Appears only where artwork is set — globally or on the page. '
+        . 'Without artwork it is silently dropped; that is not a misconfiguration.',
+
+    'cp.downloads.svg' => 'Download SVG',
+    'cp.downloads.svg.hint' => 'The format for the printer. Scales without loss.',
+    'cp.downloads.png' => 'Download PNG',
+    'cp.downloads.png.hint' => 'The companion for screen, office and email. Computed from the '
+        . 'print size rather than from a pixel count.',
+
+    'cp.defaultLogo' => 'Default artwork',
+    'cp.defaultLogo.hint' => 'Applies where a page names none of its own. SVG is the better '
+        . 'delivery, a PNG works too. Leaving it empty is fine: the artwork variant then exists '
+        . 'only where a page brings its own.',
+    'cp.defaultUrl' => 'Default URL',
+    'cp.defaultUrl.hint' => 'Applies where a page names none of its own. A full address with '
+        . 'http or https. What is entered is what is processed — no adding or removing of www.',
+
+    'cp.fixed.hint' => 'These values are settled, not configured. An approved print proof holds '
+        . 'for exactly these, and a field someone nudges in passing would invalidate it without '
+        . 'anyone noticing. Change them in Qr\\Preset.',
+    'cp.fixed.box' => 'Artwork box',
+    'cp.fixed.box.value' => ':box modules, :margin of them margin',
+    'cp.fixed.moduleSize' => 'Module size',
+    'cp.fixed.quietZone' => 'Quiet zone',
+    'cp.fixed.modules' => ':count modules',
+    'cp.fixed.print' => 'Print size',
+    'cp.fixed.print.value' => ':size mm at :dpi dpi',
+    'cp.fixed.level' => 'Error correction',
+    'cp.fixed.level.value' => 'computed, not chosen',
+    'cp.fixed.container' => 'Asset container',
+    'cp.fixed.container.hint' => 'Where artwork lives when a path arrives without a container. '
+        . 'An installation fact, so it sits in config/qr-gen.php and not here.',
+
+    'cp.permission' => 'Change QR code settings',
+    'cp.saved' => 'Saved.',
+    'cp.nothing' => 'No variant is ticked. No page will show a code.',
+    'cp.noDownload' => 'No format is ticked. The codes can then be looked at but not taken away.',
+
+    // The panels on the site.
+
+    'panel.intro' => 'To download and pass on. The SVG goes to the printer, the PNG is the '
+        . 'companion for screen, office and email.',
+    'panel.failure' => 'This code was not produced: :grund',
+    'panel.alt' => 'QR code',
+    'panel.alt.logo' => 'QR code with artwork',
 ];

@@ -2,34 +2,40 @@
     Die Ausgabe des Tags {{ qr_gen }}.
 
     Bewusst schlicht und mit eigenen Klassen: die Seite, die das Addon
-    einbindet, bringt ihr eigenes Aussehen mit. Wer die Darstellung aendern
-    will, veroeffentlicht diese View und passt sie an, statt das Paket
-    anzufassen.
+    einbindet, bringt ihr eigenes Aussehen mit. Wer die Darstellung ändern
+    will, veröffentlicht diese View nach resources/views/vendor/qr-gen/ und
+    passt sie dort an, statt das Paket anzufassen.
+
+    Alle Texte kommen aus resources/lang. Das Paket hat zwei Sprachen, und die
+    Seite, die es einbindet, kann mehr haben — eine fest eingebaute Zeichenkette
+    wäre in der zweiten Sprache falsch und würde es niemandem sagen.
 
     Die Vorschau steht als SVG direkt im Markup. Das kostet keine zweite
-    Anfrage, und der Betrachter sieht dieselbe Zeichnung, die er herunterlaedt.
+    Anfrage, und der Betrachter sieht dieselbe Zeichnung, die er herunterlädt.
 #}}
 
 <div class="qr-gen">
   {{ if nothing }}
-    <p class="qr-gen-empty">Keine Variante ist freigeschaltet.</p>
+    <p class="qr-gen-empty">{{ trans:qr-gen::texts.panel.nothing }}</p>
+  {{ else }}
+    <p class="qr-gen-intro">{{ trans:qr-gen::texts.panel.intro }}</p>
   {{ /if }}
 
   {{ panels }}
     <div class="qr-gen-panel qr-gen-panel--{{ variant }}">
       <h2 class="qr-gen-title">
-        {{ if variant == "plain" }}Ohne Bildmarke{{ else }}Mit Bildmarke{{ /if }}
+        {{ if variant == "plain" }}{{ trans:qr-gen::texts.panel.plain }}{{ else }}{{ trans:qr-gen::texts.panel.logo }}{{ /if }}
       </h2>
 
       {{ if failure }}
-        <p class="qr-gen-failure">{{ failure }}</p>
+        <p class="qr-gen-failure">{{ trans:qr-gen::texts.panel.failure grund="{failure}" }}</p>
       {{ else }}
-        <div class="qr-gen-preview">{{ preview }}</div>
+        <div class="qr-gen-preview" role="img" aria-label="{{ if with_logo }}{{ trans:qr-gen::texts.panel.alt.logo }}{{ else }}{{ trans:qr-gen::texts.panel.alt }}{{ /if }}">{{ preview }}</div>
 
         <div class="qr-gen-actions">
-          {{ if svg }}<a class="qr-gen-download" href="{{ svg }}">SVG herunterladen</a>{{ /if }}
-          {{ if png }}<a class="qr-gen-download" href="{{ png }}">PNG herunterladen</a>{{ /if }}
-          <a class="qr-gen-raw" href="{{ raw }}" target="_blank" rel="noopener">Direkt öffnen</a>
+          {{ if svg }}<a class="qr-gen-download" href="{{ svg }}">{{ trans:qr-gen::texts.panel.download.svg }}</a>{{ /if }}
+          {{ if png }}<a class="qr-gen-download" href="{{ png }}">{{ trans:qr-gen::texts.panel.download.png }}</a>{{ /if }}
+          <a class="qr-gen-raw" href="{{ raw }}" target="_blank" rel="noopener">{{ trans:qr-gen::texts.panel.raw }}</a>
         </div>
       {{ /if }}
     </div>

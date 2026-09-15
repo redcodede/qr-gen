@@ -1,0 +1,38 @@
+title: 'QR-Code'
+fields:
+  -
+    handle: qr_url
+    field:
+      type: text
+      input_type: text
+      display: 'Ziel-URL'
+      instructions: 'Die Adresse, die im Code steht. Eine volle Adresse mit http oder https. Leer lassen heißt: die Default-URL aus den globalen Einstellungen gilt.'
+      instructions_position: above
+      width: 100
+      listable: hidden
+  -
+    handle: qr_logo
+    field:
+      type: assets
+      display: 'Bildmarke im Code'
+      instructions: 'Wird in die Mitte des Codes gesetzt. SVG ist die bessere Zulieferung, ein PNG geht auch. Leer lassen heißt: die Default-Bildmarke aus den globalen Einstellungen gilt. Gibt es auch die nicht, entfällt die Variante mit Bildmarke.'
+      instructions_position: above
+      max_files: 1
+      mode: grid
+      allow_uploads: true
+      show_filename: true
+      width: 50
+      listable: hidden
+      localizable: true
+  -
+    handle: qr_variants
+    field:
+      type: checkboxes
+      display: 'Diese Codes zeigt die Seite'
+      instructions: 'Leer lassen heißt: alles, was global angeboten wird. Ein global abgeschalteter Typ lässt sich hier nicht zurückholen.'
+      instructions_position: above
+      width: 50
+      listable: hidden
+      options:
+        plain: 'Ohne Bildmarke'
+        logo: 'Mit Bildmarke'

@@ -64,15 +64,21 @@ Zuschnitt in zwei Stufen.
 - [x] **Ausnahmen werden in der Hülle gefangen und protokolliert**, mit
       Kontext statt Prosa und ohne die verarbeitete Adresse. Siehe
       [Logging](#logging)
+- [x] **Einstellungsseite im Control Panel**, unter „Werkzeuge", mit eigener
+      Berechtigung. Kein eigenes JavaScript: sie rendert Statamics eigene
+      Publish-Form. Siehe [Im Control Panel](#im-control-panel)
+- [x] **Fieldset für den Blueprint einer Seite**, `import: qr-gen::qr_code`
+- [x] **Die Hülle benutzt den Textkatalog**, DE und EN, über Laravels
+      Übersetzer
 - [x] Test, der die Framework-Freiheit des Kerns erzwingt
 - [x] Rundlauf-Test, der das SVG zurück in eine Matrix liest
 
 ### Offen
 
 - [ ] Code- und Token-Erzeugung, `CodeRepository`-Interface
-- [ ] **Einstellungen im Control Panel.** Bis dahin gilt `config/qr-gen.php`
-- [ ] **Fieldset für den Blueprint einer Seite.** Bis dahin setzt die
-      aufrufende Seite die Werte als Tag-Parameter, wie es die GVÖ-Seite tut
+- [ ] **Ein eigener Fieldtype für die Varianten.** Heute lässt sich eine Seite
+      auf „mit Bildmarke" stellen, während der Typ global abgeschaltet ist; es
+      kommt dann nichts, ohne dass im Formular stünde warum
 - [ ] Elliptische Bögen (`A`) und Konturen im Rasterisierer. Bisher nicht
       gebraucht: keine der vorliegenden Zeichnungen benutzt beides
 - [ ] Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
@@ -296,9 +302,10 @@ Bildmarke gilt dasselbe. Drei Schichten:
 
 ## Texte und Sprachen
 
-Alle Oberflächentexte liegen in `resources/lang/`. **Deutsch ist die
-Standardsprache**, Englisch existiert als Katalog, wird aber von nichts
-angeboten — es ist eine Frage danach, keine Datei, die noch zu schreiben wäre.
+Alle Oberflächentexte liegen in `resources/lang/{sprache}/texts.php`.
+**Deutsch ist die Standardsprache**, Englisch steht daneben und wird von der
+Statamic-Hülle mitbenutzt: sie fragt Laravels Übersetzer, der die Sprache der
+Seite kennt.
 
 ```php
 use Redcodede\QrGen\I18n\Translator;
@@ -310,10 +317,21 @@ $texts = Translator::forLocaleOrDefault($any);  // fällt zurück statt zu werfe
 $texts->get('facts.payload.value', ['bytes' => 28]);   // "28 Bytes"
 ```
 
-Das Format ist **Laravels**: ein `return`-Array mit punktgetrennten Schlüsseln
-und `:name` als Platzhalter. Damit lädt Laravels eigener Übersetzer dieselben
-Dateien später in der Statamic-Hülle, ohne dass sie angefasst werden — eine
-Textsammlung, nicht zwei.
+In der Statamic-Hülle dieselben Dateien, über Laravels Übersetzer:
+
+```php
+__('qr-gen::texts.panel.plain');            // in PHP und Blade
+```
+
+```antlers
+{{ trans:qr-gen::texts.panel.plain }}       {{# in Antlers #}}
+```
+
+**Der Zuschnitt zählt so viel wie das Format.** Laravels `FileLoader` sucht
+unter `{pfad}/{sprache}/{gruppe}.php`. Ein flaches `resources/lang/de.php` hat
+denselben Inhalt und ist für `loadTranslationsFrom()` unsichtbar — der Aufruf
+kommt dann als `qr-gen::texts.panel.plain` zurück, also als der Schlüssel
+selbst, und zwar ohne Fehler. Deshalb der Unterordner.
 
 Drei Eigenschaften, die von Tests gehalten werden:
 
@@ -858,6 +876,56 @@ einzige Stelle im Paket, die ein Dateisystem anfasst, und sie liegt bewusst in
 der Hülle. Fehlt das Asset oder lehnt der Sanitizer es ab, gibt es **kein
 500er, sondern eine Warnung im Log und den Code ohne Bildmarke.**
 
+### Im Control Panel
+
+Unter **Werkzeuge → QR-Codes** stehen die globalen Einstellungen: welche Codes
+angeboten werden, welche Formate zum Herunterladen, dazu Default-Bildmarke und
+Default-URL.
+
+Die Seite rendert Statamics eigene `publish-form`-Komponente. Kein eigenes
+Vue, kein Build im Paket: Speichern, Validierung, Toast und Strg+S kommen mit,
+weil es Statamics eigene Bausteine sind. Denselben Weg geht Statamic für seine
+Globals.
+
+| | |
+|---|---|
+| Ablage | `content/qr-gen/settings.yaml`, Pfad über `qr-gen.settings_path` |
+| Form der Datei | dieselbe wie `config/qr-gen.php` |
+| Rückfall | was dort fehlt, kommt aus `config/qr-gen.php` |
+| Berechtigung | `configure qr-gen`, eigene Gruppe in den Rollen |
+
+**Unter `content/` und nicht unter `storage/`**, weil die Datei versioniert und
+mitgesichert gehört: sie ist Konfiguration, nicht Zwischenstand.
+
+**Kein Global Set.** Ein Global Set stünde in der Redakteursnavigation zwischen
+den Inhalten und wäre versehentlich änderbar. Eine abgeschaltete Variante nimmt
+einer ganzen Seite ihre Codes, und das soll niemand im Vorbeigehen können —
+daher auch die eigene Berechtigung.
+
+Die Druckwerte stehen auf der Seite, aber als Text und nicht als Feld: sie sind
+entschieden, nicht eingestellt, und ein Feld sähe aus, als ginge es doch. Zu
+ändern sind sie in `Qr\Preset`.
+
+### Auf einer Seite
+
+Der Blueprint einer Seite importiert das Fieldset der Erweiterung:
+
+```yaml
+-
+  import: qr-gen::qr_code
+```
+
+Es bringt `qr_url`, `qr_logo` und `qr_variants` mit. Leer heißt überall: der
+globale Wert gilt. Die Seite reicht die Werte an den Tag weiter:
+
+```antlers
+{{ qr_gen :url="qr_url" :logo="qr_logo" }}
+```
+
+Das Fieldset ist ein Angebot, keine Vorschrift. Wer die Werte anders herleitet
+— die GVÖ-Seite setzt die Ziel-URL aus einem Herstellercode zusammen —, gibt
+sie einfach direkt als Tag-Parameter mit.
+
 ### Beim Suchen
 
 `ModuleMatrix::toAsciiArt()` zeichnet die Matrix als Text. In einer
@@ -943,15 +1011,23 @@ src/
     Artwork.php            Asset-Pfad → Logo; die einzige Datei-I/O des Pakets
     Symbols.php            Encoder, LogoFit und Renderer zusammengesteckt
     Tags/QrGen.php         {{ qr_gen }}, die Frontend-Komponente
+    Settings/
+      SettingsStore.php    die YAML, mit der Config als Rückfall darunter
+      SettingsBlueprint.php das Formular der CP-Seite, in PHP wegen der Texte
     Http/Controllers/
       ImageController.php  die einzelne Datei, signiert und ohne Zwischenspeicher
+      CP/SettingsController.php  die Seite unter Werkzeuge
 routes/
   actions.php              die Bild-Route, landet unter /!/qr-gen/image
+  cp.php                   die Einstellungsseite, landet unter /cp/qr-gen
 config/
   qr-gen.php               Rückfallwerte; das CP überschreibt sie, die Seite die wiederum
 resources/views/
   panels.antlers.html      die Ausgabe des Tags, eigene Klassen, kein Aussehen
-resources/lang/            de.php und en.php, im Laravel-Format, werden mitgeliefert
+  cp/settings.blade.php    die CP-Seite, rendert Statamics publish-form
+resources/fieldsets/
+  qr_code.yaml             die Felder für den Blueprint einer Seite
+resources/lang/            {sprache}/texts.php, von Laravels Übersetzer ladbar
 demo/                      Demo-Seite und Testlogos, nicht im Dist
 tests/                     Qr/ und I18n/
 ```
@@ -1039,7 +1115,7 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.9.0` | Gerüst der Statamic-Hülle: ServiceProvider, Konfiguration, Testharness |
 | `0.10.0` | Konfigurationsmodell mit zwei Ebenen, Demo-Seite nach Bereichen getrennt |
 | `0.11.0` | Frontend-Komponente: Tag, Bild-Route, Logging, in der GVÖ-Seite lauffähig |
-| `0.12.0` | geplant: Einstellungen im Control Panel |
+| `0.12.0` | Einstellungen im Control Panel, Fieldset, Texte in der Hülle |
 | `0.13.0` | geplant: Code- und Token-Erzeugung |
 | `1.0.0` | in Produktion abgenommen, öffentliche API stabil |
 

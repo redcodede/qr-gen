@@ -60,6 +60,16 @@ return [
     'container' => 'assets',
 
     /*
+     * Wo die im Control Panel gespeicherten Einstellungen liegen.
+     *
+     * Unter `content/`, weil sie versioniert und mitgesichert gehören: sie
+     * sind Konfiguration, nicht Zwischenstand. Was dort steht, liegt über den
+     * Werten dieser Datei; was dort fehlt, kommt von hier. `null` heißt
+     * `content/qr-gen/settings.yaml` unterhalb der Anwendung.
+     */
+    'settings_path' => null,
+
+    /*
      * Die Ziel-URL, die genommen wird, wenn eine Seite keine eigene angibt.
      *
      * Eine volle URL mit Schema. Verarbeitet wird, was dasteht: kein Ergänzen
