@@ -199,11 +199,16 @@ final class SvgLogo implements Logo
     /**
      * Pulls out <style> blocks and turns their rules into a class map.
      *
-     * Illustrator writes exactly one shape of stylesheet — a handful of single
-     * class selectors carrying fills — and every export has it. Refusing that
-     * outright would refuse every real logo, so it is understood; anything
-     * beyond it is refused, because guessing at CSS cascade is not this
-     * package's job.
+     * Illustrator writes one shape of stylesheet: class selectors carrying
+     * fills, one per rule or several sharing one, as in `.a,.b{fill:#000}`.
+     * Both are understood, because a grouped selector says nothing a repeated
+     * rule would not say. Anything beyond that is refused, because guessing at
+     * CSS cascade is not this package's job.
+     *
+     * Declarations merge in source order rather than replacing the rule
+     * before them: a class may well be named twice, once in a group and once
+     * on its own, and then the later declaration wins per property — which is
+     * what a browser would do with the same file.
      *
      * @return array{0: string, 1: array<string, array<string, string>>}
      */
@@ -229,12 +234,17 @@ final class SvgLogo implements Logo
 
             foreach ($rules as $rule) {
                 $selector = trim($rule[1]);
+                $declarations = self::parseDeclarations($rule[2]);
 
-                if (preg_match('/^\.([A-Za-z_][A-Za-z0-9_-]*)$/', $selector, $name) !== 1) {
-                    throw LogoRejected::unsupportedStyleRule($selector);
+                foreach (explode(',', $selector) as $single) {
+                    $single = trim($single);
+
+                    if (preg_match('/^\.([A-Za-z_][A-Za-z0-9_-]*)$/', $single, $name) !== 1) {
+                        throw LogoRejected::unsupportedStyleRule($selector);
+                    }
+
+                    $classes[$name[1]] = array_merge($classes[$name[1]] ?? [], $declarations);
                 }
-
-                $classes[$name[1]] = self::parseDeclarations($rule[2]);
             }
         }
 

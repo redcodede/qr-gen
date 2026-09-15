@@ -8,22 +8,62 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 
 ### Geplant
 
-- **Logging in der Statamic-Hülle.** Der Kern bleibt I/O-frei und wirft; die
-  Hülle muss fangen und mit Kontext protokollieren, statt einen 500 zu
-  produzieren. Mit unterschiedlichen Stufen (zu großer Logokasten ist
-  `warning`, unerwarteter Fehlschlag `error`), mit Symbolgröße, Version, Stufe
-  und Kastenmaßen als Kontext, **ohne die Nutzlast**, und ohne dass ein
-  einzelner Fehlschlag einen Stapellauf abbricht
-- Code- und Token-Erzeugung, `CodeRepository`-Interface
-- Statamic-Hülle: Einstellungen im Control Panel, Fieldset und Tag für die
-  Frontend-Komponente, Bild-Route, Auflösungs-Route, Flat-File-Repository.
-  Das Gerüst steht seit `0.9.0`
-- Bildmarke als **Raster** annehmen, falls sie nur als PNG geliefert wird.
-  Braucht einen PNG-Dekoder im Paket; die Vektor-Bildmarke ist erledigt
+- **Einstellungen im Control Panel.** Bis dahin gilt `config/qr-gen.php`
+- **Fieldset für den Blueprint einer Seite.** Bis dahin setzt die aufrufende
+  Seite die Werte als Tag-Parameter, wie es die GVÖ-Seite tut
+- Code- und Token-Erzeugung, `CodeRepository`-Interface, Flat-File-Repository
+- Logger per Konstruktor injiziert (PSR-3) statt per `logger()`-Helfer, und
+  Ablehnungen nach Stufen getrennt: ein zu großer Logokasten ist `warning`, ein
+  unerwarteter Fehlschlag `error`. Heute ist beides dieselbe Ausnahme
 - Elliptische Bögen (`A`) und Konturen im Rasterisierer, falls eine Zeichnung
   sie je braucht. Bisher hat keine
 - Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
   ankommt
+
+## [0.11.0] - 2026-09-15
+
+Die Frontend-Komponente. Das Paket läuft zum ersten Mal in der GVÖ-Seite, unter
+`/qr/{code}`.
+
+### Hinzugefügt
+
+- **`{{ qr_gen url="…" logo="…" }}`**, der Tag für eine Seite. Er baut beide
+  Varianten, zeigt sie als Vorschau und verlinkt die Downloads. Der Tag kennt
+  weder Hersteller noch Taxonomien: er bekommt eine Adresse und eine Bildmarke
+  und macht daraus, was die globalen Einstellungen erlauben. **Wer einen Code
+  auflöst, bleibt Sache der Seite** — die Zuordnung Code zu Partner gehört der
+  GVÖ-Seite, nicht diesem Paket
+- **Bild-Route `/!/qr-gen/image`** für die einzelne Datei, in beiden Formaten
+  und beiden Varianten. **Signiert**, denn ohne Signatur wäre der Endpunkt ein
+  kostenloser QR-Generator auf fremder Domain, mit dem sich Codes für beliebige
+  Links erzeugen ließen. Ausgeliefert mit `no-store`: erzeugt wird bei jeder
+  Anfrage neu, eine zwischengespeicherte Kopie wäre die einzige
+- **`Statamic\Artwork`** löst einen Asset-Pfad zu einer Bildmarke auf und
+  entscheidet an der Endung zwischen `PngLogo` und `SvgLogo`. Die einzige
+  Stelle im Paket, die ein Dateisystem anfasst, und sie liegt in der Hülle
+- **`Statamic\Symbols`** steckt Encoder, `LogoFit` und Renderer zusammen und
+  baut die signierten Adressen
+- **Die View `qr-gen::panels`** mit eigenen Klassen und ohne mitgeliefertes
+  Aussehen. Wer sie ändern will, veröffentlicht sie, statt das Paket anzufassen
+- `config/qr-gen.php` bekommt **`container`**: der Asset-Container, in dem
+  Bildmarken liegen, wenn ein Pfad ohne Container-Angabe kommt
+- **Die Hülle fängt und protokolliert.** Eine Bildmarke, die der Sanitizer
+  ablehnt, ergibt eine Warnung im Log und den Code ohne Bildmarke statt eines
+  500ers. Ein Symbol, das nicht entsteht, ergibt 422 mit der Begründung. **Die
+  verarbeitete Adresse steht in keinem der beiden**, nur Host und Länge — aus
+  demselben Grund, aus dem `EncodingFailed` nur die Länge der Nutzlast nennt
+- **Gruppierte Klassenselektoren im SVG-Sanitizer.** `.a,.b{fill:#000}` sagt
+  nichts, was eine wiederholte Regel nicht auch sagt, und Illustrator schreibt
+  es, sobald mehrere Elemente eine Farbe teilen. Bisher scheiterte daran jede
+  zweite echte Zeichnung. Taucht eine Klasse zweimal auf, gewinnt je
+  Eigenschaft die spätere Deklaration, wie im Browser
+
+### Geändert
+
+- **Der Dateiname eines Downloads nimmt den Pfad mit, nicht nur den Host.**
+  Sonst heißen alle Dateien einer Domain gleich, und wer die Codes mehrerer
+  Hersteller herunterlädt, hat einen Ordner voll durchnummerierter Kopien, bei
+  denen niemand mehr sieht, welche zu wem gehört
 
 ## [0.10.0] - 2026-09-14
 
@@ -562,7 +602,12 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/redcodede/qr-gen/compare/v0.10.0...v0.11.0
+[0.10.0]: https://github.com/redcodede/qr-gen/compare/v0.9.0...v0.10.0
+[0.9.0]: https://github.com/redcodede/qr-gen/compare/v0.8.0...v0.9.0
+[0.8.0]: https://github.com/redcodede/qr-gen/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/redcodede/qr-gen/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/redcodede/qr-gen/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/redcodede/qr-gen/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/redcodede/qr-gen/compare/v0.4.1...v0.4.2

@@ -54,6 +54,12 @@ return [
     'logo' => null,
 
     /*
+     * Der Asset-Container, in dem Bildmarken liegen, wenn ein Pfad ohne
+     * Container-Angabe kommt.
+     */
+    'container' => 'assets',
+
+    /*
      * Die Ziel-URL, die genommen wird, wenn eine Seite keine eigene angibt.
      *
      * Eine volle URL mit Schema. Verarbeitet wird, was dasteht: kein Ergänzen

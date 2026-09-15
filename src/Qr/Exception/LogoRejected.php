@@ -84,7 +84,7 @@ final class LogoRejected extends InvalidArgumentException implements QrGenExcept
     public static function unsupportedStyleRule(string $rule): self
     {
         return new self(sprintf(
-            'The <style> block holds a rule this package cannot inline: "%s". Only single class '
+            'The <style> block holds a rule this package cannot inline: "%s". Only class '
             . 'selectors with fill, stroke and opacity declarations are understood, which is what '
             . 'Illustrator exports. Anything else has to become presentation attributes.',
             $rule

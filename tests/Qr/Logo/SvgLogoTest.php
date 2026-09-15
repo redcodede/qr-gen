@@ -94,6 +94,57 @@ final class SvgLogoTest extends TestCase
     }
 
     /**
+     * The other shape Illustrator writes: one rule for every element that
+     * shares a fill. It says nothing a repeated rule would not say, so it is
+     * inlined the same way.
+     */
+    public function testAGroupedClassSelectorAppliesToEveryClassInIt(): void
+    {
+        $logo = SvgLogo::fromMarkup($this->wrap(
+            '<style>.cls-1,.cls-2 , .cls-3{fill:#e2b0d1;}</style>'
+            . '<path class="cls-1" d="M0 0h1v1z"/>'
+            . '<path class="cls-2" d="M1 1h1v1z"/>'
+            . '<path class="cls-3" d="M2 2h1v1z"/>'
+        ));
+
+        self::assertSame(
+            '<path d="M0 0h1v1z" fill="#e2b0d1"/>'
+            . '<path d="M1 1h1v1z" fill="#e2b0d1"/>'
+            . '<path d="M2 2h1v1z" fill="#e2b0d1"/>',
+            $logo->markup()
+        );
+    }
+
+    /**
+     * A class named twice keeps both rules, and the later declaration wins per
+     * property. That is what a browser does with the same file.
+     */
+    public function testALaterRuleOverridesTheGroupedOnePerProperty(): void
+    {
+        $logo = SvgLogo::fromMarkup($this->wrap(
+            '<style>.a,.b{fill:#111111;stroke:#222222;}.b{fill:#333333;}</style>'
+            . '<path class="a" d="M0 0h1v1z"/><path class="b" d="M1 1h1v1z"/>'
+        ));
+
+        self::assertStringContainsString('<path d="M0 0h1v1z" fill="#111111" stroke="#222222"/>', $logo->markup());
+        self::assertStringContainsString('<path d="M1 1h1v1z" fill="#333333" stroke="#222222"/>', $logo->markup());
+    }
+
+    /**
+     * One unusable part poisons the group. Half a rule applied is worse than
+     * none: the file would come out looking almost right.
+     */
+    public function testAGroupWithSomethingOtherThanAClassIsRefused(): void
+    {
+        $this->expectException(LogoRejected::class);
+        $this->expectExceptionMessage('cannot inline');
+
+        SvgLogo::fromMarkup($this->wrap(
+            '<style>.a, path{fill:#000;}</style><path class="a" d="M0 0h1v1z"/>'
+        ));
+    }
+
+    /**
      * CSS order: a class rule beats a presentation attribute, an inline style
      * beats both.
      */

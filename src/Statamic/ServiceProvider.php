@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Redcodede\QrGen\Statamic;
 
+use Redcodede\QrGen\Statamic\Tags\QrGen;
 use Statamic\Providers\AddonServiceProvider;
 
 /**
@@ -39,4 +40,17 @@ class ServiceProvider extends AddonServiceProvider
 
     /** Die DE- und EN-Kataloge aus `resources/lang`. */
     protected $translations = true;
+
+    /** `{{ qr_gen url="…" }}` gibt die Panels aus. */
+    protected $tags = [
+        QrGen::class,
+    ];
+
+    /**
+     * Die Bild-Route landet unter `/!/qr-gen/image`. Action-Routen bekommen den
+     * Slug des Addons als Prefix, deshalb steht im Routen-File nur `image`.
+     */
+    protected $routes = [
+        'actions' => __DIR__ . '/../../routes/actions.php',
+    ];
 }

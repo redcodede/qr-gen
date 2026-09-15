@@ -58,17 +58,21 @@ Zuschnitt in zwei Stufen.
 - [x] **Konfigurationsmodell mit zwei Ebenen**: global, was angeboten wird und
       was gilt, wenn nichts anderes dasteht; pro Seite, was diese Seite
       ausmacht. Im Zweifel gewinnt die Seite
+- [x] **Frontend-Komponente**: der Tag `{{ qr_gen }}` gibt beide Varianten mit
+      Vorschau und Download aus, die Bild-Route liefert die einzelne Datei
+      signiert aus. Siehe [In Statamic](#in-statamic)
+- [x] **Ausnahmen werden in der Hülle gefangen und protokolliert**, mit
+      Kontext statt Prosa und ohne die verarbeitete Adresse. Siehe
+      [Logging](#logging)
 - [x] Test, der die Framework-Freiheit des Kerns erzwingt
 - [x] Rundlauf-Test, der das SVG zurück in eine Matrix liest
 
 ### Offen
 
-- [ ] **Logging in der Statamic-Hülle.** Die Ausnahmen dieses Pakets müssen dort
-      gefangen und mit Kontext ins Log geschrieben werden, statt als 500
-      durchzuschlagen. Siehe [Logging](#logging)
 - [ ] Code- und Token-Erzeugung, `CodeRepository`-Interface
-- [ ] Statamic-Hülle: Einstellungen im Control Panel, Fieldset und Tag für die
-      Frontend-Komponente, Bild-Route. Das Gerüst steht, siehe oben
+- [ ] **Einstellungen im Control Panel.** Bis dahin gilt `config/qr-gen.php`
+- [ ] **Fieldset für den Blueprint einer Seite.** Bis dahin setzt die
+      aufrufende Seite die Werte als Tag-Parameter, wie es die GVÖ-Seite tut
 - [ ] Elliptische Bögen (`A`) und Konturen im Rasterisierer. Bisher nicht
       gebraucht: keine der vorliegenden Zeichnungen benutzt beides
 - [ ] Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
@@ -714,7 +718,7 @@ statt sie mit Unerwartetem durchzulassen.
 | | |
 |---|---|
 | **erlaubt** | `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polygon`, `polyline`; Geometrie-, Fill-, Stroke- und Transform-Attribute |
-| **wird aufgelöst** | ein `<style>`-Block mit einfachen Klassenselektoren wird in Präsentationsattribute inlined, das leere `<defs>` danach entfernt. Das ist Illustrators Standardexport |
+| **wird aufgelöst** | ein `<style>`-Block mit Klassenselektoren wird in Präsentationsattribute inlined, das leere `<defs>` danach entfernt. Das ist Illustrators Standardexport, einzeln (`.a{…}`) wie gruppiert (`.a,.b{…}`) |
 | **wird entfernt** | `id`-Attribute, Kommentare, `<title>`, `<desc>`, `<metadata>` |
 | **wird abgewiesen** | `<script>`, `on…`-Handler, `<image>`, `<text>`, `<use>`, `<a>`, `<foreignObject>`, Animationen, nicht leere `<defs>` (Gradienten, Masken, Clip-Paths), `url(…)`, `xlink:href`, `data:`, At-Rules, DOCTYPE mit interner Teilmenge, loser Text, unbalancierte Tags |
 
@@ -729,6 +733,16 @@ keine externen Verweise.** Farben sind ohnehin RGB — SVG kennt kein CMYK.
 
 `id`-Attribute werden entfernt statt umbenannt. Ohne Bezeichner gibt es nichts,
 was kollidieren kann, wenn zwei Codes auf derselben Seite stehen.
+
+Aus demselben Grund scheitert eine Zeichnung mit `clip-path:url(#…)`: der
+Verweis hätte nach dem Entfernen der Bezeichner kein Ziel mehr. Das ist keine
+Schikane, sondern der Preis dafür, dass zwei Codes nebeneinander stehen dürfen.
+
+**Ein gruppierter Selektor sagt nichts, was eine wiederholte Regel nicht auch
+sagt** — `.a,.b{fill:#000}` wird deshalb verstanden, obwohl es kein einzelner
+Selektor ist. Taucht eine Klasse zweimal auf, einmal in einer Gruppe und einmal
+allein, gewinnt je Eigenschaft die spätere Deklaration. Das ist, was ein
+Browser mit derselben Datei täte.
 
 ### Ausliefern
 
@@ -771,27 +785,78 @@ einen Stacktrace schreiben.
 
 ### Logging
 
-**Noch nicht gebaut.** Der Kern protokolliert nichts und wird es nicht tun — er
-hat kein I/O, und das ist Absicht: eine Bibliothek, die selbst ins Log schreibt,
-schreibt in ein Log, das sie nicht kennt. Er wirft und der Aufrufer entscheidet.
+**Der Kern protokolliert nichts** und wird es nicht tun — er hat kein I/O, und
+das ist Absicht: eine Bibliothek, die selbst ins Log schreibt, schreibt in ein
+Log, das sie nicht kennt. Er wirft, der Aufrufer entscheidet.
 
-Was fehlt, ist die andere Hälfte davon: **die Statamic-Hülle muss die Ausnahmen
-fangen und mit Kontext protokollieren**, statt sie als 500 durchschlagen zu
-lassen. Anforderungen, wenn das gebaut wird:
+Die andere Hälfte liegt in der Hülle, und die ist gebaut. Zwei Stellen fangen
+`QrGenException` und schreiben eine Warnung, statt einen 500er durchschlagen zu
+lassen:
 
-- Logger per Konstruktor injiziert (PSR-3), nicht per Facade geholt — sonst
-  wandert der Framework-Bezug in Code, der ihn nicht haben darf
+| | |
+|---|---|
+| `Artwork::load()` | `qr-gen: Bildmarke abgelehnt`, mit Asset-Pfad und Grund. Ergebnis: der Code ohne Bildmarke |
+| `ImageController` | `qr-gen: Symbol nicht erzeugt`, mit Host, Länge, Variante, Format und Grund. Ergebnis: 422 mit der Begründung |
+
+**Die verarbeitete Adresse steht in keinem der beiden.** Aus demselben Grund,
+aus dem `EncodingFailed` nur die Länge der Nutzlast nennt: ein Paket, das
+zusagt, verarbeitete Adressen nicht zu speichern, kann sie nicht in ein Log
+schreiben. Zum Nachstellen genügen Host, Länge, Variante und Format.
+
+Offen bleibt davon:
+
+- Logger per Konstruktor injiziert (PSR-3) statt per `logger()`-Helfer. Heute
+  steht der Framework-Bezug in der Hülle, wo er hin darf, aber nicht als
+  auswechselbare Abhängigkeit
 - **Stufen unterscheiden:** ein zu großer Logokasten ist eine
   Konfigurationssache und gehört auf `warning`, ein unerwarteter Fehlschlag auf
-  `error`. Beides heute nicht unterscheidbar, weil beides dieselbe Ausnahme ist
-- **Kontext statt Prosa:** Symbolgröße, Version, Fehlerkorrekturstufe,
-  Kastenmaße, betroffener Eintrag. Das ist, was eine Meldung nachvollziehbar
-  macht
-- **Die Nutzlast nicht mitloggen.** Aus demselben Grund, aus dem
-  `EncodingFailed` nur die Länge nennt: ein Paket, das zusagt, verarbeitete URLs
-  nicht zu speichern, kann sie nicht in ein Log schreiben
+  `error`. Heute nicht unterscheidbar, weil beides dieselbe Ausnahme ist
 - Ein Fehlschlag beim Erzeugen eines Codes darf einen Stapelverarbeitungslauf
   nicht abbrechen — protokollieren, weitermachen, am Ende zusammenfassen
+
+### In Statamic
+
+Der Tag baut beide Varianten, zeigt sie als Vorschau und verlinkt die
+Downloads:
+
+```antlers
+{{ qr_gen url="https://gvoe.de/return/ADHKT" }}
+```
+
+| Parameter | |
+|---|---|
+| `url` | die Adresse, die im Code steht. Ohne sie gibt der Tag nichts aus |
+| `logo` | Asset-Pfad der Bildmarke, mit oder ohne Container (`assets::pfad`) |
+| `variants` | `plain`, `logo` oder `plain\|logo`. Ohne Angabe beides, soweit global erlaubt |
+
+Aus einer Seite heraus mit Werten aus dem Eintrag:
+
+```antlers
+{{ qr_gen :url="ziel_url" :logo="logo_pfad" }}
+```
+
+Die **Vorschau steht als SVG direkt im Markup** und kostet keine zweite
+Anfrage. Nur Download und „direkt öffnen" laufen über die Bild-Route
+`/!/qr-gen/image`. Deren Adressen sind **signiert**: ohne Signatur wäre der
+Endpunkt ein kostenloser QR-Generator auf fremder Domain, mit dem sich Codes
+für beliebige Links erzeugen ließen. Der Routenname steht in
+`ImageController::ROUTE`; Statamic stellt allen Action-Routen `statamic.`
+voran, weil es die ganze Gruppe so benennt.
+
+Ausgeliefert wird mit `Cache-Control: no-store` — erzeugt wird bei jeder
+Anfrage neu, es gibt also keine gespeicherte Kopie, und eine
+zwischengespeicherte wäre die einzige.
+
+Die Ausgabe ist die View `qr-gen::panels` mit eigenen Klassen und ohne
+mitgeliefertes Aussehen. Wer sie ändern will, veröffentlicht sie nach
+`resources/views/vendor/qr-gen/` und passt sie dort an, statt das Paket
+anzufassen.
+
+`Statamic\Artwork::load()` löst den Logo-Pfad zu einem Asset auf und
+entscheidet an der Dateiendung zwischen `PngLogo` und `SvgLogo`. Es ist die
+einzige Stelle im Paket, die ein Dateisystem anfasst, und sie liegt bewusst in
+der Hülle. Fehlt das Asset oder lehnt der Sanitizer es ab, gibt es **kein
+500er, sondern eine Warnung im Log und den Code ohne Bildmarke.**
 
 ### Beim Suchen
 
@@ -875,8 +940,17 @@ src/
     Translator.php         Oberflächentexte, außerhalb des Kerns
   Statamic/                dünne Hülle, alles Framework-Nahe liegt hier
     ServiceProvider.php    nur Verdrahtung, keine Fachlogik
+    Artwork.php            Asset-Pfad → Logo; die einzige Datei-I/O des Pakets
+    Symbols.php            Encoder, LogoFit und Renderer zusammengesteckt
+    Tags/QrGen.php         {{ qr_gen }}, die Frontend-Komponente
+    Http/Controllers/
+      ImageController.php  die einzelne Datei, signiert und ohne Zwischenspeicher
+routes/
+  actions.php              die Bild-Route, landet unter /!/qr-gen/image
 config/
   qr-gen.php               Rückfallwerte; das CP überschreibt sie, die Seite die wiederum
+resources/views/
+  panels.antlers.html      die Ausgabe des Tags, eigene Klassen, kein Aussehen
 resources/lang/            de.php und en.php, im Laravel-Format, werden mitgeliefert
 demo/                      Demo-Seite und Testlogos, nicht im Dist
 tests/                     Qr/ und I18n/
@@ -964,8 +1038,8 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.8.0` | Bildmarke darf ein PNG sein: eigener Dekoder, Skalierer, Größenempfehlung |
 | `0.9.0` | Gerüst der Statamic-Hülle: ServiceProvider, Konfiguration, Testharness |
 | `0.10.0` | Konfigurationsmodell mit zwei Ebenen, Demo-Seite nach Bereichen getrennt |
-| `0.11.0` | geplant: Einstellungen im Control Panel |
-| `0.12.0` | geplant: Frontend-Komponente, in der GVÖ-Seite lauffähig |
+| `0.11.0` | Frontend-Komponente: Tag, Bild-Route, Logging, in der GVÖ-Seite lauffähig |
+| `0.12.0` | geplant: Einstellungen im Control Panel |
 | `0.13.0` | geplant: Code- und Token-Erzeugung |
 | `1.0.0` | in Produktion abgenommen, öffentliche API stabil |
 
@@ -993,7 +1067,10 @@ composer require redcodede/qr-gen
 ```
 
 Für die lokale Entwicklung stattdessen ein Path-Repository auf das Verzeichnis
-mit diesem Repo. Im GVÖ-Projekt fehlt der Eintrag noch (geprüft 14.09.2026).
+mit diesem Repo. Im GVÖ-Projekt steht es seit dem 15.09.2026, zusammen mit
+einem DDEV-Override, der `../qr-gen` nach `/var/www/qr-gen` in den Container
+hängt: ein Path-Repository zeigt auf einen Pfad, den der Container sonst nicht
+hat, und Composer legt dafür einen Symlink an, der ins Leere zeigt.
 
 `extra.laravel.providers` zeigt auf `Redcodede\QrGen\Statamic\ServiceProvider`,
 und die `autoload.psr-4` führt neben `Redcodede\QrGen\` einen zweiten,
@@ -1013,20 +1090,27 @@ ratend beantwortet.
    DDEV auf 8.4, die `composer.json` der Seite erlaubt noch 7.4. Dieses Paket
    verlangt `^8.0`. Ab 8.1 zieht Composer Bacon 3.x und die
    PHP-8.4-Deprecations verschwinden
-2. **Ist „Hersteller" die bestehende Collection `partner` oder eine neue?**
-   `partner` hat 262 DE-Einträge, aber nur `title`, `ort`, `slug`. Hersteller
-   im Sinne des VerpackDG sind eine andere Rolle als Lizenzpartner
-3. **Druckgröße und Material.** Ohne das kann der Andruck nicht anlaufen, und
+2. **Druckgröße und Material.** Ohne das kann der Andruck nicht anlaufen, und
    ohne Andruck wird ein Logo im Code nicht zugesagt. Das ist jetzt der einzige
    Punkt, der die Logo-Variante noch aufhält — technisch läuft sie
-4. **Welche Logo-Zeichnung?** Die GVÖ-Seite trägt zwei verschiedene: ein SVG
+3. **Welche Logo-Zeichnung?** Die GVÖ-Seite trägt zwei verschiedene: ein SVG
    mit 1,20 : 1 in zwei Farben und ein PNG mit 1,65 : 1, einfarbig, mit der
    Wortmarke. Bei 20 mm Codebreite stehen die Buchstaben rund 2,3 mm hoch und
    die Umlautpunkte messen etwa 0,36 mm, also weniger als ein Codemodul.
    Druckbar, aber eine Gestaltungsfrage — eine Fassung für kleine Größen wäre
    besser
-5. **Sprachlogik der Auflösungs-Route.** Weiterleitung auf `/en/…` oder eine
-   URL für beide Sprachen? Betrifft Caching und Suchmaschinen
+4. **Sprachlogik der Auflösungs-Route.** Weiterleitung auf `/en/…` oder eine
+   URL für beide Sprachen? Betrifft Caching und Suchmaschinen. Heute gibt es
+   `/qr/{code}` und `/return/{code}` nur deutsch; `/en/qr/{code}` ist ein 404
+5. **Mit oder ohne `www` auf der Verpackung?** Die gedruckte Adresse entsteht
+   aus `app.url` der Seite. Welche der beiden Schreibweisen dort steht, ist
+   nicht entschieden, und auf Papier lässt sie sich nicht mehr ändern
+
+Erledigt: **„Ist Hersteller die Collection `partner`?" ist beantwortet.** Es ist
+beides: die Taxonomie `hersteller` trägt Name und Code und verweist auf den
+Eintrag in `partner`. Ein Partner kann mehrere Codes haben, wenn er mehrere
+Standorte betreibt, und der Code überlebt jede Änderung am Eintrag, weil er
+der Dateiname des Terms ist.
 
 Erledigt: **„Logo als RGB-SVG fehlt" war ein Missverständnis.** SVG kennt kein
 CMYK; `gvoe-logo-cmyk.svg` trägt bereits Hex-Farben (`#009879`, `#9D9D9C`) und

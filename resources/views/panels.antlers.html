@@ -1,0 +1,37 @@
+{{#
+    Die Ausgabe des Tags {{ qr_gen }}.
+
+    Bewusst schlicht und mit eigenen Klassen: die Seite, die das Addon
+    einbindet, bringt ihr eigenes Aussehen mit. Wer die Darstellung aendern
+    will, veroeffentlicht diese View und passt sie an, statt das Paket
+    anzufassen.
+
+    Die Vorschau steht als SVG direkt im Markup. Das kostet keine zweite
+    Anfrage, und der Betrachter sieht dieselbe Zeichnung, die er herunterlaedt.
+#}}
+
+<div class="qr-gen">
+  {{ if nothing }}
+    <p class="qr-gen-empty">Keine Variante ist freigeschaltet.</p>
+  {{ /if }}
+
+  {{ panels }}
+    <div class="qr-gen-panel qr-gen-panel--{{ variant }}">
+      <h2 class="qr-gen-title">
+        {{ if variant == "plain" }}Ohne Bildmarke{{ else }}Mit Bildmarke{{ /if }}
+      </h2>
+
+      {{ if failure }}
+        <p class="qr-gen-failure">{{ failure }}</p>
+      {{ else }}
+        <div class="qr-gen-preview">{{ preview }}</div>
+
+        <div class="qr-gen-actions">
+          {{ if svg }}<a class="qr-gen-download" href="{{ svg }}">SVG herunterladen</a>{{ /if }}
+          {{ if png }}<a class="qr-gen-download" href="{{ png }}">PNG herunterladen</a>{{ /if }}
+          <a class="qr-gen-raw" href="{{ raw }}" target="_blank" rel="noopener">Direkt öffnen</a>
+        </div>
+      {{ /if }}
+    </div>
+  {{ /panels }}
+</div>
