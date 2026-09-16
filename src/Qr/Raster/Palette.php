@@ -10,7 +10,7 @@ namespace Redcodede\QrGen\Qr\Raster;
  * A PNG that carries artwork cannot stay at one bit per pixel, but it does not
  * have to become truecolour either. Flat artwork over a flat backdrop produces
  * very few distinct colours: two logo colours plus the seventeen coverage steps
- * the sampling grid can express, and the overlaps between them. The GVÖ mark
+ * the sampling grid can express, and the overlaps between them. The mark used in the tests
  * lands around forty. A palette holds up to 256, so the file stays one byte per
  * pixel instead of three, and the modules keep sharing two entries with no
  * anti-aliasing anywhere near them.

@@ -61,7 +61,7 @@ final class RealWorldLogoTest extends TestCase
     public function testARealExportRendersIntoTheBriefingSymbol(string $path): void
     {
         $logo = SvgLogo::fromMarkup((string) file_get_contents($path));
-        $matrix = (new BaconQrEncoder())->encode('https://gvoe.de/return/7K4M2', ErrorCorrection::high());
+        $matrix = (new BaconQrEncoder())->encode('https://example.org/qr/7K4M2', ErrorCorrection::high());
 
         $svg = (new SvgRenderer(
             SvgOptions::default()->withLogo(

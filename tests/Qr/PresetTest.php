@@ -98,7 +98,7 @@ final class PresetTest extends TestCase
     public static function realPayloads(): iterable
     {
         yield 'the demo url' => ['https://www.redcode.de/', 'H', 29];
-        yield 'the briefing url' => ['https://gvoe.de/return/7K4M2', 'H', 33];
+        yield 'the briefing url' => ['https://example.org/qr/7K4M2', 'H', 33];
     }
 
     /**
@@ -111,7 +111,7 @@ final class PresetTest extends TestCase
         $fit = new LogoFit(new BaconQrEncoder());
 
         $demo = $fit->lowestLevelFor('https://www.redcode.de/', Preset::logoBox());
-        $briefing = $fit->lowestLevelFor('https://gvoe.de/return/7K4M2', Preset::logoBox());
+        $briefing = $fit->lowestLevelFor('https://example.org/qr/7K4M2', Preset::logoBox());
 
         self::assertGreaterThan($demo->headroom(), $briefing->headroom());
         self::assertSame(11.1, round($briefing->clearedShare() * 100, 1));
@@ -120,9 +120,9 @@ final class PresetTest extends TestCase
     public function testAPlainAndALogoSymbolBothRenderFromThePreset(): void
     {
         $matrix = (new BaconQrEncoder())->encode(
-            'https://gvoe.de/return/7K4M2',
+            'https://example.org/qr/7K4M2',
             (new LogoFit(new BaconQrEncoder()))
-                ->lowestLevelFor('https://gvoe.de/return/7K4M2', Preset::logoBox())
+                ->lowestLevelFor('https://example.org/qr/7K4M2', Preset::logoBox())
                 ->level()
         );
 

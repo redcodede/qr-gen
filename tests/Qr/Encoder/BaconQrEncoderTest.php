@@ -153,14 +153,14 @@ final class BaconQrEncoderTest extends TestCase
      */
     public function testTheFailureMessageReportsTheLengthAndNotThePayload(): void
     {
-        $secret = str_repeat('https://gvoe.de/return/7K4M2?nope=', 200);
+        $secret = str_repeat('https://example.org/qr/7K4M2?nope=', 200);
 
         try {
             (new BaconQrEncoder())->encode($secret, ErrorCorrection::high());
             self::fail('Expected an EncodingFailed.');
         } catch (EncodingFailed $exception) {
             self::assertStringContainsString((string) strlen($secret), $exception->getMessage());
-            self::assertStringNotContainsString('gvoe.de', $exception->getMessage());
+            self::assertStringNotContainsString('example.org', $exception->getMessage());
             self::assertStringNotContainsString('7K4M2', $exception->getMessage());
         }
     }

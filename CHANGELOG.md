@@ -20,6 +20,34 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 - Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
   ankommt
 
+## [1.0.1] - 2026-09-16
+
+Veröffentlichung. **Am Paket selbst ändert sich nichts** — kein Verhalten, keine
+Schnittstelle, keine Abhängigkeit. Deshalb ein Patch und kein Minor.
+
+### Geändert
+
+- **Der Projektbezug ist raus.** README, Changelog, Tests und die
+  DDEV-Konfiguration nannten durchgehend den ersten Kunden: seinen Namen, den
+  Link auf die Aufgabe im Projektmanagement mitsamt IDs, den geprüften Stack
+  seiner Produktion und offene Entscheidungen aus seinem Briefing. In einem
+  öffentlichen Repository wäre das eine Landkarte eines fremden Systems. Es
+  steht jetzt dort, wo es hingehört: im Kundenvorgang
+- **Die Beispieladresse ist `https://example.org/qr/7K4M2`**, und zwar
+  **byte-genau so lang wie die vorherige**. Die Tests behaupten Version,
+  Seitenlänge und Prozentwerte, und die hängen allein an der Länge — 429 grüne
+  Tests sind der Beweis, dass keine Aussage dabei verrutscht ist
+- **Der Abschnitt „Offene Punkte" heißt jetzt „Was dieses Paket nicht
+  entscheidet"** und nennt drei Dinge, die für jede Installation gelten statt
+  für eine: dass ein Andruck über die Lesbarkeit entscheidet und keine
+  Begründung; dass die Eignung einer Zeichnung als Bildmarke eine
+  Gestaltungsfrage ist; und dass die einbindende Seite bestimmt, welche Adresse
+  gedruckt wird
+- **Die Installationsanleitung ist eine Zeile.** `composer require
+  redcodede/qr-gen`, ohne `repositories`-Eintrag und ohne Zugangsdaten. Der
+  Abschnitt zum Path-Repository bleibt, aber als das, was er ist: eine
+  Anleitung für die Arbeit am Paket selbst, nicht für den Einbau
+
 ## [1.0.0] - 2026-09-15
 
 **Die erste Freigabe.** Der Funktionsumfang steht, die öffentliche API ist ab
@@ -148,8 +176,8 @@ wo er gebraucht wird.
 
 ## [0.11.0] - 2026-09-15
 
-Die Frontend-Komponente. Das Paket läuft zum ersten Mal in der GVÖ-Seite, unter
-`/qr/{code}`.
+Die Frontend-Komponente. Das Paket läuft zum ersten Mal in einer echten
+Statamic-Seite, unter `/qr/{code}`.
 
 ### Hinzugefügt
 
@@ -157,8 +185,8 @@ Die Frontend-Komponente. Das Paket läuft zum ersten Mal in der GVÖ-Seite, unte
   Varianten, zeigt sie als Vorschau und verlinkt die Downloads. Der Tag kennt
   weder Hersteller noch Taxonomien: er bekommt eine Adresse und eine Bildmarke
   und macht daraus, was die globalen Einstellungen erlauben. **Wer einen Code
-  auflöst, bleibt Sache der Seite** — die Zuordnung Code zu Partner gehört der
-  GVÖ-Seite, nicht diesem Paket
+  auflöst, bleibt Sache der Seite** — die Zuordnung Code zu Hersteller gehört
+  der einbindenden Seite, nicht diesem Paket
 - **Bild-Route `/!/qr-gen/image`** für die einzelne Datei, in beiden Formaten
   und beiden Varianten. **Signiert**, denn ohne Signatur wäre der Endpunkt ein
   kostenloser QR-Generator auf fremder Domain, mit dem sich Codes für beliebige
@@ -266,7 +294,8 @@ die Einstellungen und die Frontend-Komponente hängen werden.
   stand in der README, der Eintrag komme mit dem ServiceProvider; das ist jetzt
   so. Er zieht rund 140 Pakete nach, und ab jetzt ist das berechtigt
 - **`laravel/framework ^8.83` in `require-dev`, nicht zum Benutzen, sondern zum
-  Festnageln.** Statamic 3.4 erlaubt Laravel 8 oder 9, die GVÖ-Seite fährt 8.
+  Festnageln.** Statamic 3.4 erlaubt Laravel 8 oder 9, die erste
+  Zielinstallation fährt 8.
   Ohne den Eintrag löst Composer hier 9 auf, und eine API, die es nur in 9 gibt,
   fiele erst auf dem Server auf. Die Auflösung zieht dadurch `league/flysystem`
   auf 1.1 und `league/glide` auf 1.7, also genau die Kombination der Zielseite
@@ -368,8 +397,8 @@ Die Bildmarke auch im PNG. Beide Codes gibt es jetzt in beiden Formaten.
   eigene Farben und gebogene Kanten mit, die bei dieser Größe Kantenglättung
   brauchen; beides passt nicht in ein Bit. **Das PNG ohne Bildmarke bleibt
   unverändert bei 1 Bit** und zwei Palettenfarben. Palette bleibt es in beiden
-  Fällen: flache Zeichnungen ergeben wenige Farben, die GVÖ-Marke landet bei 34
-  von 256
+  Fällen: flache Zeichnungen ergeben wenige Farben, die Marke im Test landet
+  bei 34 von 256
 - `pngRenderer()`, `rendererFor()` und `pngAvailable()` in der Demo nehmen jetzt
   die Bildmarke entgegen. `cheaperFormat()` verglich für die Logo-Variante
   fälschlich gegen das PNG **ohne** Marke
@@ -661,10 +690,10 @@ Ein Logo in der Mitte, mit Ruhezone darum.
 
 ### Befunde am echten Material
 
-- **`gvoe-logo-cmyk.svg` ist trotz des Dateinamens brauchbar.** SVG kennt kein
-  CMYK; die Datei trägt Hex-Farben und ist bis auf den `<style>`-Block ideale
-  Eingabe. Der offene Punkt „RGB-Logo fehlt" war ein Missverständnis
-- Für `https://gvoe.de/return/7K4M2` bei Stufe H (Version 4, 33 × 33) räumt ein
+- **Ein Logo mit `cmyk` im Dateinamen ist trotzdem brauchbar.** SVG kennt kein
+  CMYK; solche Dateien tragen Hex-Farben und sind bis auf den `<style>`-Block
+  ideale Eingabe. Der offene Punkt „RGB-Logo fehlt" war ein Missverständnis
+- Für `https://example.org/qr/7K4M2` bei Stufe H (Version 4, 33 × 33) räumt ein
   Kasten von 11 × 11 **11,1 %** der Module frei und trifft kein
   Funktionsmuster. Bei Stufe Q (Version 3) trifft 13 × 13 zwei Module des
   Ausrichtungsmusters
@@ -723,12 +752,13 @@ Material und ein RGB-Logo.
 ### Hinzugefügt
 
 - Projektgerüst: `composer.json`, README, Changelog, AGPL-3.0-Lizenz
-- DDEV-Konfiguration auf PHP 8.4 zum Testen, passend zum DDEV der GVÖ-Seite
+- DDEV-Konfiguration auf PHP 8.4 zum Testen, passend zur ersten Zielinstallation
 - PHPUnit-Konfiguration
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/redcodede/qr-gen/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/redcodede/qr-gen/compare/v0.13.1...v1.0.0
 [0.13.1]: https://github.com/redcodede/qr-gen/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/redcodede/qr-gen/compare/v0.12.0...v0.13.0

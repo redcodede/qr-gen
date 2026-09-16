@@ -50,7 +50,7 @@ final class PngLogoTest extends TestCase
 
     private function matrix(): ModuleMatrix
     {
-        return (new BaconQrEncoder())->encode('https://gvoe.de/return/7K4M2', ErrorCorrection::high());
+        return (new BaconQrEncoder())->encode('https://example.org/qr/7K4M2', ErrorCorrection::high());
     }
 
     // ------------------------------------------------------------- basics --

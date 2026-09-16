@@ -74,7 +74,7 @@ final class LogoFitTest extends TestCase
         $box = LogoBox::square(11, 1);
 
         $short = $fit->lowestLevelFor('https://www.redcode.de/', $box);
-        $briefing = $fit->lowestLevelFor('https://gvoe.de/return/7K4M2', $box);
+        $briefing = $fit->lowestLevelFor('https://example.org/qr/7K4M2', $box);
 
         self::assertSame(29, $short->matrix()->size());
         self::assertSame(33, $briefing->matrix()->size());
@@ -83,7 +83,7 @@ final class LogoFitTest extends TestCase
 
     public function testItReportsTheNumbersBehindTheDecision(): void
     {
-        $result = $this->fit()->lowestLevelFor('https://gvoe.de/return/7K4M2', LogoBox::square(11, 1));
+        $result = $this->fit()->lowestLevelFor('https://example.org/qr/7K4M2', LogoBox::square(11, 1));
 
         self::assertSame(11.1, round($result->clearedShare() * 100, 1));
         self::assertSame(15.0, round($result->budget() * 100, 1));
@@ -180,7 +180,7 @@ final class LogoFitTest extends TestCase
     public function testTheLargestBoxNeverGrowsBeyondWhatWasAskedFor(): void
     {
         $largest = $this->fit()->largestFittingAt(
-            'https://gvoe.de/return/7K4M2',
+            'https://example.org/qr/7K4M2',
             ErrorCorrection::high(),
             LogoBox::square(7, 1)
         );
@@ -217,10 +217,10 @@ final class LogoFitTest extends TestCase
 
     public function testTheResultCarriesTheMatrixSoNothingIsEncodedTwice(): void
     {
-        $result = $this->fit()->lowestLevelFor('https://gvoe.de/return/7K4M2', LogoBox::square(11, 1));
+        $result = $this->fit()->lowestLevelFor('https://example.org/qr/7K4M2', LogoBox::square(11, 1));
 
         self::assertSame(
-            (new BaconQrEncoder())->encode('https://gvoe.de/return/7K4M2', ErrorCorrection::high())->rows(),
+            (new BaconQrEncoder())->encode('https://example.org/qr/7K4M2', ErrorCorrection::high())->rows(),
             $result->matrix()->rows()
         );
     }

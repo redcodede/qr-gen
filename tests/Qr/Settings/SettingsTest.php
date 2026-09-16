@@ -79,9 +79,9 @@ final class SettingsTest extends TestCase
 
     public function testDasselbeGiltFuerDieBildmarke(): void
     {
-        $global = GlobalSettings::default()->withDefaultLogo('gvoe.svg');
+        $global = GlobalSettings::default()->withDefaultLogo('marke.svg');
 
-        self::assertSame('gvoe.svg', $this->effective($global, PageSettings::empty())->logo());
+        self::assertSame('marke.svg', $this->effective($global, PageSettings::empty())->logo());
         self::assertSame(
             'anders.svg',
             $this->effective($global, PageSettings::empty()->withLogo('anders.svg'))->logo()
@@ -93,7 +93,7 @@ final class SettingsTest extends TestCase
     public function testEineFrischeSeiteZeigtAllesAngebotene(): void
     {
         $effective = $this->effective(
-            GlobalSettings::default()->withDefaultLogo('gvoe.svg'),
+            GlobalSettings::default()->withDefaultLogo('marke.svg'),
             PageSettings::empty()
         );
 
@@ -104,7 +104,7 @@ final class SettingsTest extends TestCase
     public function testGlobalAbgeschaltetSchlaegtDenWunschDerSeite(): void
     {
         $effective = $this->effective(
-            GlobalSettings::default()->withVariants(true, false)->withDefaultLogo('gvoe.svg'),
+            GlobalSettings::default()->withVariants(true, false)->withDefaultLogo('marke.svg'),
             PageSettings::empty()->withVariants([Variant::PLAIN, Variant::LOGO])
         );
 
@@ -115,7 +115,7 @@ final class SettingsTest extends TestCase
     public function testDieSeiteKannEineAngeboteneVarianteWeglassen(): void
     {
         $effective = $this->effective(
-            GlobalSettings::default()->withDefaultLogo('gvoe.svg'),
+            GlobalSettings::default()->withDefaultLogo('marke.svg'),
             PageSettings::empty()->withVariants([Variant::LOGO])
         );
 
@@ -173,15 +173,15 @@ final class SettingsTest extends TestCase
         $global = GlobalSettings::default()
             ->withVariants(true, false)
             ->withDownloads(false, true)
-            ->withDefaultLogo('gvoe.svg')
-            ->withDefaultUrl('https://gvoe.de/return/7K4M2');
+            ->withDefaultLogo('marke.svg')
+            ->withDefaultUrl('https://example.org/qr/7K4M2');
 
         $again = GlobalSettings::fromArray($global->toArray());
 
         self::assertSame($global->toArray(), $again->toArray());
         self::assertFalse($again->offersLogo());
         self::assertTrue($again->offersPng());
-        self::assertSame('gvoe.svg', $again->defaultLogo());
+        self::assertSame('marke.svg', $again->defaultLogo());
     }
 
     /**

@@ -249,7 +249,7 @@ final class SvgLogoTest extends TestCase
         ];
 
         yield 'text element' => [
-            '<text x="0" y="0">GVÖ</text>',
+            '<text x="0" y="0">Marke</text>',
             'uses <text>',
         ];
 
@@ -309,7 +309,7 @@ final class SvgLogoTest extends TestCase
         ];
 
         yield 'loose text content' => [
-            'GVÖ<path d="M0 0h1v1z"/>',
+            'Marke<path d="M0 0h1v1z"/>',
             'text content',
         ];
 

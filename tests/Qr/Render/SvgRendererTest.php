@@ -126,7 +126,7 @@ final class SvgRendererTest extends TestCase
      */
     public function testTheOutputReferencesNothingExternal(): void
     {
-        $svg = (new SvgRenderer(SvgOptions::default()->withTitle('gvoe')))
+        $svg = (new SvgRenderer(SvgOptions::default()->withTitle('code')))
             ->render((new BaconQrEncoder())->encode('https://www.redcode.de/', ErrorCorrection::medium()));
 
         self::assertStringNotContainsString('http://', str_replace('http://www.w3.org/2000/svg', '', $svg));

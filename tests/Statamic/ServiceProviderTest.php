@@ -76,7 +76,7 @@ final class ServiceProviderTest extends TestCase
     public function testDerKernRendertInnerhalbVonLaravelUnveraendert(): void
     {
         $matrix = (new BaconQrEncoder())->encode(
-            'https://gvoe.de/return/7K4M2',
+            'https://example.org/qr/7K4M2',
             ErrorCorrection::high()
         );
 

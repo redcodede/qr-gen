@@ -35,7 +35,7 @@ use Redcodede\QrGen\Qr\Raster\Transform;
  * The logo has colours of its own and curved edges that need anti-aliasing to
  * survive at this size, and neither fits in one bit. It stays indexed rather
  * than becoming truecolour because flat artwork produces few distinct colours —
- * the GVÖ mark lands around forty of the 256 available — so a byte per pixel is
+ * the mark used in the tests lands around forty of the 256 available — so a byte per pixel is
  * a third of the size of RGB and the modules still cost two palette entries
  * with no anti-aliasing anywhere near them.
  *

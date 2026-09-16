@@ -55,10 +55,10 @@ final class SvgRoundTripTest extends TestCase
         yield 'demo url, spec quiet zone' => ['https://www.redcode.de/', 'M', 4];
         yield 'demo url, no quiet zone' => ['https://www.redcode.de/', 'M', 0];
         yield 'demo url, highest recovery' => ['https://www.redcode.de/', 'H', 4];
-        yield 'the briefing url' => ['https://gvoe.de/return/7K4M2', 'H', 4];
-        yield 'the briefing url uppercased' => ['HTTPS://GVOE.DE/RETURN/7K4M2', 'H', 4];
+        yield 'the briefing url' => ['https://example.org/qr/7K4M2', 'H', 4];
+        yield 'the briefing url uppercased' => ['HTTPS://EXAMPLE.ORG/QR/7K4M2', 'H', 4];
         yield 'smallest symbol' => ['HI', 'L', 4];
-        yield 'a long payload, many versions up' => [str_repeat('https://gvoe.de/return/7K4M2 ', 20), 'L', 4];
+        yield 'a long payload, many versions up' => [str_repeat('https://example.org/qr/7K4M2 ', 20), 'L', 4];
     }
 
     /**

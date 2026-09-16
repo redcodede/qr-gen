@@ -9,27 +9,27 @@ PNG**. Dazu die Statamic-Anbindung: ein Tag für die Seite, eine signierte
 Bild-Route, eine Einstellungsseite im Control Panel und ein Fieldset für
 Blueprints. Was hier unter „geplant" steht, existiert nicht.
 
-Geprüft am 15.09.2026 auf PHP 8.4: **429 Tests, 26254 Assertions, grün.**
+Geprüft am 16.09.2026 auf PHP 8.4: **429 Tests, 26288 Assertions, grün.**
 
-**`1.0.0` heißt: der Funktionsumfang der Erstfreigabe steht und die öffentliche
+**`1.0` heißt: der Funktionsumfang der Erstfreigabe steht und die öffentliche
 API ist ab hier stabil.** Es heißt nicht, dass ein Andruck abgenommen wäre —
-der steht aus, siehe [Offene Punkte](#offene-punkte). Wer das Paket einsetzt,
-bekommt dieselben Dateien wie der Andruck sie bekommen wird; ob sie auf dem
-echten Material gelesen werden, entscheidet der Andruck und nicht dieses
-Repository.
+siehe [Was dieses Paket nicht entscheidet](#was-dieses-paket-nicht-entscheidet).
+Wer das Paket einsetzt, bekommt dieselben Dateien, die auch in den Andruck
+gehen; ob sie auf dem echten Material gelesen werden, entscheidet der Andruck
+und nicht dieses Repository.
 
 ---
 
 ## Warum es das gibt
 
-Ab dem **12.02.2027** greifen für die GVÖ Kennzeichnungspflichten aus
-**VerpackDG** und **PPWR** (Verordnung (EU) 2025/40). Hersteller brauchen einen
-gedruckten QR-Code, der auf eine Rücknahme-Seite der GVÖ zeigt.
+Ab dem **12.02.2027** greifen Kennzeichnungspflichten aus **VerpackDG** und
+**PPWR** (Verordnung (EU) 2025/40). Wer Verpackungen in Verkehr bringt, braucht
+einen gedruckten QR-Code, der auf eine Rücknahmeseite zeigt.
 
-Zugehörige Aufgabe:
-[`#10249150900` QR-Code-Generator programmieren](https://3.basecamp.com/3143253/buckets/48323376/todos/10249150900),
-fällig **22.09.2026**. Fachlicher Rahmen, Aufwände und offene Entscheidungen
-liegen im Kunden-Vault `redvault-gvoe` unter `02 Projekte/`.
+Daraus kommt der Zuschnitt dieses Pakets: **der Code geht in den Druck.** Er
+wird einmal gedruckt und danach jahrelang gescannt, auf kleinen Etiketten, auf
+gewölbten Gebinden, im Zweifel bei schlechtem Licht. Ein Generator, der nur am
+Bildschirm gut aussieht, reicht dafür nicht.
 
 **Ein gedruckter QR-Code muss dauerhaft nur eines leisten: seine URL muss
 gültig bleiben.** Was hinter der URL steht, darf sich ändern. Daraus folgt der
@@ -128,7 +128,7 @@ Was daraus für die beiden echten Nutzlasten folgt:
 
 | Nutzlast | Stufe | Symbol | freigeräumt | Reserve |
 |---|---|---|---|---|
-| `gvoe.de/return/7K4M2` (28 B) | H | Version 4, 33 × 33 | 11,1 % | **26 %** |
+| `example.org/qr/7K4M2` (28 B) | H | Version 4, 33 × 33 | 11,1 % | **26 %** |
 | `www.redcode.de/` (23 B) | H | Version 3, 29 × 29 | 14,4 % | **4 %** |
 
 Der zweite Fall ist knapp — die kürzere URL ergibt ein kleineres Symbol, in dem
@@ -226,7 +226,7 @@ eine Datei von einem Kilobyte statt von einem Megabyte.
 **Mit Bildmarke: 8 Bit, weiterhin Palette.** Die Marke bringt eigene Farben und
 gebogene Kanten mit, die bei dieser Größe Kantenglättung brauchen; beides passt
 nicht in ein Bit. Palette bleibt es trotzdem, weil flache Zeichnungen wenige
-Farben ergeben — die GVÖ-Marke landet bei 34 von 256 möglichen. Ein Byte je
+Farben ergeben — die Marke im Test landet bei 34 von 256 möglichen. Ein Byte je
 Pixel ist ein Drittel von RGB, und die Module kosten weiter zwei
 Paletteneinträge ohne jede Glättung in ihrer Nähe.
 
@@ -410,7 +410,7 @@ die Tests in `tests/Qr/Encoder/` merken den Wechsel nicht.
 |---|---|---|
 | `phpunit/phpunit` | `^9.6` | Testlauf |
 | `orchestra/testbench` | `^6.18` | Fährt eine Laravel-Anwendung für die Tests der Hülle hoch. Statamic 3.4 bringt keine eigene Testhilfe mit, `src/Testing` gibt es dort noch nicht |
-| `laravel/framework` | `^8.83` | **Nicht zum Benutzen, zum Festnageln.** Statamic 3.4 erlaubt Laravel 8 oder 9; die GVÖ-Seite fährt 8. Ohne diesen Eintrag löst Composer hier 9 auf, und eine API, die es nur in 9 gibt, fiele erst auf dem Server auf |
+| `laravel/framework` | `^8.83` | **Nicht zum Benutzen, zum Festnageln.** Statamic 3.4 erlaubt Laravel 8 oder 9; die erste Zielinstallation fährt 8. Ohne diesen Eintrag löst Composer hier 9 auf, und eine API, die es nur in 9 gibt, fiele erst auf dem Server auf |
 
 Die Auflösung auf Laravel 8 zieht `league/flysystem` auf 1.1 und `league/glide`
 auf 1.7 herunter. Das ist kein Zufall und kein Problem, sondern genau die
@@ -439,7 +439,7 @@ Was das eigene Paket meldet, zeigt `composer test:deprecations`.
 Ein SVG ist Zeichenkettenbau. In der PHP-CLI der WSL fehlen `gd`, `imagick`,
 `dom`, `simplexml` und `mbstring` — für den Renderer ist das gleichgültig.
 
-Zur Ehrlichkeit gehört: **auf dem Zielserver der GVÖ ist `gd` vorhanden**
+Zur Ehrlichkeit gehört: **auf der ersten Zielinstallation ist `gd` vorhanden**
 (2.3.3, geprüft am 14.09.2026), `imagick` nicht. Dort wäre die Freiheit von
 Bildextensionen also nicht nötig gewesen. Sie bleibt trotzdem richtig, aber als
 Versicherung für einen Serverumzug und für die spätere Statamic-6-Fassung, nicht
@@ -471,8 +471,8 @@ Danach:
 | Composer | `ddev composer …` |
 
 Die DDEV-Konfiguration liegt im Repo: reiner PHP-Container ohne
-Datenbank, **PHP 8.4**, Docroot `demo/`. Passend zum DDEV der GVÖ-Seite, die
-ebenfalls auf 8.4 steht.
+Datenbank, **PHP 8.4**, Docroot `demo/`. Passend zur ersten
+Zielinstallation, die ebenfalls auf 8.4 steht.
 
 **Warum nicht die PHP-CLI der WSL:** dort fehlen `dom`, `mbstring` und `xml`,
 die PHPUnit selbst braucht. Für die Demo-Seite allein genügt sie
@@ -523,7 +523,7 @@ $options = SvgOptions::default()
     ->withModuleSize(8)          // px je Modul, nur width/height
     ->withQuietZone(4)           // Module Rand, 4 verlangt die Norm
     ->withColors('#000', 'none') // 'none' = transparent
-    ->withTitle('Rücknahme GVÖ') // barrierefreier Name, wird escaped
+    ->withTitle('Rücknahme')     // barrierefreier Name, wird escaped
     ->withXmlDeclaration();      // für eine .svg-Datei; für Inline weglassen
 
 $svg = (new SvgRenderer($options))->render($matrix);
@@ -629,7 +629,7 @@ das Rätsel ab:
 use Redcodede\QrGen\Qr\Logo\LogoFit;
 
 $fit = new LogoFit(new BaconQrEncoder());
-$result = $fit->lowestLevelFor('https://gvoe.de/return/7K4M2', LogoBox::square(11, 1));
+$result = $fit->lowestLevelFor('https://example.org/qr/7K4M2', LogoBox::square(11, 1));
 
 $result->level();        // ErrorCorrection, hier H
 $result->matrix();       // das Symbol, schon kodiert
@@ -706,7 +706,7 @@ klärt, nicht ein Standardwert.
 
 #### Wie groß der Kasten sein darf
 
-Für `https://gvoe.de/return/7K4M2` (28 Bytes), Funktionsmuster exakt geprüft:
+Für `https://example.org/qr/7K4M2` (28 Bytes), Funktionsmuster exakt geprüft:
 
 | Kasten | bei Q (29 × 29) | bei H (33 × 33) |
 |---|---|---|
@@ -846,7 +846,7 @@ Der Tag baut beide Varianten, zeigt sie als Vorschau und verlinkt die
 Downloads:
 
 ```antlers
-{{ qr_gen url="https://gvoe.de/return/ADHKT" }}
+{{ qr_gen url="https://example.org/qr/7K4M2" }}
 ```
 
 | Parameter | |
@@ -986,7 +986,8 @@ globale Wert gilt. Die Seite reicht die Werte an den Tag weiter:
 ```
 
 Das Fieldset ist ein Angebot, keine Vorschrift. Wer die Werte anders herleitet
-— die GVÖ-Seite setzt die Ziel-URL aus einem Herstellercode zusammen —, gibt
+— die erste Installation setzt die Ziel-URL aus einem Herstellercode
+zusammen —, gibt
 sie einfach direkt als Tag-Parameter mit.
 
 ### Beim Suchen
@@ -1183,11 +1184,12 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.8.0` | Bildmarke darf ein PNG sein: eigener Dekoder, Skalierer, Größenempfehlung |
 | `0.9.0` | Gerüst der Statamic-Hülle: ServiceProvider, Konfiguration, Testharness |
 | `0.10.0` | Konfigurationsmodell mit zwei Ebenen, Demo-Seite nach Bereichen getrennt |
-| `0.11.0` | Frontend-Komponente: Tag, Bild-Route, Logging, in der GVÖ-Seite lauffähig |
+| `0.11.0` | Frontend-Komponente: Tag, Bild-Route, Logging, in einer Seite lauffähig |
 | `0.12.0` | Einstellungen im Control Panel, Fieldset, Texte in der Hülle |
 | `0.13.0` | Seitentexte je Sprachfassung, Aufbau und Knöpfe der Ausgabe |
 | `0.13.1` | Knöpfe nach Zusammengehörigkeit, Beschriftung eine Stufe tiefer |
 | `1.0.0` | **Erstfreigabe.** Funktionsumfang steht, öffentliche API ab hier stabil |
+| `1.0.1` | Veröffentlicht: Projektbezug raus, Installation über Packagist |
 | `1.1.0` | geplant: Code- und Token-Erzeugung |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):
@@ -1198,20 +1200,14 @@ bekommt einen Tag `vX.Y.Z` und ein GitHub-Release, die Änderungen stehen in
 
 ## Einbauen
 
-Das Paket liegt nicht auf Packagist. Im Zielprojekt braucht `composer.json`
-einen `repositories`-Eintrag auf dieses Repo:
-
-```json
-{
-    "repositories": [
-        { "type": "vcs", "url": "git@github.com:redcodede/qr-gen.git" }
-    ]
-}
-```
-
 ```bash
 composer require redcodede/qr-gen
 ```
+
+Mehr nicht. Das Paket liegt auf Packagist, es braucht keinen
+`repositories`-Eintrag und keine Zugangsdaten. Statamic findet die Erweiterung
+danach von selbst; ein `php please addons:discover` ist nur nötig, wenn ein
+Deploy den Autoloader zwischendurch eingefroren hat.
 
 **`composer audit` wird danach 35 Hinweise mehr melden als vorher, und keiner
 davon kommt aus diesem Paket.** Sie stammen aus `statamic/cms ^3.4` und dessen
@@ -1221,11 +1217,10 @@ schließen, sondern nur durch einen Versionssprung. Wer sie dieser Erweiterung
 zuschreibt, sucht an der falschen Stelle: ihre eigenen Laufzeit-Abhängigkeiten
 sind `bacon/bacon-qr-code` und `statamic/cms`, sonst nichts.
 
-Das Paket ist privat. Wer es installiert, braucht Lesezugriff auf das Repo:
-per SSH-Schlüssel oder per Token in der `auth.json` des Zielprojekts.
+### Am Paket selbst arbeiten
 
-Für die lokale Entwicklung stattdessen ein Path-Repository auf das Verzeichnis
-mit diesem Repo:
+Wer gleichzeitig an diesem Paket und an der einbindenden Seite arbeitet, legt
+ein Path-Repository auf das Verzeichnis mit diesem Repo:
 
 ```json
 {
@@ -1235,14 +1230,14 @@ mit diesem Repo:
 }
 ```
 
-Im GVÖ-Projekt steht das seit dem 15.09.2026, zusammen mit einem
-DDEV-Override, der `../qr-gen` nach `/var/www/qr-gen` in den Container hängt:
-ein Path-Repository zeigt auf einen Pfad, den der Container sonst nicht hat,
-und Composer legt dafür einen Symlink an, der ins Leere zeigt.
+**Läuft die Seite in einem Container, muss das Verzeichnis dort auch
+existieren.** Ein Path-Repository zeigt auf einen Pfad neben dem Projekt; im
+Container gibt es den nicht, und Composer legt einen Symlink an, der ins Leere
+zeigt. Unter DDEV genügt ein `docker-compose.*.yaml` im Ordner `.ddev`, das
+`../../qr-gen` hineinhängt.
 
-**Vor einem Deploy muss aus dem Path- ein `vcs`-Repository werden.** Ein
-Path-Repository zeigt auf ein Verzeichnis neben dem Projekt, das es auf keinem
-anderen Rechner und auf keinem Server gibt; `composer install` scheitert dort.
+**Vor einem Deploy muss das wieder weg.** Ein Path-Repository funktioniert auf
+keinem anderen Rechner und auf keinem Server.
 
 `extra.laravel.providers` zeigt auf `Redcodede\QrGen\Statamic\ServiceProvider`,
 und die `autoload.psr-4` führt neben `Redcodede\QrGen\` einen zweiten,
@@ -1252,55 +1247,44 @@ Verzeichnis der Erweiterung aus `autoload.psr-4[Namensraum des Providers]` ab.
 Ohne den Eintrag gibt es diesen Schlüssel nicht, und die Erweiterung fände ihre
 eigene Konfiguration, ihre Views und ihre Fieldsets nicht.
 
-## Offene Punkte
+## Was dieses Paket nicht entscheidet
 
-Diese Fragen sind nicht offen, weil sie keiner gestellt hat, sondern weil sie
-außerhalb dieses Repos entschieden werden. Sie stehen hier, damit niemand sie
-ratend beantwortet.
+Drei Dinge liegen außerhalb und lassen sich hier nicht beantworten. Sie stehen
+trotzdem hier, damit niemand sie ratend beantwortet.
 
-1. **Welche PHP-Version bedient die Produktion der GVÖ-Seite?** Lokal steht
-   DDEV auf 8.4, die `composer.json` der Seite erlaubt noch 7.4. Dieses Paket
-   verlangt `^8.0`. Ab 8.1 zieht Composer Bacon 3.x und die
-   PHP-8.4-Deprecations verschwinden
-2. **Druckgröße und Material.** Ohne das kann der Andruck nicht anlaufen, und
-   ohne Andruck wird ein Logo im Code nicht zugesagt. Das ist jetzt der einzige
-   Punkt, der die Logo-Variante noch aufhält — technisch läuft sie
-3. **Welche Logo-Zeichnung?** Die GVÖ-Seite trägt zwei verschiedene: ein SVG
-   mit 1,20 : 1 in zwei Farben und ein PNG mit 1,65 : 1, einfarbig, mit der
-   Wortmarke. Bei 20 mm Codebreite stehen die Buchstaben rund 2,3 mm hoch und
-   die Umlautpunkte messen etwa 0,36 mm, also weniger als ein Codemodul.
-   Druckbar, aber eine Gestaltungsfrage — eine Fassung für kleine Größen wäre
-   besser
-4. **Sprachlogik der Auflösungs-Route.** Weiterleitung auf `/en/…` oder eine
-   URL für beide Sprachen? Betrifft Caching und Suchmaschinen. Heute gibt es
-   `/qr/{code}` und `/return/{code}` nur deutsch; `/en/qr/{code}` ist ein 404
-5. **Mit oder ohne `www` auf der Verpackung?** Die gedruckte Adresse entsteht
-   aus `app.url` der Seite. Welche der beiden Schreibweisen dort steht, ist
-   nicht entschieden, und auf Papier lässt sie sich nicht mehr ändern
+**Ob der gedruckte Code gelesen wird, entscheidet ein Andruck.** In
+Originalgröße, auf dem echten Material. Die Werte in `Qr\Preset` sind auf
+Druck ausgelegt und begründet, aber eine Begründung ist kein Andruck. Solange
+keiner vorliegt, ist die Variante mit Bildmarke technisch fertig und nicht
+freigegeben — das ist ein Unterschied.
 
-Erledigt: **„Ist Hersteller die Collection `partner`?" ist beantwortet.** Es ist
-beides: die Taxonomie `hersteller` trägt Name und Code und verweist auf den
-Eintrag in `partner`. Ein Partner kann mehrere Codes haben, wenn er mehrere
-Standorte betreibt, und der Code überlebt jede Änderung am Eintrag, weil er
-der Dateiname des Terms ist.
+**Welche Zeichnung als Bildmarke taugt, ist eine Gestaltungsfrage.** Eine Marke
+mit Wortzusatz sieht am Bildschirm gut aus und verschwindet im Druck: bei 20 mm
+Codebreite steht ein Logokasten von 9 Modulen rund 5 mm hoch, und was darin an
+Schrift steckt, misst Bruchteile eines Millimeters. Das Paket nimmt jede
+Zeichnung an, die der Sanitizer versteht, und urteilt nicht über sie. Eine
+eigene Fassung für kleine Größen ist fast immer die bessere Zulieferung.
 
-Erledigt: **„Logo als RGB-SVG fehlt" war ein Missverständnis.** SVG kennt kein
-CMYK; `gvoe-logo-cmyk.svg` trägt bereits Hex-Farben (`#009879`, `#9D9D9C`) und
-ist bis auf den `<style>`-Block ideale Eingabe — und den löst der Sanitizer auf.
+**Welche Adresse auf der Verpackung steht, entscheidet die einbindende Seite.**
+Mit oder ohne `www`, mit oder ohne Sprachpräfix: verarbeitet wird, was
+eingegeben wird, ohne Ergänzen und ohne Umschreiben. Auf Papier lässt sich das
+nicht mehr ändern, deshalb gehört die Entscheidung vor den Andruck und nicht
+danach.
 
-Aus dem Briefing bereits festgelegt: fünfstelliger Code aus
-`ABCDEFGHJKMNPQRSTUVWXYZ23456789` (ohne `0 O 1 I L`), Ziel-URL
-`https://gvoe.de/return/{code}`, Download unter `/qr/{code}` ohne
-zusätzlichen Token, Erzeugung on-the-fly ohne Dateibestand.
+### Eine Auflage, die aus der Bauweise folgt
 
-Daraus folgt eine dauerhafte Auflage: **`/qr/{code}` ist erratbar**, weil der
-Code auf der Verpackung steht. Dort darf nie etwas Nichtöffentliches
-erscheinen — kein Herstellername, keine Ansprechpartner, keine internen
-Notizen. Sobald das gewünscht wird, kommt der Token zurück.
+Wird der Code ohne zusätzliches Token unter einer erratbaren Adresse angeboten
+— und das ist der übliche Fall, weil die Adresse auf der Verpackung steht —,
+**darf auf dieser Seite nie etwas Nichtöffentliches erscheinen.** Kein
+Kundenname, keine Ansprechpartner, keine internen Notizen. Wer das braucht,
+braucht ein Token davor, und dann ist die Adresse nicht mehr erratbar.
+
+Der Tag gibt von sich aus nur aus, was er bekommt: eine Adresse und eine
+Bildmarke. Was die Seite drumherum stellt, ist ihre Verantwortung.
 
 ## Wiederverwendbarkeit
 
-Nichts GVÖ-Spezifisches gehört in dieses Paket. Collection- und Feld-Handles,
+Nichts Projektspezifisches gehört in dieses Paket. Collection- und Feld-Handles,
 URL-Präfixe, der Logo-Pfad (das Logo wird nicht mitgeliefert) und das Verhalten
 bei unbekanntem oder deaktiviertem Code kommen aus der Config. Übersetzungen
 als Language-Files, DE und EN.

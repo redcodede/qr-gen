@@ -18,7 +18,8 @@ use Statamic\Tags\Tags;
  * Der Tag kennt weder Hersteller noch Taxonomien. Er bekommt eine Ziel-URL und
  * optional eine Bildmarke und macht daraus, was die globalen Einstellungen
  * erlauben. Wer den Code aufloest, ist Sache der Seite, und das ist Absicht:
- * die Zuordnung Code zu Partner gehoert der GVOE-Seite, nicht diesem Paket.
+ * die Zuordnung Code zu Hersteller gehoert der einbindenden Seite, nicht
+ * diesem Paket.
  *
  * Die Vorschau steht als SVG direkt im Markup und kostet keine zweite Anfrage.
  * Ueber die Bild-Route laufen nur Download und "direkt oeffnen".

@@ -183,7 +183,7 @@ final class SvgRendererLogoTest extends TestCase
     public function testTheOutputStaysWellFormedXml(string $level, int $boxModules): void
     {
         $matrix = (new BaconQrEncoder())->encode(
-            'https://gvoe.de/return/7K4M2',
+            'https://example.org/qr/7K4M2',
             ErrorCorrection::fromString($level)
         );
 
@@ -217,7 +217,7 @@ final class SvgRendererLogoTest extends TestCase
      */
     public function testTheBriefingCaseClearsElevenModulesOfAThirtyThreeModuleSymbol(): void
     {
-        $matrix = (new BaconQrEncoder())->encode('https://gvoe.de/return/7K4M2', ErrorCorrection::high());
+        $matrix = (new BaconQrEncoder())->encode('https://example.org/qr/7K4M2', ErrorCorrection::high());
         $placement = LogoBox::square(11, 1)->placeIn($matrix);
 
         self::assertSame(33, $matrix->size());

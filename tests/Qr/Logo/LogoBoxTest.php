@@ -80,8 +80,8 @@ final class LogoBoxTest extends TestCase
     {
         yield 'square' => [1.0, 11, 11, 11];
         yield 'the demo svg, 1:1' => [1.0, 9, 9, 9];
-        yield 'the gvoe svg, 1.20:1' => [383 / 319, 13, 13, 11];
-        yield 'the gvoe png, 1.65:1' => [1556 / 942, 15, 15, 9];
+        yield 'a two-colour mark, 1.20:1' => [383 / 319, 13, 13, 11];
+        yield 'a wordmark, 1.65:1' => [1556 / 942, 15, 15, 9];
         yield 'tall' => [0.5, 11, 5, 11];
     }
 
@@ -229,7 +229,7 @@ final class LogoBoxTest extends TestCase
 
     public function testAPlacementWithoutCompromiseReportsNone(): void
     {
-        $matrix = (new BaconQrEncoder())->encode('https://gvoe.de/return/7K4M2', ErrorCorrection::high());
+        $matrix = (new BaconQrEncoder())->encode('https://example.org/qr/7K4M2', ErrorCorrection::high());
         $placement = LogoBox::square(11)->placeIn($matrix);
 
         self::assertFalse($placement->compromisesAlignment());

@@ -29,7 +29,7 @@ use Redcodede\QrGen\Qr\Render\PngRenderer;
  */
 final class PngRendererLogoTest extends TestCase
 {
-    private const URL = 'https://gvoe.de/return/7K4M2';
+    private const URL = 'https://example.org/qr/7K4M2';
 
     private function matrix(): ModuleMatrix
     {

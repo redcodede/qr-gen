@@ -22,7 +22,7 @@ final class PngRendererTest extends TestCase
 {
     private const SIGNATURE = "\x89PNG\x0d\x0a\x1a\x0a";
 
-    private function matrix(string $url = 'https://gvoe.de/return/7K4M2'): ModuleMatrix
+    private function matrix(string $url = 'https://example.org/qr/7K4M2'): ModuleMatrix
     {
         return (new BaconQrEncoder())->encode($url, ErrorCorrection::high());
     }
@@ -175,7 +175,7 @@ final class PngRendererTest extends TestCase
     public static function realPayloads(): iterable
     {
         // 33 modules + 2x2 quiet zone = 37, at 32 px each.
-        yield 'the briefing url' => ['https://gvoe.de/return/7K4M2', 1184];
+        yield 'the briefing url' => ['https://example.org/qr/7K4M2', 1184];
         // 29 + 4 = 33, at 36 px each.
         yield 'the demo url' => ['https://www.redcode.de/', 1188];
     }
@@ -237,9 +237,9 @@ final class PngRendererTest extends TestCase
      */
     public static function roundTripCases(): iterable
     {
-        yield 'preset quiet zone' => ['https://gvoe.de/return/7K4M2', 2];
-        yield 'spec quiet zone' => ['https://gvoe.de/return/7K4M2', 4];
-        yield 'no quiet zone' => ['https://gvoe.de/return/7K4M2', 0];
+        yield 'preset quiet zone' => ['https://example.org/qr/7K4M2', 2];
+        yield 'spec quiet zone' => ['https://example.org/qr/7K4M2', 4];
+        yield 'no quiet zone' => ['https://example.org/qr/7K4M2', 0];
         yield 'shorter payload' => ['https://www.redcode.de/', 2];
     }
 
