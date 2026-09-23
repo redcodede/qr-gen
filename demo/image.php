@@ -10,6 +10,8 @@
  *   image.php?url=…                              SVG, plain, inline
  *   image.php?url=…&format=png                   PNG, print-ready
  *   image.php?url=…&variant=logo                 SVG with artwork
+ *   image.php?url=…&variant=label                the label, dark symbol
+ *   image.php?url=…&variant=label-color          the label, symbol in label[color]
  *   image.php?url=…&format=png&download=1        as a file
  *
  * Both formats carry artwork. Where the rasteriser cannot draw a particular
@@ -33,10 +35,27 @@ if ($input['errors'] !== []) {
     exit;
 }
 
-$withLogo = isset($_GET['variant']) && $_GET['variant'] === 'logo';
-$format = isset($_GET['format']) && $_GET['format'] === 'png' && pngAvailable($input['logo'], $withLogo) ? 'png' : 'svg';
+$variant = isset($_GET['variant']) && is_string($_GET['variant']) ? $_GET['variant'] : '';
+$withLogo = $variant === 'logo';
+$wantsPng = isset($_GET['format']) && $_GET['format'] === 'png';
 
-[$image, $failure] = tryRender($input['url'], $input['logo'], true, $withLogo, $format);
+if (isLabelVariant($variant)) {
+    // Das Etikett trägt die Bildmarke immer, also entscheidet dieselbe Prüfung
+    // wie bei der Variante mit Bildmarke, ob es davon ein PNG geben kann.
+    $label = labelInput($_GET);
+    $codeColor = labelCodeColor($variant, $label['color']);
+    $format = $wantsPng && pngAvailable($input['logo'], true) ? 'png' : 'svg';
+
+    [$image, $failure] = tryLabel($input['url'], $input['logo'], $label['text'], $codeColor, true, $format);
+    $renderer = labelRendererFor($format, $codeColor, true);
+    $suffix = $variant === LABEL_VARIANT_COLOR ? '-etikett-farbig' : '-etikett';
+} else {
+    $format = $wantsPng && pngAvailable($input['logo'], $withLogo) ? 'png' : 'svg';
+
+    [$image, $failure] = tryRender($input['url'], $input['logo'], true, $withLogo, $format);
+    $renderer = rendererFor($format, $input['logo'], true, $withLogo);
+    $suffix = $withLogo ? '-logo' : '';
+}
 
 if ($image === null) {
     http_response_code(422);
@@ -45,8 +64,7 @@ if ($image === null) {
     exit;
 }
 
-$renderer = rendererFor($format, $input['logo'], true, $withLogo);
-$filename = downloadFilename($input['url'], $withLogo, $renderer->fileExtension());
+$filename = downloadFilename($input['url'], $suffix, $renderer->fileExtension());
 
 $disposition = empty($_GET['download'])
     ? 'inline'
@@ -67,7 +85,7 @@ echo $image;
  * Content-Disposition header where a stray newline or quote would let a caller
  * write headers of their own.
  */
-function downloadFilename(string $url, bool $withLogo, string $extension): string
+function downloadFilename(string $url, string $suffix, string $extension): string
 {
     $host = (string) parse_url($url, PHP_URL_HOST);
     $slug = strtolower(preg_replace('/[^A-Za-z0-9]+/', '-', $host) ?? '');
@@ -77,5 +95,5 @@ function downloadFilename(string $url, bool $withLogo, string $extension): strin
         $slug = 'code';
     }
 
-    return 'qr-' . substr($slug, 0, 60) . ($withLogo ? '-logo' : '') . '.' . $extension;
+    return 'qr-' . substr($slug, 0, 60) . $suffix . '.' . $extension;
 }

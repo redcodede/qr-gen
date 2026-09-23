@@ -18,9 +18,10 @@ declare(strict_types=1);
 namespace Redcodede\QrGen\Demo;
 
 use Redcodede\QrGen\Qr\Exception\QrGenException;
+use Redcodede\QrGen\Qr\Layout\LabelLayout;
 use Redcodede\QrGen\Qr\Logo\PngLogo;
 use Redcodede\QrGen\Qr\Preset;
-use Redcodede\QrGen\Qr\Settings\Variant;
+use Redcodede\QrGen\Qr\Render\LabelOptions;
 
 require __DIR__ . '/bootstrap.php';
 
@@ -31,11 +32,10 @@ header('Cache-Control: no-store, must-revalidate');
 $texts = texts($_GET);
 $input = readInput($_GET, $texts);
 
-// Die zwei Konfigurationsebenen und ihr Ergebnis. Alles Weitere auf dieser
-// Seite rechnet mit den aufgelösten Werten in $input['url'] und $input['logo']
-// und muss von den Ebenen nichts wissen.
+// Die globalen Einstellungen und das, was daraus mit der Adresse dieser Stelle
+// tatsächlich gilt. Alles Weitere auf dieser Seite rechnet mit den aufgelösten
+// Werten in $input['url'] und $input['logo'].
 $global = $input['global'];
-$page = $input['page'];
 $effective = $input['effective'];
 
 $matrix = null;
@@ -44,9 +44,37 @@ $plainFailure = null;
 $withLogo = null;
 $logoFailure = null;
 
+// Das Etikett. Zwei Ausgaben, die sich in genau einem Wert unterscheiden, der
+// Codefarbe. Text und Farbe kommen aus der Adresszeile, weil diese Seite nichts
+// speichert; im Plugin werden daraus zwei Felder im Blueprint.
+$layout = LabelLayout::standard();
+['text' => $labelText, 'color' => $labelColor] = labelInput($_GET);
+
+// Das Etikett trägt die Bildmarke immer, also gilt für sein PNG dieselbe
+// Prüfung wie für die Variante mit Bildmarke.
+$labelPngRejection = pngRejection($input['logo'], true);
+
+$label = null;
+$labelFailure = null;
+$labelColored = null;
+$labelColoredFailure = null;
+
 if ($input['errors'] === []) {
     [$plain, $plainFailure] = tryRender($input['url'], $input['logo'], false, false);
     [$withLogo, $logoFailure] = tryRender($input['url'], $input['logo'], false, true);
+
+    [$label, $labelFailure] = tryLabel(
+        $input['url'],
+        $input['logo'],
+        $labelText,
+        LabelOptions::DEFAULT_INK
+    );
+    [$labelColored, $labelColoredFailure] = tryLabel(
+        $input['url'],
+        $input['logo'],
+        $labelText,
+        $labelColor
+    );
 
     if ($plain !== null) {
         $matrix = encode($input['url']);
@@ -309,6 +337,11 @@ function e(?string $value): string
        file is. */
     .preview img { max-width: 100%; height: auto; image-rendering: pixelated; }
 
+    /* Das Etikett ist zweieinhalbmal so breit wie hoch. Auf dem Karo sieht man
+       sonst nicht, dass es einen weissen Grund und einen Rahmen hat. */
+    .preview-label { background: #fff; padding: 12px; }
+    .preview-label svg { width: 100%; max-width: 420px; }
+
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th, td { text-align: left; padding: 6px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
     th { font-weight: 500; color: var(--muted); width: 55%; }
@@ -373,7 +406,7 @@ function e(?string $value): string
         into a field once survives every refresh — the URL and the defaults say
         one thing and the form shows another.
     */ ?>
-    <form method="get" action="index.php" autocomplete="off">
+    <form method="get" action="index.php" autocomplete="off" id="settings">
         <?php /*
             Ein nicht angehaktes Kästchen schickt gar nichts. Ohne diese Marke
             liesse sich "abgewählt" nicht von "zum ersten Mal geöffnet"
@@ -446,36 +479,10 @@ function e(?string $value): string
                 <div class="fields">
                     <div>
                         <label for="p-url"><?= e($texts->get('form.pageUrl.label')) ?></label>
-                        <input type="text" id="p-url" name="p[url]" value="<?= e($page->url()) ?>"
+                        <input type="text" id="p-url" name="p[url]" value="<?= e($input['pageUrl']) ?>"
                                placeholder="<?= e($global->defaultUrl() ?? $texts->get('form.inherit.empty')) ?>" spellcheck="false">
                     </div>
 
-                    <div>
-                        <label for="p-logo"><?= e($texts->get('form.pageLogo.label')) ?></label>
-                        <select id="p-logo" name="p[logo]">
-                            <option value=""><?= e($texts->get('form.inherit', [
-                                'value' => $global->defaultLogo() ?? $texts->get('form.logo.none'),
-                            ])) ?></option>
-                            <?php foreach ($logos as $file): ?>
-                                <option value="<?= e($file) ?>"<?= $file === $page->logo() ? ' selected' : '' ?>><?= e($file) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label><?= e($texts->get('form.pageVariants.label')) ?></label>
-                        <div class="switches">
-                            <?php foreach ([Variant::PLAIN => 'panel.plain', Variant::LOGO => 'panel.logo'] as $variant => $key): ?>
-                                <?php $offered = $variant === Variant::PLAIN ? $global->offersPlain() : $global->offersLogo(); ?>
-                                <label class="switch<?= $offered ? '' : ' disabled' ?>"
-                                       title="<?= $offered ? '' : e($texts->get('form.pageVariants.blocked')) ?>">
-                                    <input type="checkbox" name="p[variants][]" value="<?= e($variant) ?>"
-                                           <?= $page->wants($variant) ? ' checked' : '' ?><?= $offered ? '' : ' disabled' ?>>
-                                    <?= e($texts->get($key)) ?>
-                                </label>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
                 </div>
             </div>
         </section>
@@ -605,6 +612,81 @@ function e(?string $value): string
         <?php endif; ?>
     </div>
 
+        </div>
+    </section>
+
+    <section class="group group-label">
+        <header>
+            <h2><?= e($texts->get('group.label.heading')) ?></h2>
+            <p><?= e($texts->get('group.label.note', [
+                'width' => rtrim(rtrim(number_format($layout->width(), 2, ',', ''), '0'), ','),
+                'height' => rtrim(rtrim(number_format($layout->height(), 2, ',', ''), '0'), ','),
+                'code' => rtrim(rtrim(number_format($layout->codeSize(), 2, ',', ''), '0'), ','),
+            ])) ?></p>
+        </header>
+        <div class="group-body">
+            <div class="fields">
+                <div>
+                    <label for="l-text"><?= e($texts->get('form.labelText.label')) ?></label>
+                    <input type="text" id="l-text" name="label[text]" form="settings"
+                           value="<?= e($labelText) ?>" maxlength="<?= LABEL_TEXT_LIMIT ?>">
+                    <p class="hint"><?= e($texts->get('form.labelText.hint', ['max' => LABEL_TEXT_LIMIT])) ?></p>
+                </div>
+
+                <div>
+                    <label for="l-color"><?= e($texts->get('form.labelColor.label')) ?></label>
+                    <input type="color" id="l-color" name="label[color]" form="settings"
+                           value="<?= e($labelColor) ?>">
+                    <p class="hint"><?= e($texts->get('form.labelColor.hint')) ?></p>
+                </div>
+            </div>
+
+            <div class="cols">
+                <?php foreach ([
+                    [LABEL_VARIANT_DARK, 'panel.label', $label, $labelFailure],
+                    [LABEL_VARIANT_COLOR, 'panel.labelColor', $labelColored, $labelColoredFailure],
+                ] as [$variant, $key, $markup, $failure]): ?>
+                    <?php
+                    // Die Farbe fährt nur bei der farbigen Fassung mit. Beim
+                    // dunklen Etikett stünde sie in der Adresse, ohne etwas zu
+                    // tun, und jemand würde später daran drehen und sich
+                    // wundern.
+                    $labelQuery = ['variant' => $variant, 'label' => ['text' => $labelText]];
+
+                    if ($variant === LABEL_VARIANT_COLOR) {
+                        $labelQuery['label']['color'] = $labelColor;
+                    }
+                    ?>
+                    <div class="panel">
+                        <h2><?= e($texts->get($key)) ?></h2>
+                        <?php if ($markup !== null): ?>
+                            <div class="preview preview-label"><?= $markup ?></div>
+                            <div class="actions">
+                                <?php if ($global->offersSvg()): ?>
+                                    <a class="btn-link" href="<?= e(link_($query, $labelQuery + ['download' => '1'])) ?>"><?= e($texts->get('panel.download.svg')) ?></a>
+                                <?php endif; ?>
+                                <?php if ($global->offersPng() && $labelPngRejection === null): ?>
+                                    <a class="btn-link" href="<?= e(link_($query, $labelQuery + ['format' => 'png', 'download' => '1'])) ?>"><?= e($texts->get('panel.download.png')) ?></a>
+                                <?php endif; ?>
+                                <a class="btn-link btn-secondary" href="<?= e(link_($query, $labelQuery)) ?>" target="_blank" rel="noopener"><?= e($texts->get('panel.raw')) ?></a>
+                            </div>
+                            <?php if ($labelPngRejection !== null): ?>
+                                <p class="hint"><?= e($texts->get('panel.png.refused', ['reason' => $labelPngRejection])) ?></p>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <p class="failure"><?= e($failure ?? $texts->get('panel.nothing')) ?></p>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <?php if ($matrix !== null): ?>
+                <div class="note"><?= e($texts->get('label.facts', [
+                    'zone' => number_format($layout->quietZoneInModules($matrix->size()), 1, ',', ''),
+                    'moduleSize' => number_format($layout->moduleSizeFor($matrix->size()), 2, ',', ''),
+                    'moduleCount' => $matrix->size(),
+                ])) ?></div>
+            <?php endif; ?>
         </div>
     </section>
 

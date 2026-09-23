@@ -7,45 +7,38 @@ namespace Redcodede\QrGen\Tests\Qr\Settings;
 use PHPUnit\Framework\TestCase;
 use Redcodede\QrGen\Qr\Settings\EffectiveSettings;
 use Redcodede\QrGen\Qr\Settings\GlobalSettings;
-use Redcodede\QrGen\Qr\Settings\PageSettings;
-use Redcodede\QrGen\Qr\Settings\Variant;
 
 /**
- * Die Vorrangregel zwischen den beiden Konfigurationsebenen.
+ * Eine Ebene wird eingestellt, eine Angabe kommt je Stelle dazu.
  *
- * Global steht, was überhaupt angeboten wird und was gilt, wenn nichts anderes
- * dasteht. Pro Seite steht, was diese eine Seite ausmacht. Im Zweifel gewinnt
- * die Seite.
+ * Bis zum 23.09.2026 gab es zwei Ebenen mit einer Vorrangregel, und die Tests
+ * hier hielten sie Fall für Fall fest. Der Rückbau hat die Regel abgeschafft,
+ * nicht nur Felder entfernt: **es gibt nichts mehr, was eine Stelle
+ * überschreiben könnte, außer der Adresse im Code.**
  *
- * Das ist die Sorte Regel, die man für offensichtlich hält und dann doch
- * herumdreht, sobald sie an drei Stellen gleichzeitig gilt. Deshalb steht sie
- * hier Fall für Fall.
+ * Was bleibt, ist die Auflösung der Adresse und die Frage, wann es die Variante
+ * mit Bildmarke überhaupt gibt. Beides ist immer noch die Sorte Regel, die man
+ * für offensichtlich hält und dann doch herumdreht.
  */
 final class SettingsTest extends TestCase
 {
-    private function effective(GlobalSettings $global, PageSettings $page): EffectiveSettings
-    {
-        return EffectiveSettings::from($global, $page);
-    }
+    // ------------------------------------------------------------ Adresse ---
 
-    // ------------------------------------------------------------- Werte ---
-
-    public function testDieSeiteSchlaegtDenGlobalenWert(): void
+    public function testDieAdresseDerStelleSchlaegtDieDefaultUrl(): void
     {
-        $effective = $this->effective(
+        $effective = EffectiveSettings::from(
             GlobalSettings::default()->withDefaultUrl('https://global.example/'),
-            PageSettings::empty()->withUrl('https://seite.example/')
+            'https://stelle.example/'
         );
 
-        self::assertSame('https://seite.example/', $effective->url());
+        self::assertSame('https://stelle.example/', $effective->url());
         self::assertSame(EffectiveSettings::FROM_PAGE, $effective->urlSource());
     }
 
-    public function testOhneSeitenwertGiltDerGlobale(): void
+    public function testOhneAdresseGiltDieDefaultUrl(): void
     {
-        $effective = $this->effective(
-            GlobalSettings::default()->withDefaultUrl('https://global.example/'),
-            PageSettings::empty()
+        $effective = EffectiveSettings::from(
+            GlobalSettings::default()->withDefaultUrl('https://global.example/')
         );
 
         self::assertSame('https://global.example/', $effective->url());
@@ -54,84 +47,80 @@ final class SettingsTest extends TestCase
 
     public function testOhneBeideGibtEsKeinenWertUndDasStehtDran(): void
     {
-        $effective = $this->effective(GlobalSettings::default(), PageSettings::empty());
+        $effective = EffectiveSettings::from(GlobalSettings::default());
 
         self::assertNull($effective->url());
         self::assertSame(EffectiveSettings::FROM_NOWHERE, $effective->urlSource());
     }
 
     /**
-     * Ein leeres Feld im Blueprint heisst „der globale Wert gilt", nicht „es
-     * soll keinen geben". Wer das verwechselt, baut eine Oberflaeche, in der
-     * sich ein einmal gesetzter globaler Wert nicht mehr abschalten laesst, und
-     * eine, in der ein leergeraeumtes Feld die Seite kaputtmacht.
+     * Ein leeres Feld im Blueprint heisst „die Default-URL gilt", nicht „es
+     * soll keine geben". Wer das verwechselt, baut eine Oberflaeche, in der ein
+     * leergeraeumtes Feld die Stelle kaputtmacht.
      */
     public function testEineLeereEingabeGiltAlsNichtGesetzt(): void
     {
-        $effective = $this->effective(
+        $effective = EffectiveSettings::from(
             GlobalSettings::default()->withDefaultUrl('https://global.example/'),
-            PageSettings::fromArray(['url' => '   '])
+            '   '
         );
 
         self::assertSame('https://global.example/', $effective->url());
         self::assertSame(EffectiveSettings::FROM_GLOBAL, $effective->urlSource());
     }
 
-    public function testDasselbeGiltFuerDieBildmarke(): void
-    {
-        $global = GlobalSettings::default()->withDefaultLogo('marke.svg');
+    // ---------------------------------------------------------- Bildmarke ---
 
-        self::assertSame('marke.svg', $this->effective($global, PageSettings::empty())->logo());
-        self::assertSame(
-            'anders.svg',
-            $this->effective($global, PageSettings::empty()->withLogo('anders.svg'))->logo()
+    /**
+     * Die Bildmarke kommt nur noch global. Eine je Hersteller war der erste
+     * Entwurf und ist am 16.09.2026 schon in der Seite entfallen; seit dem
+     * Rueckbau gibt es das Feld auch im Paket nicht mehr.
+     */
+    public function testDieBildmarkeKommtNurGlobal(): void
+    {
+        $effective = EffectiveSettings::from(
+            GlobalSettings::default()->withDefaultLogo('marke.svg'),
+            'https://stelle.example/'
         );
+
+        self::assertSame('marke.svg', $effective->logo());
+        self::assertSame(EffectiveSettings::FROM_GLOBAL, $effective->logoSource());
+    }
+
+    public function testOhneBildmarkeStehtDasAuchDran(): void
+    {
+        $effective = EffectiveSettings::from(GlobalSettings::default());
+
+        self::assertNull($effective->logo());
+        self::assertSame(EffectiveSettings::FROM_NOWHERE, $effective->logoSource());
     }
 
     // ---------------------------------------------------------- Varianten ---
 
-    public function testEineFrischeSeiteZeigtAllesAngebotene(): void
+    public function testAngebotenWirdWasGlobalAngebotenWird(): void
     {
-        $effective = $this->effective(
-            GlobalSettings::default()->withDefaultLogo('marke.svg'),
-            PageSettings::empty()
-        );
+        $effective = EffectiveSettings::from(GlobalSettings::default()->withDefaultLogo('marke.svg'));
 
         self::assertTrue($effective->showsPlain());
         self::assertTrue($effective->showsLogo());
+        self::assertTrue($effective->showsAnything());
     }
 
-    public function testGlobalAbgeschaltetSchlaegtDenWunschDerSeite(): void
+    public function testGlobalAbgeschaltetHeisstNirgendwoZuSehen(): void
     {
-        $effective = $this->effective(
+        $effective = EffectiveSettings::from(
             GlobalSettings::default()->withVariants(true, false)->withDefaultLogo('marke.svg'),
-            PageSettings::empty()->withVariants([Variant::PLAIN, Variant::LOGO])
+            'https://stelle.example/'
         );
 
         self::assertTrue($effective->showsPlain());
-        self::assertFalse($effective->showsLogo(), 'Global verbietet, die Seite kann nur waehlen.');
-    }
-
-    public function testDieSeiteKannEineAngeboteneVarianteWeglassen(): void
-    {
-        $effective = $this->effective(
-            GlobalSettings::default()->withDefaultLogo('marke.svg'),
-            PageSettings::empty()->withVariants([Variant::LOGO])
-        );
-
-        self::assertFalse($effective->showsPlain());
-        self::assertTrue($effective->showsLogo());
-    }
-
-    public function testEineSeiteOhneGewaehlteVarianteZeigtNichts(): void
-    {
-        $effective = $this->effective(
-            GlobalSettings::default(),
-            PageSettings::empty()->withVariants([])
-        );
-
-        self::assertFalse($effective->showsPlain());
         self::assertFalse($effective->showsLogo());
+    }
+
+    public function testBeideAbgeschaltetZeigtNichts(): void
+    {
+        $effective = EffectiveSettings::from(GlobalSettings::default()->withVariants(false, false));
+
         self::assertFalse($effective->showsAnything());
     }
 
@@ -142,31 +131,27 @@ final class SettingsTest extends TestCase
      */
     public function testOhneBildmarkeEntfaelltDieVarianteMitBildmarke(): void
     {
-        $effective = $this->effective(GlobalSettings::default(), PageSettings::empty());
+        $effective = EffectiveSettings::from(GlobalSettings::default());
 
         self::assertTrue($effective->showsPlain());
         self::assertFalse($effective->showsLogo());
         self::assertNull($effective->logo());
     }
 
-    // ----------------------------------------------------------- Formate ---
+    // ------------------------------------------------------------ Formate ---
 
-    /**
-     * Eine Seite entscheidet, was sie zeigt, nicht, in welchen Dateiformaten
-     * das Haus liefert.
-     */
-    public function testDieFormateSindNurGlobal(): void
+    public function testDieFormateSindGlobal(): void
     {
-        $effective = $this->effective(
+        $effective = EffectiveSettings::from(
             GlobalSettings::default()->withDownloads(true, false),
-            PageSettings::fromArray(['downloads' => ['png' => true]])
+            'https://stelle.example/'
         );
 
         self::assertTrue($effective->offersSvg());
         self::assertFalse($effective->offersPng());
     }
 
-    // ------------------------------------------------------- Serialisieren --
+    // ------------------------------------------------------ Serialisieren ---
 
     public function testDieGlobalenWerteUeberlebenDenRundlauf(): void
     {
@@ -198,13 +183,6 @@ final class SettingsTest extends TestCase
         self::assertTrue($global->offersPng());
     }
 
-    public function testUnbekannteVariantenWerdenVerworfen(): void
-    {
-        $page = PageSettings::fromArray(['variants' => ['plain', 'unsinn', 'logo']]);
-
-        self::assertSame([Variant::PLAIN, Variant::LOGO], $page->variants());
-    }
-
     public function testDieKonfigurationsdateiDesPaketsPasstAufDieKlasse(): void
     {
         $global = GlobalSettings::fromArray(require __DIR__ . '/../../../config/qr-gen.php');
@@ -217,7 +195,7 @@ final class SettingsTest extends TestCase
         self::assertNull($global->defaultUrl());
     }
 
-    // --------------------------------------------------------- Leerstellen --
+    // -------------------------------------------------------- Leerstellen ---
 
     public function testOhneAngeboteneVarianteMeldetDasGlobaleObjektEs(): void
     {
@@ -233,10 +211,25 @@ final class SettingsTest extends TestCase
         $global->withVariants(false, false);
 
         self::assertTrue($global->offersPlain(), 'Ein Wither darf das Original nicht anfassen.');
+    }
 
-        $page = PageSettings::empty();
-        $page->withUrl('https://beispiel.example/');
+    // ----------------------------------------------------------- Rueckbau ---
 
-        self::assertNull($page->url());
+    /**
+     * Der Rueckbau, festgehalten an der Stelle, an der er sich rueckgaengig
+     * machen liesse: das Fieldset, das ein Blueprint importiert.
+     *
+     * **Genau ein Feld.** Wer hier ein zweites einfuegt, fuehrt die zweite
+     * Konfigurationsebene wieder ein, und zwar leise: es funktionierte ja, und
+     * erst beim naechsten „warum wirkt die Einstellung hier nicht" faellt auf,
+     * dass es wieder zwei Orte gibt.
+     */
+    public function testDasFieldsetTraegtNurDieZielUrl(): void
+    {
+        $fieldset = (string) file_get_contents(__DIR__ . '/../../../resources/fieldsets/qr_code.yaml');
+
+        preg_match_all('/^\s*handle:\s*(\S+)/m', $fieldset, $treffer);
+
+        self::assertSame(['qr_url'], $treffer[1]);
     }
 }

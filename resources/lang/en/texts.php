@@ -25,23 +25,20 @@ return [
     'form.logo.none' => 'none in demo/logos',
 
     'group.global.heading' => 'Global settings',
-    'group.global.note' => 'Applies to the whole site. Later the Control Panel page. '
-        . 'This is what gets offered at all, and what applies when a page says nothing.',
-    'group.page.heading' => 'Page settings',
-    'group.page.note' => 'Applies to this one page. Later the Blueprint fields. '
-        . 'Leaving a field empty means the global value applies. In doubt the page wins.',
+    'group.global.note' => 'The only level there is to set. In the Control Panel under Tools, '
+        . 'QR codes. What stands here applies everywhere alike.',
+    'group.page.heading' => 'This one place',
+    'group.page.note' => 'The address in the code is the only thing that has to differ from '
+        . 'place to place. Later the Blueprint field. Leaving it empty means the default URL '
+        . 'applies.',
     'group.output.heading' => 'Output',
-    'group.output.note' => 'What the two levels produce together.',
+    'group.output.note' => 'What actually comes of it.',
 
     'form.variants.label' => 'These codes are offered',
     'form.downloads.label' => 'These formats are offered',
     'form.defaultUrl.label' => 'Default URL',
     'form.defaultLogo.label' => 'Default artwork',
-    'form.pageUrl.label' => 'Target URL of this page',
-    'form.pageLogo.label' => 'Artwork for this page',
-    'form.pageVariants.label' => 'This page shows',
-    'form.pageVariants.blocked' => 'Switched off globally, so it cannot be chosen here.',
-    'form.inherit' => 'global: :value',
+    'form.pageUrl.label' => 'Target URL of this place',
     'form.inherit.empty' => 'nothing set',
     'form.submit' => 'Generate',
     'form.reset' => 'Reset',
@@ -61,6 +58,20 @@ return [
         . 'The PNG is rasterised — 8-bit indexed, anti-aliased, at the ordered print size — which '
         . 'makes it the one for screens, office documents and email, where an SVG is a nuisance.',
     'panel.png.refused' => 'There is no PNG of this artwork. :reason',
+
+    'group.label.heading' => 'Label',
+    'group.label.note' => 'Symbol, artwork and type in one image, at the measurements of the '
+        . 'delivered file: :width x :height millimetres, symbol :code millimetres.',
+    'panel.label' => 'Label, dark symbol',
+    'panel.labelColor' => 'Label, coloured symbol',
+    'form.labelText.label' => 'Text on the label',
+    'form.labelText.hint' => 'At most :max characters. The type wraps and shrinks until it fits '
+        . 'the box. If that is not enough it is refused rather than set too small to read.',
+    'form.labelColor.label' => 'Colour of the symbol',
+    'form.labelColor.hint' => 'Applies to the right-hand label only. The value is RGB; which '
+        . 'CMYK it becomes on press is the printer\'s call.',
+    'label.facts' => 'Quiet zone :zone modules, ISO/IEC 18004 asks for 4. Module size '
+        . ':moduleSize millimetres at :moduleCount modules.',
 
     'resolution.url' => 'URL:',
     'resolution.logo' => 'Artwork:',
@@ -147,8 +158,8 @@ return [
 
     'cp.nav' => 'QR codes',
     'cp.title' => 'QR codes',
-    'cp.intro' => 'This is what the extension offers at all, and what applies when a page says '
-        . 'nothing else. A page may override these values; in case of doubt the page wins.',
+    'cp.intro' => 'This is what the extension offers. These values apply everywhere alike. The '
+        . 'only thing entered per place is the target URL in the Blueprint.',
 
     'cp.section.variants' => 'What is offered',
     'cp.section.texts' => 'Text on the page',

@@ -28,23 +28,20 @@ return [
     'form.logo.none' => 'keine in demo/logos',
 
     'group.global.heading' => 'Globale Einstellungen',
-    'group.global.note' => 'Gilt für die ganze Seite. Später die Seite im Control Panel. '
-        . 'Hier steht, was überhaupt angeboten wird und was gilt, wenn eine Seite nichts sagt.',
-    'group.page.heading' => 'Seiten-Einstellungen',
-    'group.page.note' => 'Gilt für diese eine Seite. Später die Felder im Blueprint. '
-        . 'Leer lassen heißt: der globale Wert gilt. Im Zweifel gewinnt die Seite.',
+    'group.global.note' => 'Die einzige Ebene, die eingestellt wird. Im Control Panel unter '
+        . 'Werkzeuge, QR-Codes. Was hier steht, gilt überall gleich.',
+    'group.page.heading' => 'Diese eine Stelle',
+    'group.page.note' => 'Die Adresse im Code ist das Einzige, was von Stelle zu Stelle '
+        . 'verschieden sein muss. Später das Feld im Blueprint. Leer lassen heißt: die '
+        . 'Default-URL gilt.',
     'group.output.heading' => 'Ausgabe',
-    'group.output.note' => 'Was aus beiden Ebenen zusammen entsteht.',
+    'group.output.note' => 'Was daraus tatsächlich entsteht.',
 
     'form.variants.label' => 'Diese Codes werden angeboten',
     'form.downloads.label' => 'Diese Formate werden angeboten',
     'form.defaultUrl.label' => 'Default-URL',
     'form.defaultLogo.label' => 'Default-Bildmarke',
-    'form.pageUrl.label' => 'Ziel-URL dieser Seite',
-    'form.pageLogo.label' => 'Bildmarke dieser Seite',
-    'form.pageVariants.label' => 'Diese Seite zeigt',
-    'form.pageVariants.blocked' => 'Global abgeschaltet, deshalb hier nicht wählbar.',
-    'form.inherit' => 'global: :value',
+    'form.pageUrl.label' => 'Ziel-URL dieser Stelle',
     'form.inherit.empty' => 'nichts hinterlegt',
     'form.submit' => 'Erzeugen',
     'form.reset' => 'Zurücksetzen',
@@ -65,6 +62,21 @@ return [
         . 'Druckgröße — und damit das Richtige für Bildschirm, Office und E-Mail, wo ein SVG '
         . 'Ärger macht.',
     'panel.png.refused' => 'Von dieser Bildmarke gibt es kein PNG. :reason',
+
+    'group.label.heading' => 'Etikett',
+    'group.label.note' => 'Code, Bildmarke und Text in einem Bild, in den Maßen der Vorlage: '
+        . ':width x :height Millimeter, Codefläche :code Millimeter.',
+    'panel.label' => 'Etikett, dunkler Code',
+    'panel.labelColor' => 'Etikett, farbiger Code',
+    'form.labelText.label' => 'Text auf dem Etikett',
+    'form.labelText.hint' => 'Höchstens :max Zeichen. Der Satz bricht um und verkleinert sich, '
+        . 'bis er in den Kasten passt. Reicht das nicht, wird er abgelehnt statt unleserlich '
+        . 'gesetzt.',
+    'form.labelColor.label' => 'Farbe des Codes',
+    'form.labelColor.hint' => 'Gilt nur für das rechte Etikett. Der Wert ist RGB. Welches CMYK '
+        . 'im Andruck daraus wird, entscheidet die Druckerei.',
+    'label.facts' => 'Ruhezone :zone Module, ISO/IEC 18004 verlangt 4. Modulgröße :moduleSize '
+        . 'Millimeter bei :moduleCount Modulen.',
 
     'resolution.url' => 'URL:',
     'resolution.logo' => 'Bildmarke:',
@@ -152,9 +164,8 @@ return [
 
     'cp.nav' => 'QR-Codes',
     'cp.title' => 'QR-Codes',
-    'cp.intro' => 'Hier steht, was die Erweiterung überhaupt anbietet und was gilt, wenn eine '
-        . 'Seite nichts anderes sagt. Eine Seite kann diese Werte überschreiben; im Zweifel '
-        . 'gewinnt die Seite.',
+    'cp.intro' => 'Hier steht, was die Erweiterung anbietet. Diese Werte gelten überall gleich. '
+        . 'Das Einzige, was daneben je Stelle eingetragen wird, ist die Ziel-URL im Blueprint.',
 
     'cp.section.variants' => 'Was angeboten wird',
     'cp.section.texts' => 'Texte auf der Seite',

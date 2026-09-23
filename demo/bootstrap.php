@@ -29,14 +29,18 @@ use Redcodede\QrGen\Qr\Logo\LogoFit;
 use Redcodede\QrGen\Qr\Logo\LogoFitResult;
 use Redcodede\QrGen\Qr\Logo\PngLogo;
 use Redcodede\QrGen\Qr\Logo\SvgLogo;
+use Redcodede\QrGen\Qr\Layout\LabelLayout;
 use Redcodede\QrGen\Qr\ModuleMatrix;
 use Redcodede\QrGen\Qr\Raster\LogoRaster;
 use Redcodede\QrGen\Qr\Preset;
+use Redcodede\QrGen\Qr\Render\LabelOptions;
+use Redcodede\QrGen\Qr\Render\LabelPngRenderer;
+use Redcodede\QrGen\Qr\Render\LabelSvgRenderer;
 use Redcodede\QrGen\Qr\Render\PngRenderer;
 use Redcodede\QrGen\Qr\Render\SvgRenderer;
+use Redcodede\QrGen\Qr\Text\SvgFont;
 use Redcodede\QrGen\Qr\Settings\EffectiveSettings;
 use Redcodede\QrGen\Qr\Settings\GlobalSettings;
-use Redcodede\QrGen\Qr\Settings\PageSettings;
 use Redcodede\QrGen\Qr\Settings\Variant;
 
 $autoload = dirname(__DIR__) . '/vendor/autoload.php';
@@ -62,24 +66,42 @@ const LOGO_DIR = __DIR__ . '/logos';
 
 const MAX_URL_LENGTH = 2000;
 
+/** Der Satz aus der gelieferten Vorlage, als Startwert der Demo. */
+const LABEL_TEXT = 'Rückgabe über das GVÖ-SYSTEM';
+
+/** GVÖ-Grün. In der Demo ein Startwert, im Plugin ein Feld. */
+const LABEL_COLOR = '#009a7c';
+
+/** Vereinbart am 23.09.2026. */
+const LABEL_TEXT_LIMIT = 72;
+
 /**
- * Liest die Adresszeile und verrechnet die beiden Konfigurationsebenen.
+ * Die Namen der beiden Etikett-Varianten in der Adresszeile.
  *
- * Die Demo bildet ab, was das Plugin später hat: **globale Einstellungen**, die
- * im Control Panel gepflegt werden, und **Seiten-Einstellungen** aus dem
- * Blueprint. Hier kommt beides aus der Adresszeile, weil diese Seite nichts
- * speichert; die Objekte dahinter sind dieselben, die die Statamic-Hülle
- * benutzen wird.
+ * In der Demo sind das Zeichenketten. Im Plugin werden daraus Konstanten in
+ * `Variant`, und dann stehen sie zusätzlich in der YAML und im Blueprint.
+ */
+const LABEL_VARIANT_DARK = 'label';
+
+const LABEL_VARIANT_COLOR = 'label-color';
+
+/**
+ * Liest die Adresszeile und löst daraus auf, was gilt.
+ *
+ * Die Demo bildet ab, was das Plugin hat: **globale Einstellungen**, die im
+ * Control Panel gepflegt werden, und daneben **eine einzige Angabe je Stelle**,
+ * die Ziel-URL aus dem Blueprint. Hier kommt beides aus der Adresszeile, weil
+ * diese Seite nichts speichert; die Objekte dahinter sind dieselben, die die
+ * Statamic-Hülle benutzt.
  *
  * Zurück kommen zusätzlich `url` und `logo` als **aufgelöste** Werte. Alles
- * Nachgelagerte auf der Seite rechnet damit weiter und muss von den zwei Ebenen
- * nichts wissen.
+ * Nachgelagerte auf der Seite rechnet damit weiter.
  *
  * @param array<string, mixed> $query
  *
  * @return array{
  *     url: string, logo: string, errors: list<string>,
- *     global: GlobalSettings, page: PageSettings, effective: EffectiveSettings
+ *     global: GlobalSettings, pageUrl: string|null, effective: EffectiveSettings
  * }
  */
 function readInput(array $query, Translator $texts): array
@@ -92,9 +114,13 @@ function readInput(array $query, Translator $texts): array
     // und nichts liesse sich je abschalten.
     $submitted = isset($query['configured']);
 
+    // `url` und `logo` ohne Ebene sind die Kurzform, die `image.php` in seinem
+    // Kopfkommentar anbietet und die die Knöpfe der Seite benutzen. Ohne diesen
+    // Rückgriff fiel jeder Download auf DEFAULT_URL zurück und lieferte den
+    // Code einer ganz anderen Adresse, ohne dass irgendwo etwas fehlschlug.
     $global = GlobalSettings::default()
-        ->withDefaultUrl(field($query, ['g', 'url'], $submitted ? null : DEFAULT_URL))
-        ->withDefaultLogo(field($query, ['g', 'logo'], $submitted ? null : defaultLogo($logos)));
+        ->withDefaultUrl(field($query, ['g', 'url'], field($query, ['url'], $submitted ? null : DEFAULT_URL)))
+        ->withDefaultLogo(field($query, ['g', 'logo'], field($query, ['logo'], $submitted ? null : defaultLogo($logos))));
 
     if ($submitted) {
         $global = $global
@@ -108,22 +134,16 @@ function readInput(array $query, Translator $texts): array
             );
     }
 
-    $page = PageSettings::empty()
-        ->withUrl(field($query, ['p', 'url'], null))
-        ->withLogo(field($query, ['p', 'logo'], null));
-
-    if ($submitted) {
-        $wanted = $query['p']['variants'] ?? [];
-        $page = $page->withVariants(is_array($wanted) ? array_values(array_map('strval', $wanted)) : []);
-    }
+    // Das Einzige, was je Stelle verschieden sein darf. Seit dem 23.09.2026
+    // gibt es daneben keine zweite Einstellungsebene mehr.
+    $pageUrl = field($query, ['p', 'url'], null);
 
     // Eine Bildmarke, die es nicht gibt, gilt als keine. Dann entfällt die
     // Variante mit Bildmarke von selbst, statt ein Panel zu versprechen, das
     // nur eine Fehlermeldung enthalten kann.
     $global = $global->withDefaultLogo(knownLogo($global->defaultLogo(), $logos));
-    $page = $page->withLogo(knownLogo($page->logo(), $logos));
 
-    $effective = EffectiveSettings::from($global, $page);
+    $effective = EffectiveSettings::from($global, $pageUrl);
     $url = (string) $effective->url();
 
     if ($url === '') {
@@ -143,7 +163,7 @@ function readInput(array $query, Translator $texts): array
         'logo' => (string) $effective->logo(),
         'errors' => $errors,
         'global' => $global,
-        'page' => $page,
+        'pageUrl' => $pageUrl,
         'effective' => $effective,
     ];
 }
@@ -450,4 +470,121 @@ function cheaperFormat(string $url, string $logoFile, bool $withLogo): array
     $pngBytes = strlen((string) $png);
 
     return [$pngBytes > 0 && $pngBytes < $svgBytes ? 'png' : 'svg', $pngBytes, $svgBytes];
+}
+
+/**
+ * Kürzt auf eine Zahl von Zeichen, nicht von Bytes.
+ *
+ * `substr` zählt Bytes. Bei „Rückgabe über" liegt die 72. Byte-Grenze mitten in
+ * einem Umlaut, und heraus kommt keine gültige UTF-8-Zeichenkette mehr. Die
+ * Grenze ist mit 72 Zeichen vereinbart, also wird in Zeichen gezählt.
+ */
+function clampCharacters(string $text, int $limit): string
+{
+    $characters = preg_split('//u', $text, -1, PREG_SPLIT_NO_EMPTY);
+
+    if ($characters === false) {
+        return '';
+    }
+
+    return implode('', array_slice($characters, 0, $limit));
+}
+
+/**
+ * The shipped font, read once per request.
+ *
+ * The core does not open files, so this is where the file is opened. Reading it
+ * twice per page would parse 202 glyphs twice for nothing.
+ */
+function labelFont(): SvgFont
+{
+    static $font = null;
+
+    if ($font === null) {
+        $path = dirname(__DIR__) . '/resources/fonts/pt-sans-v18-latin/pt-sans-v18-latin-regular.svg';
+        $font = SvgFont::fromMarkup((string) file_get_contents($path));
+    }
+
+    return $font;
+}
+
+/**
+ * Die beiden Eingaben des Etiketts aus der Adresszeile.
+ *
+ * Steht hier und nicht in der Seite, weil die Seite und der Bild-Endpunkt
+ * dieselben Werte lesen müssen. Läsen sie verschieden, zeigte die Vorschau ein
+ * anderes Etikett als der Download daneben.
+ *
+ * @param array<string, mixed> $query
+ *
+ * @return array{text: string, color: string}
+ */
+function labelInput(array $query): array
+{
+    $color = field($query, ['label', 'color'], LABEL_COLOR);
+
+    return [
+        'text' => clampCharacters((string) field($query, ['label', 'text'], LABEL_TEXT), LABEL_TEXT_LIMIT),
+        'color' => is_string($color) && preg_match('/^#[0-9a-fA-F]{6}$/', $color) === 1 ? $color : LABEL_COLOR,
+    ];
+}
+
+/**
+ * Welche Codefarbe eine der beiden Etikett-Varianten benutzt.
+ */
+function labelCodeColor(string $variant, string $chosen): string
+{
+    return $variant === LABEL_VARIANT_COLOR ? $chosen : LabelOptions::DEFAULT_INK;
+}
+
+function isLabelVariant(string $variant): bool
+{
+    return $variant === LABEL_VARIANT_DARK || $variant === LABEL_VARIANT_COLOR;
+}
+
+/**
+ * Der Renderer für ein Etikett, in einem der beiden Formate.
+ *
+ * `$standalone` heißt: die Datei geht als Datei heraus und nicht in eine Seite
+ * hinein. Dann bekommt das SVG seine XML-Deklaration, wie beim Symbol auch.
+ *
+ * @return LabelSvgRenderer|LabelPngRenderer
+ */
+function labelRendererFor(string $format, string $codeColor, bool $standalone)
+{
+    $layout = LabelLayout::standard();
+    $options = LabelOptions::default()->withCodeColor($codeColor);
+
+    if ($format === 'png') {
+        return new LabelPngRenderer($layout, labelFont(), $options);
+    }
+
+    return new LabelSvgRenderer($layout, labelFont(), $options->withXmlDeclaration($standalone));
+}
+
+/**
+ * One label, in the colour given.
+ *
+ * The two label variants differ in exactly this argument, which is the whole
+ * point: whether the manufacturers print in colour is still open, so the
+ * answer must not sit in the code.
+ *
+ * @return array{0: string|null, 1: string|null} Das Bild, oder warum es keines gibt
+ */
+function tryLabel(
+    string $url,
+    string $logoFile,
+    string $text,
+    string $codeColor,
+    bool $standalone = false,
+    string $format = 'svg'
+): array {
+    try {
+        $image = labelRendererFor($format, $codeColor, $standalone)
+            ->render(encode($url), $text, logo($logoFile));
+
+        return [$image, null];
+    } catch (QrGenException $exception) {
+        return [null, $exception->getMessage()];
+    }
 }

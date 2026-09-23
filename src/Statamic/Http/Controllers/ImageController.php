@@ -7,7 +7,6 @@ namespace Redcodede\QrGen\Statamic\Http\Controllers;
 use Illuminate\Http\Request;
 use Redcodede\QrGen\Qr\Exception\QrGenException;
 use Redcodede\QrGen\Qr\Settings\EffectiveSettings;
-use Redcodede\QrGen\Qr\Settings\PageSettings;
 use Redcodede\QrGen\Qr\Settings\Variant;
 use Redcodede\QrGen\Statamic\Artwork;
 use Redcodede\QrGen\Statamic\Settings\SettingsStore;
@@ -47,7 +46,7 @@ class ImageController
         abort_if($url === '' || !Variant::isKnown($variant), 404);
 
         $global = SettingsStore::global();
-        $effective = EffectiveSettings::from($global, PageSettings::empty()->withUrl($url));
+        $effective = EffectiveSettings::from($global, $url);
 
         // Was global abgeschaltet ist, gibt es auch dann nicht, wenn jemand
         // eine alte signierte Adresse aufhebt.

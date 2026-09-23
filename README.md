@@ -9,7 +9,7 @@ PNG**. Dazu die Statamic-Anbindung: ein Tag für die Seite, eine signierte
 Bild-Route, eine Einstellungsseite im Control Panel und ein Fieldset für
 Blueprints. Was hier unter „geplant" steht, existiert nicht.
 
-Geprüft am 16.09.2026 auf PHP 8.4: **429 Tests, 26288 Assertions, grün.**
+Geprüft am 23.09.2026 auf PHP 8.4: **483 Tests, 31618 Assertions, grün.**
 
 **`1.0` heißt: der Funktionsumfang der Erstfreigabe steht und die öffentliche
 API ist ab hier stabil.** Es heißt nicht, dass ein Andruck abgenommen wäre —
@@ -41,6 +41,10 @@ Zuschnitt in zwei Stufen.
 
 - [x] URL → QR-Code-Matrix, Fehlerkorrekturstufe wählbar
 - [x] Matrix → SVG, ein einziger `<path>`, verlustfrei skalierbar
+- [x] **Das Etikett**: Code, Bildmarke daneben und zwei Zeilen Text in einem
+      Bild, als SVG und als PNG. Siehe [Das Etikett](#das-etikett)
+- [x] **Schrift als Umrisse**, aus einer mitgelieferten SVG-Schriftdatei. Kein
+      `<text>`, keine Schriftinstallation beim Empfänger, kein TrueType-Parser
 - [x] **Logo in der Mitte**, mit Ruhezone darum, jedes Seitenverhältnis
 - [x] **Sanitizer für fremde SVGs**, Whitelist statt Filter
 - [x] **Bildmarke auch als PNG**, mit eigenem PNG-Dekoder: alle fünf Farbtypen,
@@ -63,9 +67,10 @@ Zuschnitt in zwei Stufen.
 - [x] Demo-Seite mit beiden Varianten, Kennzahlen und Download
 - [x] **Gerüst der Statamic-Hülle**: ServiceProvider mit Fieldset- und
       View-Namensraum, `config/qr-gen.php`, Testharness auf `orchestra/testbench`
-- [x] **Konfigurationsmodell mit zwei Ebenen**: global, was angeboten wird und
-      was gilt, wenn nichts anderes dasteht; pro Seite, was diese Seite
-      ausmacht. Im Zweifel gewinnt die Seite
+- [x] **Konfigurationsmodell mit einer Ebene**: alles steht global im Control
+      Panel und gilt überall gleich. Je Stelle kommt genau eine Angabe dazu, die
+      Ziel-URL. Bis `1.0.1` gab es daneben eine zweite Ebene je Seite, die
+      globale Werte überschreiben durfte; sie ist zurückgebaut
 - [x] **Frontend-Komponente**: der Tag `{{ qr_gen }}` gibt beide Varianten mit
       Vorschau und Download aus, die Bild-Route liefert die einzelne Datei
       signiert aus. Siehe [In Statamic](#in-statamic)
@@ -385,6 +390,24 @@ Fremdpaket, der siebte ist unser.**
 
 **Das ist alles.** Kein `ext-gd`, kein `ext-imagick`, kein `ext-dom`, kein
 `ext-simplexml`, kein `ext-mbstring`, kein Laravel, kein Statamic.
+
+### Mitgeliefert, aber kein Paket
+
+| Datei | Job |
+|---|---|
+| `resources/fonts/pt-sans-v18-latin/…-regular.svg` | **Die Schrift, aus der das Etikett gesetzt wird.** Eine SVG-Schriftdatei trägt jede Glyphe als Pfad und ihre Vorschubweite als Zahl. Das ist genau das, was ein TrueType-Parser ausrechnen müsste, nur schon hingeschrieben, und die Pfade versteht `PathFlattener` bereits. Deshalb liest `Qr\Text\SvgFont` diese Fassung und nicht die `ttf` |
+| `…-regular.ttf` | Die Quelle, aus der die SVG-Fassung erzeugt wurde. Vom Code nicht angefasst, liegt bei, damit sie sich neu erzeugen lässt |
+| `OFL.txt` | Der Lizenztext, siehe [Lizenz](#lizenz) |
+
+Die Webformate (`eot`, `woff`, `woff2`) liegen im Repository, sind aber per
+`export-ignore` aus dem Composer-Dist genommen: im Paket haben sie keine
+Aufgabe.
+
+**Die Schrift ist austauschbar.** `SvgFont::fromMarkup()` nimmt jede
+SVG-Schriftdatei. Zwei Bedingungen: die gebrauchten Zeichen müssen im Subset
+liegen (die mitgelieferte deckt Latein ab, 202 Glyphen, inklusive Umlauten),
+und die Umrisse dürfen keine elliptischen Bögen benutzen, die der Rasterisierer
+ablehnt. Schriften benutzen praktisch nie welche.
 
 Zu `bacon/bacon-qr-code` drei Dinge, die man wissen sollte:
 
@@ -770,6 +793,61 @@ Selektor ist. Taucht eine Klasse zweimal auf, einmal in einer Gruppe und einmal
 allein, gewinnt je Eigenschaft die spätere Deklaration. Das ist, was ein
 Browser mit derselben Datei täte.
 
+### Das Etikett
+
+Nicht der Code allein, sondern der Code als Teil eines Bildes: Rahmen,
+Codefläche, Bildmarke daneben und darunter der Text.
+
+```php
+use Redcodede\QrGen\Qr\Layout\LabelLayout;
+use Redcodede\QrGen\Qr\Render\LabelOptions;
+use Redcodede\QrGen\Qr\Render\LabelPngRenderer;
+use Redcodede\QrGen\Qr\Render\LabelSvgRenderer;
+use Redcodede\QrGen\Qr\Text\SvgFont;
+
+// Der Kern öffnet keine Dateien. Wer die Schrift hat, liest sie.
+$font = SvgFont::fromMarkup(file_get_contents(
+    __DIR__ . '/resources/fonts/pt-sans-v18-latin/pt-sans-v18-latin-regular.svg'
+));
+
+$renderer = new LabelSvgRenderer(LabelLayout::standard(), $font);
+$svg = $renderer->render($matrix, 'Rückgabe über das GVÖ-SYSTEM', $logo);
+
+// Dasselbe Bild als PNG, in Druckauflösung.
+$png = (new LabelPngRenderer(LabelLayout::standard(), $font))
+    ->render($matrix, 'Rückgabe über das GVÖ-SYSTEM', $logo);
+```
+
+Die Codefarbe ist der einzige Wert, in dem sich die beiden ausgelieferten
+Fassungen unterscheiden:
+
+```php
+$options = LabelOptions::default()->withCodeColor('#009a7c');
+```
+
+**Der Kasten bleibt, die Schrift gibt nach.** Der Text wird umgebrochen und
+verkleinert, bis er in seinen Kasten passt. Passt er auch beim kleinsten
+erlaubten Grad nicht, wird er abgewiesen statt unleserlich gesetzt. Die Regel
+liegt in `Qr\Layout\LabelText` und **wird von beiden Renderern benutzt**: zwei
+Formate desselben Etiketts sollen dasselbe Bild zeigen, und das ist nur dann
+zugesichert, wenn der Umbruch einmal gerechnet wird.
+
+**Die Maße stehen in `LabelLayout` und sind Entscheidungen**, keine
+Standardwerte zum Drehen, genau wie die Werte in `Qr\Preset`. Ein freigegebener
+Andruck gilt für diese Zahlen.
+
+Zwei Eigenheiten des PNG, die zu kennen sind:
+
+- **Es ist Truecolor**, nicht indiziert wie das PNG des Symbols allein. Ein
+  Etikett trägt beliebige Bildmarken, eine frei gesetzte Farbe und
+  kantengeglättete Schrift; das zu quantisieren hieße, einen Quantisierer
+  mitzuliefern, um Bytes in einer ohnehin komprimierten Datei zu sparen
+- **Die Pixelgröße folgt dem Modul, nicht der Wunschauflösung.** Ein Modul
+  bekommt ganzzahlig viele Pixel, damit seine Kanten hart bleiben; die
+  Auflösung landet dadurch etwas neben den bestellten 600 dpi, und der
+  `pHYs`-Block trägt den tatsächlichen Wert. Die Datei druckt damit weiterhin
+  in der Größe, die `LabelLayout` nennt
+
 ### Ausliefern
 
 Der Renderer gibt eine Zeichenkette zurück und schreibt nichts. Was daraus
@@ -978,17 +1056,21 @@ Der Blueprint einer Seite importiert das Fieldset der Erweiterung:
   import: qr-gen::qr_code
 ```
 
-Es bringt `qr_url`, `qr_logo` und `qr_variants` mit. Leer heißt überall: der
-globale Wert gilt. Die Seite reicht die Werte an den Tag weiter:
+Es bringt genau ein Feld mit, `qr_url`. Leer heißt: die Default-URL aus den
+globalen Einstellungen gilt. Die Seite reicht den Wert an den Tag weiter:
 
 ```antlers
-{{ qr_gen :url="qr_url" :logo="qr_logo" }}
+{{ qr_gen :url="qr_url" }}
 ```
 
-Das Fieldset ist ein Angebot, keine Vorschrift. Wer die Werte anders herleitet
-— die erste Installation setzt die Ziel-URL aus einem Herstellercode
-zusammen —, gibt
-sie einfach direkt als Tag-Parameter mit.
+**Mehr ist je Stelle nicht einzustellen, und das ist Absicht.** Bildmarke,
+Varianten und Formate stehen im Control Panel und gelten überall gleich. Die
+Adresse muss verschieden sein, weil jeder Hersteller seine eigene hat; alles
+andere wäre eine zweite Stelle, an der dieselbe Frage beantwortet wird.
+
+Das Fieldset ist ein Angebot, keine Vorschrift. Wer die Adresse anders
+herleitet, und die erste Installation setzt sie aus einem Herstellercode
+zusammen, gibt sie einfach direkt als Tag-Parameter mit.
 
 ### Beim Suchen
 
@@ -1053,14 +1135,24 @@ src/
       LogoPlacement.php    wo der Kasten dann liegt
     Settings/
       GlobalSettings.php   was angeboten wird, und die Rückfallwerte
-      PageSettings.php     was eine einzelne Seite will; null heißt "nicht gesetzt"
-      EffectiveSettings.php beides verrechnet, samt Herkunft jedes Werts
+      EffectiveSettings.php was mit der Adresse einer Stelle daraus gilt
       Variant.php          die beiden Code-Arten, mit festen Namen
+    Text/                  Schrift, ohne Schriftparser
+      SvgFont.php          SVG-Schriftdatei → Glyphen mit Umriss und Vorschub
+      Glyph.php            ein Zeichen: Vorschubweite und `d`
+      TextLine.php         setzt und misst eine Zeile, verkleinert sie
+      PlacedGlyph.php      eine gesetzte Glyphe mit ihrem Abstand
+    Layout/                das Etikett, unabhängig vom Ausgabeformat
+      LabelLayout.php      die Maße: Fläche, Rahmen, Codeplatz, Logo, Textkasten
+      LabelText.php        Umbruch, Grad und Grundlinien, für beide Formate
     Render/
       SvgRenderer.php      Matrix → SVG, räumt den Logokasten frei
       SvgOptions.php       unveränderliche Darstellungseinstellungen
       PngRenderer.php      Matrix → PNG, von Hand, ohne Bildextension
       PngOptions.php       Auflösung und Druckgröße statt Pixelmaße
+      LabelSvgRenderer.php das ganze Etikett als SVG
+      LabelPngRenderer.php dasselbe Etikett als Truecolor-PNG
+      LabelOptions.php     die Farben des Etiketts
     Raster/                zeichnet die Bildmarke ins PNG
       Transform.php        affine Matrix, transform-Listen
       PathFlattener.php    d-Attribut → Streckenzüge in Gerätepixeln
@@ -1070,7 +1162,7 @@ src/
       Palette.php          Farben → Palettenindizes
       PngDecoder.php       PNG → RGBA, ohne Bildextension
       RasterScaler.php     umrechnen, mit vormultipliziertem Alpha
-    Exception/             QrGenException, InvalidArgument, EncodingFailed, LogoRejected
+    Exception/             QrGenException, InvalidArgument, EncodingFailed, LogoRejected, TextRejected
     ErrorCorrection.php    die vier Stufen der Norm
     ModuleMatrix.php       die Grenze zwischen Kodieren und Zeichnen
     Preset.php             die festgelegten Werte des Projekts
@@ -1190,7 +1282,8 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `0.13.1` | Knöpfe nach Zusammengehörigkeit, Beschriftung eine Stufe tiefer |
 | `1.0.0` | **Erstfreigabe.** Funktionsumfang steht, öffentliche API ab hier stabil |
 | `1.0.1` | Veröffentlicht: Projektbezug raus, Installation über Packagist |
-| `1.1.0` | geplant: Code- und Token-Erzeugung |
+| `2.0.0` | **Etikett mit Schrift und Bildmarke, Rückbau auf eine Konfigurationsebene.** Breaking: `PageSettings`, `qr_logo`, `qr_variants` und die Tag-Parameter `logo` und `variants` sind weg |
+| `2.1.0` | geplant: Code- und Token-Erzeugung |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):
 `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `build:`. Ein `!`
@@ -1292,3 +1385,10 @@ als Language-Files, DE und EN.
 ## Lizenz
 
 [AGPL-3.0-or-later](LICENSE).
+
+**Die mitgelieferte Schrift steht unter einer eigenen Lizenz.** PT Sans Regular
+in `resources/fonts/pt-sans-v18-latin/` ist Copyright 2010 ParaType Ltd. und
+steht unter der [SIL Open Font License 1.1](resources/fonts/pt-sans-v18-latin/OFL.txt),
+mit den geschützten Namen „PT Sans" und „ParaType". Die OFL verlangt, dass ihr
+Wortlaut mitverteilt wird; deshalb liegt er im selben Ordner. Wer die Schrift
+gegen eine andere tauscht, tauscht auch diese Datei.

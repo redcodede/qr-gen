@@ -5,27 +5,31 @@ declare(strict_types=1);
 namespace Redcodede\QrGen\Qr\Settings;
 
 /**
- * Was nach der Verrechnung beider Ebenen tatsächlich herauskommt.
+ * Was an einer Stelle tatsächlich gilt.
  *
- * Die Regel in einem Satz: **global steht, was überhaupt angeboten wird und was
- * gilt, wenn nichts anderes dasteht; pro Seite steht, was diese eine Seite
- * ausmacht, und im Zweifel gewinnt die Seite.**
+ * **Es gibt nur noch eine Ebene, die eingestellt wird: die globale.** Was die
+ * Erweiterung anbietet, welche Bildmarke sie benutzt und wie das Etikett
+ * aussieht, steht im Control Panel und gilt überall gleich. Das Einzige, was
+ * von Stelle zu Stelle verschieden sein **muss**, ist die Adresse im Code, denn
+ * die ist der ganze Zweck: jeder Hersteller hat seine eigene.
  *
- * Das Ergebnis merkt sich zusätzlich, **woher** ein Wert stammt. Das ist keine
- * Bequemlichkeit, sondern der einzige Weg, die Vorrangregel sichtbar zu machen:
- * wer eine Seite vor sich hat, auf der eine unerwartete URL steht, muss ohne
- * Suchen erkennen können, ob sie aus dem Blueprint oder aus den globalen
- * Einstellungen kommt.
+ * Bis zum 23.09.2026 gab es daneben eine zweite Ebene je Seite, die globale
+ * Werte überschreiben durfte. Sie ist zurückgebaut. Ihre Begründung lautete,
+ * eine Seite müsse sagen können, was sie ausmacht; tatsächlich macht eine Seite
+ * nichts aus außer ihrer Adresse. Zwei Ebenen kosteten dafür ein Vorrangmodell,
+ * ein Feld je Einstellung im Blueprint und die wiederkehrende Frage, warum eine
+ * Einstellung an einer Stelle nicht wirkt.
  *
- * Die Formate sind bewusst nur global. Eine Seite entscheidet, was sie zeigt,
- * nicht, in welchen Dateiformaten das Haus liefert.
+ * Geblieben ist die Auskunft, **woher** die Adresse stammt. Wer eine
+ * unerwartete URL vor sich hat, muss ohne Suchen erkennen können, ob sie an
+ * dieser Stelle eingetragen wurde oder aus den globalen Einstellungen kommt.
  */
 final class EffectiveSettings
 {
     /** Der Wert stammt aus den globalen Einstellungen. */
     public const FROM_GLOBAL = 'global';
 
-    /** Der Wert stammt aus der Seite und hat den globalen überschrieben. */
+    /** Der Wert wurde an dieser Stelle eingetragen. */
     public const FROM_PAGE = 'page';
 
     /** Es gibt keinen Wert, weder hier noch dort. */
@@ -59,25 +63,35 @@ final class EffectiveSettings
     {
     }
 
-    public static function from(GlobalSettings $global, PageSettings $page): self
+    /**
+     * @param string|null $pageUrl Die Adresse dieser einen Stelle, oder null
+     */
+    public static function from(GlobalSettings $global, ?string $pageUrl = null): self
     {
         $effective = new self();
 
-        [$effective->url, $effective->urlSource] = self::pick($page->url(), $global->defaultUrl());
-        [$effective->logo, $effective->logoSource] = self::pick($page->logo(), $global->defaultLogo());
+        $pageUrl = self::trimmedOrNull($pageUrl);
 
-        // Eine Variante erscheint nur, wenn sie global angeboten wird und die
-        // Seite sie will. Die Reihenfolge der beiden Bedingungen ist gleich,
-        // das Und ist der Punkt: global kann verbieten, die Seite nur waehlen.
-        $effective->plain = $global->offersPlain() && $page->wants(Variant::PLAIN);
-        $effective->logoVariant = $global->offersLogo() && $page->wants(Variant::LOGO);
+        if ($pageUrl !== null) {
+            $effective->url = $pageUrl;
+            $effective->urlSource = self::FROM_PAGE;
+        } elseif ($global->defaultUrl() !== null) {
+            $effective->url = $global->defaultUrl();
+            $effective->urlSource = self::FROM_GLOBAL;
+        } else {
+            $effective->url = null;
+            $effective->urlSource = self::FROM_NOWHERE;
+        }
+
+        $effective->logo = $global->defaultLogo();
+        $effective->logoSource = $effective->logo === null ? self::FROM_NOWHERE : self::FROM_GLOBAL;
+
+        $effective->plain = $global->offersPlain();
 
         // Ohne Bildmarke gibt es die Variante mit Bildmarke nicht. Das ist kein
         // Fehler, sondern eine unvollstaendige Konfiguration, und die
         // Oberflaeche soll es so benennen.
-        if ($effective->logo === null) {
-            $effective->logoVariant = false;
-        }
+        $effective->logoVariant = $global->offersLogo() && $effective->logo !== null;
 
         $effective->svg = $global->offersSvg();
         $effective->png = $global->offersPng();
@@ -130,19 +144,14 @@ final class EffectiveSettings
         return $this->png;
     }
 
-    /**
-     * @return array{0: string|null, 1: string}
-     */
-    private static function pick(?string $fromPage, ?string $fromGlobal): array
+    private static function trimmedOrNull(?string $value): ?string
     {
-        if ($fromPage !== null) {
-            return [$fromPage, self::FROM_PAGE];
+        if ($value === null) {
+            return null;
         }
 
-        if ($fromGlobal !== null) {
-            return [$fromGlobal, self::FROM_GLOBAL];
-        }
+        $trimmed = trim($value);
 
-        return [null, self::FROM_NOWHERE];
+        return $trimmed === '' ? null : $trimmed;
     }
 }

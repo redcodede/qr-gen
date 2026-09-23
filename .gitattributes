@@ -14,3 +14,9 @@
 /phpunit.xml      export-ignore
 /CHANGELOG.md     export-ignore
 /composer.lock    export-ignore
+
+# Von der Schrift liest der Code nur die SVG-Fassung. Die Webformate bleiben im
+# Repo, im Paket haben sie keine Aufgabe.
+/resources/fonts/pt-sans-v18-latin/*.eot    export-ignore
+/resources/fonts/pt-sans-v18-latin/*.woff   export-ignore
+/resources/fonts/pt-sans-v18-latin/*.woff2  export-ignore

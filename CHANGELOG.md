@@ -8,9 +8,6 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 
 ### Geplant
 
-- **Ein eigener Fieldtype für die Varianten.** Heute lässt sich eine Seite auf
-  „mit Bildmarke" stellen, während der Typ global abgeschaltet ist; es kommt
-  dann nichts, ohne dass im Formular stünde warum
 - Code- und Token-Erzeugung, `CodeRepository`-Interface, Flat-File-Repository
 - Logger per Konstruktor injiziert (PSR-3) statt per `logger()`-Helfer, und
   Ablehnungen nach Stufen getrennt: ein zu großer Logokasten ist `warning`, ein
@@ -19,6 +16,64 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
   sie je braucht. Bisher hat keine
 - Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
   ankommt
+
+## [2.0.0] - 2026-09-23
+
+**Ein neuer Major, und zwar wegen des Rückbaus, nicht wegen des Etiketts.** Seit
+`1.0.0` gilt die öffentliche API als stabil, und diese Fassung entfernt eine
+Klasse, ändert eine Signatur, streicht zwei Felder aus dem Fieldset und zwei
+Parameter am Tag. Das ist die Regel, die `1.0.0` aufgestellt hat, angewandt auf
+sich selbst.
+
+**Zum Aktualisieren:** Wer `qr_logo` oder `qr_variants` im Blueprint stehen hat
+oder `logo=` beziehungsweise `variants=` am Tag übergibt, entfernt beides. Die
+Werte stehen im Control Panel unter Werkzeuge, QR-Codes und gelten überall
+gleich. `EffectiveSettings::from()` nimmt statt eines `PageSettings`-Objekts die
+Ziel-URL als Zeichenkette oder `null`.
+
+### Hinzugefügt
+
+- **Schrift als Umrisse.** `Qr\Text\SvgFont` liest eine SVG-Schriftdatei,
+  `TextLine` setzt und misst eine Zeile mit den Vorschubweiten daraus. Damit
+  braucht das Paket keinen TrueType-Parser: eine SVG-Schriftdatei ist dessen
+  Ergebnis, schon hingeschrieben, und die Pfade versteht `PathFlattener`
+  bereits. Kerning gibt es nicht, die Datei enthält keine Paare
+- **Das Etikett.** `Qr\Layout\LabelLayout` hält die Maße der gelieferten
+  Vorlage, `LabelText` bricht den Text um und verkleinert ihn, bis er in seinen
+  Kasten passt, `Render\LabelSvgRenderer` und `Render\LabelPngRenderer` geben
+  Rahmen, Code, Bildmarke und Satz als ein Bild aus. Die Codefarbe ist ein Wert
+  in `LabelOptions`, damit aus „dunkel oder farbig" keine Codeänderung wird
+- **PT Sans Regular** unter `resources/fonts/pt-sans-v18-latin/`, mit dem
+  Lizenztext der SIL Open Font License 1.1. Ins Composer-Dist gehen nur die
+  SVG- und die TTF-Fassung; die Webformate sind `export-ignore`
+
+### Geändert
+
+- **Rückbau auf eine Konfigurationsebene.** Alles, was eingestellt wird, steht
+  global und gilt überall gleich. Je Stelle bleibt genau eine Angabe, die
+  Ziel-URL. Die Begründung der zweiten Ebene lautete, eine Seite müsse sagen
+  können, was sie ausmacht; tatsächlich macht eine Seite nichts aus außer ihrer
+  Adresse. Der Preis dafür waren ein Vorrangmodell, ein Feld je Einstellung im
+  Blueprint und die wiederkehrende Frage, warum eine Einstellung an einer
+  Stelle nicht wirkt
+
+### Entfernt
+
+- **`Qr\Settings\PageSettings`**, ersatzlos. `EffectiveSettings::from()` nimmt
+  jetzt die globalen Einstellungen und eine Adresse
+- **`qr_logo` und `qr_variants`** aus dem Fieldset, **`logo` und `variants`**
+  als Parameter von `{{ qr_gen }}`. Das Fieldset trägt nur noch `qr_url`, und
+  ein Test hält fest, dass es dabei bleibt
+- Der geplante **eigene Fieldtype für die Varianten** ist hinfällig. Er sollte
+  verhindern, dass eine Seite eine global abgeschaltete Variante wählt; das
+  kann sie nicht mehr
+
+### Behoben
+
+- **`image.php?url=…` in der Demo hat die Adresse ignoriert.** Gelesen wurden
+  nur `g[url]` und `p[url]`, ohne Treffer galt die Default-URL. Damit lieferte
+  jeder Download-Knopf den Code einer anderen Adresse als der, die oben im
+  Formular stand, und zwar ohne dass etwas fehlschlug
 
 ## [1.0.1] - 2026-09-16
 
@@ -757,7 +812,8 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/redcodede/qr-gen/compare/v1.0.1...v2.0.0
 [1.0.1]: https://github.com/redcodede/qr-gen/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/redcodede/qr-gen/compare/v0.13.1...v1.0.0
 [0.13.1]: https://github.com/redcodede/qr-gen/compare/v0.13.0...v0.13.1
