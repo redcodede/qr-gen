@@ -47,12 +47,12 @@
   <div class="qr-gen-panels">
     {{ panels }}
       <div class="qr-gen-panel qr-gen-panel--{{ variant }}">
-        <{{ panel_heading_level }} class="qr-gen-title">{{ if variant == "plain" }}{{ trans:qr-gen::texts.panel.plain }}{{ else }}{{ trans:qr-gen::texts.panel.logo }}{{ /if }}</{{ panel_heading_level }}>
+        <{{ panel_heading_level }} class="qr-gen-title">{{ if variant == "plain" }}{{ trans:qr-gen::texts.panel.plain }}{{ elseif variant == "logo" }}{{ trans:qr-gen::texts.panel.logo }}{{ elseif variant == "label" }}{{ trans:qr-gen::texts.panel.label }}{{ else }}{{ trans:qr-gen::texts.panel.labelColor }}{{ /if }}</{{ panel_heading_level }}>
 
         {{ if failure }}
           <p class="qr-gen-failure">{{ trans:qr-gen::texts.panel.failure grund="{failure}" }}</p>
         {{ else }}
-          <div class="qr-gen-preview" role="img" aria-label="{{ if with_logo }}{{ trans:qr-gen::texts.panel.alt.logo }}{{ else }}{{ trans:qr-gen::texts.panel.alt }}{{ /if }}">{{ preview }}</div>
+          <div class="qr-gen-preview" role="img" aria-label="{{ if is_label }}{{ trans:qr-gen::texts.panel.alt.label }}{{ elseif with_logo }}{{ trans:qr-gen::texts.panel.alt.logo }}{{ else }}{{ trans:qr-gen::texts.panel.alt }}{{ /if }}">{{ preview }}</div>
 
           <div class="qr-gen-actions">
             <div class="qr-gen-downloads">

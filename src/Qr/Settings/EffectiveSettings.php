@@ -54,6 +54,18 @@ final class EffectiveSettings
     private $logoVariant;
 
     /** @var bool */
+    private $label;
+
+    /** @var bool */
+    private $labelColor;
+
+    /** @var string|null */
+    private $labelText;
+
+    /** @var string|null */
+    private $codeColor;
+
+    /** @var bool */
     private $svg;
 
     /** @var bool */
@@ -93,6 +105,17 @@ final class EffectiveSettings
         // Oberflaeche soll es so benennen.
         $effective->logoVariant = $global->offersLogo() && $effective->logo !== null;
 
+        $effective->labelText = $global->labelText();
+        $effective->codeColor = $global->codeColor();
+
+        $effective->label = $global->offersLabel();
+
+        // Dieselbe Regel wie bei der Bildmarke: ohne Farbe gibt es das farbige
+        // Etikett nicht. Ein Standardton im Paket waere die Farbe eines Hauses
+        // in einem allgemeinen Paket, und ein zweites Etikett in der Farbe des
+        // ersten waere ohnehin keins.
+        $effective->labelColor = $global->offersLabelColor() && $effective->codeColor !== null;
+
         $effective->svg = $global->offersSvg();
         $effective->png = $global->offersPng();
 
@@ -129,9 +152,51 @@ final class EffectiveSettings
         return $this->logoVariant;
     }
 
+    public function showsLabel(): bool
+    {
+        return $this->label;
+    }
+
+    public function showsLabelColor(): bool
+    {
+        return $this->labelColor;
+    }
+
+    /** Der Aufdruck des Etiketts. Leer heisst: Etikett ohne Text. */
+    public function labelText(): ?string
+    {
+        return $this->labelText;
+    }
+
+    /** Die Codefarbe des farbigen Etiketts. */
+    public function codeColor(): ?string
+    {
+        return $this->codeColor;
+    }
+
+    /**
+     * Ob dieser Typ hier ueberhaupt gezeigt wird.
+     */
+    public function shows(string $variant): bool
+    {
+        if ($variant === Variant::PLAIN) {
+            return $this->plain;
+        }
+
+        if ($variant === Variant::LOGO) {
+            return $this->logoVariant;
+        }
+
+        if ($variant === Variant::LABEL) {
+            return $this->label;
+        }
+
+        return $variant === Variant::LABEL_COLOR && $this->labelColor;
+    }
+
     public function showsAnything(): bool
     {
-        return $this->plain || $this->logoVariant;
+        return $this->plain || $this->logoVariant || $this->label || $this->labelColor;
     }
 
     public function offersSvg(): bool

@@ -20,6 +20,12 @@ final class Variant
     /** Mit Bildmarke in der Mitte. */
     public const LOGO = 'logo';
 
+    /** Das Etikett, Code in der Schriftfarbe. */
+    public const LABEL = 'label';
+
+    /** Dasselbe Etikett, Code in der eingestellten Farbe. */
+    public const LABEL_COLOR = 'label_color';
+
     private function __construct()
     {
     }
@@ -29,11 +35,23 @@ final class Variant
      */
     public static function all(): array
     {
-        return [self::PLAIN, self::LOGO];
+        return [self::PLAIN, self::LOGO, self::LABEL, self::LABEL_COLOR];
     }
 
     public static function isKnown(string $variant): bool
     {
         return in_array($variant, self::all(), true);
+    }
+
+    /**
+     * Ob dieser Typ ein Etikett ist, also Rahmen, Bildmarke daneben und Text
+     * mitbringt statt nur des Symbols.
+     *
+     * Die Unterscheidung faellt an genug Stellen an, dass sie einmal hier
+     * stehen soll und nicht viermal als `=== LABEL || === LABEL_COLOR`.
+     */
+    public static function isLabel(string $variant): bool
+    {
+        return $variant === self::LABEL || $variant === self::LABEL_COLOR;
     }
 }

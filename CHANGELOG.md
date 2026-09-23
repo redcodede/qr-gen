@@ -17,6 +17,44 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 - Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
   ankommt
 
+## [2.1.0] - 2026-09-23
+
+**Das Etikett kommt in der Statamic-Hülle an.** `2.0.0` hat es in den Kern
+gebracht, wo es die Demo-Seite gerendert hat; die Hülle kannte es nicht. Wer
+`2.0.0` in eine Seite eingebaut hat, sah dort weiterhin zwei Codes und im
+Control Panel vier Schalter. Das ist der Grund, warum diese Fassung so schnell
+auf die letzte folgt.
+
+### Hinzugefügt
+
+- **Zwei neue Typen**, `label` und `label_color`, in `Qr\Settings\Variant`.
+  Damit rendert `{{ qr_gen }}` bis zu vier Panels, und die Bild-Route liefert
+  sie als SVG und als PNG, mit eigenem Dateinamen je Typ
+- **Text und Farbe des Etiketts im Control Panel**, unter Werkzeuge, QR-Codes.
+  Der Text ist auf 72 Zeichen begrenzt, die Farbe ist Statamics eigener
+  `color`-Fieldtype
+- `Statamic\Fonts` öffnet die mitgelieferte Schrift, einmal je Anfrage. Der
+  Kern liest keine Dateien, also tut es die Hülle, wie `Artwork` für Bildmarken
+- `Symbols::image()` ist die eine Stelle, an der ein Typ zu einem Renderer
+  wird. Vorschau und Download gehen beide hindurch, damit der Knopf liefert,
+  was daneben zu sehen ist
+- `EffectiveSettings::shows()` beantwortet für alle vier Typen, ob sie hier
+  erscheinen. Vorher stand die Regel im Tag und noch einmal im Controller
+- **Ein Test für `{{ qr_gen }}`**, den es bis hierher nicht gab. Genau deshalb
+  konnten 483 grüne Tests eine Hülle bescheinigen, die das halbe Paket nicht
+  kannte
+
+### Geändert
+
+- **Ohne gesetzte Farbe gibt es das farbige Etikett nicht**, wie es die
+  Variante mit Bildmarke ohne Bildmarke nicht gibt. Einen Ton mitzuliefern
+  hieße, die Farbe eines Hauses in ein allgemeines Paket zu schreiben
+- Ein global abgeschalteter Typ ist auch über eine alte signierte Adresse nicht
+  mehr zu bekommen. Für die Formate galt das schon, für die Typen nicht
+- Die Hinweise im Control Panel sagten weiterhin „global oder an der Seite" und
+  „gilt, wo eine Seite keine eigene angibt". Seit `2.0.0` gibt es keine Seite
+  mehr, die etwas angibt
+
 ## [2.0.0] - 2026-09-23
 
 **Ein neuer Major, und zwar wegen des Rückbaus, nicht wegen des Etiketts.** Seit
@@ -812,7 +850,8 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/redcodede/qr-gen/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/redcodede/qr-gen/compare/v1.0.1...v2.0.0
 [1.0.1]: https://github.com/redcodede/qr-gen/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/redcodede/qr-gen/compare/v0.13.1...v1.0.0

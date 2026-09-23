@@ -130,10 +130,14 @@ final class SettingsStoreTest extends TestCase
         $eingabe = [
             'variant_plain' => false,
             'variant_logo' => true,
+            'variant_label' => true,
+            'variant_label_color' => false,
             'download_svg' => false,
             'download_png' => true,
             'default_url' => 'https://beispiel.test',
             'default_logo' => 'marken/probe.svg',
+            'label_text' => 'Rückgabe über das GVÖ-SYSTEM',
+            'label_color' => '#009877',
         ];
 
         // Jede Fassung bekommt eigene Texte, damit der Rundlauf keine
@@ -165,15 +169,21 @@ final class SettingsStoreTest extends TestCase
         SettingsStore::save([
             'variant_plain' => true,
             'variant_logo' => false,
+            'variant_label' => true,
+            'variant_label_color' => false,
             'download_svg' => true,
             'download_png' => true,
+            'label_text' => 'Rückgabe über das GVÖ-SYSTEM',
+            'label_color' => '#009877',
         ]);
 
         self::assertSame([
-            'variants' => ['plain' => true, 'logo' => false],
+            'variants' => ['plain' => true, 'logo' => false, 'label' => true, 'label_color' => false],
             'downloads' => ['svg' => true, 'png' => true],
             'logo' => null,
             'url' => null,
+            'label_text' => 'Rückgabe über das GVÖ-SYSTEM',
+            'code_color' => '#009877',
             'texts' => [],
         ], SettingsStore::stored());
     }

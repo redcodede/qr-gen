@@ -162,6 +162,9 @@ return [
         . 'only thing entered per place is the target URL in the Blueprint.',
 
     'cp.section.variants' => 'What is offered',
+    'cp.section.label' => 'The label',
+    'cp.section.label.hint' => 'Applies to both labels. The measurements come from the delivered '
+        . 'artwork and are not a setting.',
     'cp.section.texts' => 'Text on the page',
     'cp.section.texts.site' => 'Text on the page (:site)',
     'cp.section.defaults' => 'Fallback values',
@@ -169,10 +172,24 @@ return [
 
     'cp.variants.plain' => 'Code without artwork',
     'cp.variants.plain.hint' => 'The plain code. Without it only the artwork variant remains, and '
-        . 'that one exists only where artwork is set.',
+        . 'that one exists only when artwork is set.',
     'cp.variants.logo' => 'Code with artwork',
-    'cp.variants.logo.hint' => 'Appears only where artwork is set — globally or on the page. '
-        . 'Without artwork it is silently dropped; that is not a misconfiguration.',
+    'cp.variants.logo.hint' => 'Appears only when artwork is set below. Without it the variant is '
+        . 'silently dropped; that is not a misconfiguration.',
+    'cp.variants.label' => 'Label, dark symbol',
+    'cp.variants.label.hint' => 'Symbol, artwork beside it and type in one image, at the '
+        . 'measurements of the delivered file. The symbol takes the type colour.',
+    'cp.variants.labelColor' => 'Label, coloured symbol',
+    'cp.variants.labelColor.hint' => 'The same label with the symbol in the colour set below. '
+        . 'Without a colour it is silently dropped, like the artwork variant without artwork.',
+
+    'cp.label.text' => 'Text on the label',
+    'cp.label.text.hint' => 'Sits to the right of the symbol. At most :max characters. The type '
+        . 'wraps and shrinks until it fits its box; if that is not enough the label is refused '
+        . 'rather than set too small to read. Leaving it empty means a label without type.',
+    'cp.label.color' => 'Colour of the symbol',
+    'cp.label.color.hint' => 'For the coloured label only. The value is RGB; which CMYK it '
+        . 'becomes on press is the printer\'s call. Without a colour there is no coloured label.',
 
     'cp.downloads.svg' => 'Download SVG',
     'cp.downloads.svg.hint' => 'The format for the printer. Scales without loss.',
@@ -180,12 +197,12 @@ return [
     'cp.downloads.png.hint' => 'The companion for screen, office and email. Computed from the '
         . 'print size rather than from a pixel count.',
 
-    'cp.defaultLogo' => 'Default artwork',
-    'cp.defaultLogo.hint' => 'Applies where a page names none of its own. SVG is the better '
-        . 'delivery, a PNG works too. Leaving it empty is fine: the artwork variant then exists '
-        . 'only where a page brings its own.',
+    'cp.defaultLogo' => 'Artwork',
+    'cp.defaultLogo.hint' => 'Applies everywhere alike, in the code and on the label. SVG is the '
+        . 'better delivery, a PNG works too. Leaving it empty is fine: the artwork variant is '
+        . 'then dropped and the label stays without a mark.',
     'cp.defaultUrl' => 'Default URL',
-    'cp.defaultUrl.hint' => 'Applies where a page names none of its own. A full address with '
+    'cp.defaultUrl.hint' => 'Applies where no address is entered in a place. A full address with '
         . 'http or https. What is entered is what is processed — no adding or removing of www.',
 
     'cp.fixed.hint' => 'These values are settled, not configured. An approved print proof holds '
@@ -228,4 +245,5 @@ return [
     'panel.failure' => 'This code was not produced: :grund',
     'panel.alt' => 'QR code',
     'panel.alt.logo' => 'QR code with artwork',
+    'panel.alt.label' => 'Label with QR code, artwork and type',
 ];

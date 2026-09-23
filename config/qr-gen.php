@@ -30,7 +30,29 @@ return [
     'variants' => [
         'plain' => true,
         'logo' => true,
+        'label' => true,
+        'label_color' => true,
     ],
+
+    /*
+     * Der Aufdruck des Etiketts.
+     *
+     * Steht rechts neben dem Code, höchstens 72 Zeichen. Der Satz bricht um und
+     * verkleinert sich, bis er in seinen Kasten passt; reicht das nicht, wird
+     * das Etikett abgelehnt. `null` heißt: Etikett ohne Text, und das ist kein
+     * Fehler.
+     */
+    'label_text' => null,
+
+    /*
+     * Die Codefarbe des farbigen Etiketts, als `#rrggbb`.
+     *
+     * Ohne Wert gibt es diesen Typ nicht, genau wie es die Variante mit
+     * Bildmarke ohne Bildmarke nicht gibt. Einen Ton mitzuliefern hieße, die
+     * Farbe eines Hauses in ein allgemeines Paket zu schreiben, und ein zweites
+     * Etikett in der Farbe des ersten wäre ohnehin keins.
+     */
+    'code_color' => null,
 
     /*
      * Welche Formate zum Herunterladen angeboten werden.

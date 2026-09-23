@@ -9,7 +9,7 @@ PNG**. Dazu die Statamic-Anbindung: ein Tag für die Seite, eine signierte
 Bild-Route, eine Einstellungsseite im Control Panel und ein Fieldset für
 Blueprints. Was hier unter „geplant" steht, existiert nicht.
 
-Geprüft am 23.09.2026 auf PHP 8.4: **483 Tests, 31618 Assertions, grün.**
+Geprüft am 23.09.2026 auf PHP 8.4: **495 Tests, 31692 Assertions, grün.**
 
 **`1.0` heißt: der Funktionsumfang der Erstfreigabe steht und die öffentliche
 API ist ab hier stabil.** Es heißt nicht, dass ein Andruck abgenommen wäre —
@@ -1009,19 +1009,27 @@ der Hülle. Fehlt das Asset oder lehnt der Sanitizer es ab, gibt es **kein
 
 ### Im Control Panel
 
-Unter **Werkzeuge → QR-Codes** stehen die globalen Einstellungen: welche Codes
-angeboten werden, welche Formate zum Herunterladen, Default-Bildmarke und
-Default-URL, dazu Überschrift und Einleitung der Seite — **ein Block je
-Sprachfassung**, die Fassungen kommen aus Statamic und nicht aus einer Liste im
-Paket.
+Unter **Werkzeuge → QR-Codes** stehen die globalen Einstellungen: welche der
+vier Typen angeboten werden, welche Formate zum Herunterladen, Bildmarke und
+Default-URL, Text und Farbe des Etiketts, dazu Überschrift und Einleitung der
+Seite — **ein Block je Sprachfassung**, die Fassungen kommen aus Statamic und
+nicht aus einer Liste im Paket.
+
+**Zwei Typen hängen an einem Wert und entfallen sonst lautlos.** „Code mit
+Bildmarke" gibt es nur, wenn eine Bildmarke hinterlegt ist, und „Etikett,
+farbiger Code" nur, wenn eine Farbe gesetzt ist. Beides ist keine
+Fehlkonfiguration, sondern die Antwort auf „was soll ich sonst zeigen": zwei
+Etiketten in derselben Farbe wären keine zwei.
 
 Ein leeres Textfeld heißt „nimm den mitgelieferten Text" und nicht „zeig
 nichts". Deshalb steht der mitgelieferte Text auch nicht vorausgefüllt im
 Formular: wer ihn einmal speichert, hat ihn von da an als eigenen und bekommt
 eine spätere Verbesserung des Pakets nicht mehr mit.
 
-Die Beschriftung der beiden Codes bleibt im Textkatalog und ist keine
-Einstellung: sie benennt, was das Paket erzeugt, und ändert sich mit ihm.
+Die Beschriftung der vier Codes bleibt im Textkatalog und ist keine
+Einstellung: sie benennt, was das Paket erzeugt, und ändert sich mit ihm. Der
+**Text auf dem Etikett** ist etwas anderes und deshalb ein Feld: er steht im
+erzeugten Bild und geht auf eine Verpackung.
 
 Die Seite rendert Statamics eigene `publish-form`-Komponente. Kein eigenes
 Vue, kein Build im Paket: Speichern, Validierung, Toast und Strg+S kommen mit,
@@ -1283,7 +1291,8 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `1.0.0` | **Erstfreigabe.** Funktionsumfang steht, öffentliche API ab hier stabil |
 | `1.0.1` | Veröffentlicht: Projektbezug raus, Installation über Packagist |
 | `2.0.0` | **Etikett mit Schrift und Bildmarke, Rückbau auf eine Konfigurationsebene.** Breaking: `PageSettings`, `qr_logo`, `qr_variants` und die Tag-Parameter `logo` und `variants` sind weg |
-| `2.1.0` | geplant: Code- und Token-Erzeugung |
+| `2.1.0` | Das Etikett in der Statamic-Hülle: zwei neue Typen, Text und Farbe im Control Panel, Tag und Bild-Route |
+| `2.2.0` | geplant: Code- und Token-Erzeugung |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):
 `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `build:`. Ein `!`

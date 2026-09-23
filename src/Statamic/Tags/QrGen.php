@@ -62,10 +62,11 @@ class QrGen extends Tags
 
         $panels = [];
 
-        foreach ([Variant::PLAIN, Variant::LOGO] as $variant) {
-            $zeigen = $variant === Variant::PLAIN ? $effective->showsPlain() : $effective->showsLogo();
-
-            if (!$zeigen) {
+        // In der Reihenfolge, die Variant::all() nennt. Welche davon erscheinen,
+        // steht in den Einstellungen, und die Regel dafuer steht einmal in
+        // EffectiveSettings::shows() statt hier als Kette von Bedingungen.
+        foreach (Variant::all() as $variant) {
+            if (!$effective->shows($variant)) {
                 continue;
             }
 

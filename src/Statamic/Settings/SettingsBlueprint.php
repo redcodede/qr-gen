@@ -28,6 +28,15 @@ use Statamic\Facades\Site;
  */
 final class SettingsBlueprint
 {
+    /**
+     * Zeichen, die auf ein Etikett passen, vereinbart am 23.09.2026.
+     *
+     * Eine Zusicherung ist es nicht: was wirklich passt, hängt von den Zeichen
+     * ab, und `Qr\Layout\LabelText` misst das. Das Limit hier steht im
+     * Formular, damit niemand erst beim Speichern erfährt, dass es eins gibt.
+     */
+    public const LABEL_TEXT_LIMIT = 72;
+
     private function __construct()
     {
     }
@@ -99,8 +108,35 @@ final class SettingsBlueprint
                 'fields' => [
                     'variant_plain' => self::toggle('cp.variants.plain'),
                     'variant_logo' => self::toggle('cp.variants.logo'),
+                    'variant_label' => self::toggle('cp.variants.label'),
+                    'variant_label_color' => self::toggle('cp.variants.labelColor'),
                     'download_svg' => self::toggle('cp.downloads.svg'),
                     'download_png' => self::toggle('cp.downloads.png'),
+                ],
+            ],
+            'label' => [
+                'display' => __('qr-gen::texts.cp.section.label'),
+                'instructions' => __('qr-gen::texts.cp.section.label.hint'),
+                'fields' => [
+                    'label_text' => [
+                        'type' => 'text',
+                        'input_type' => 'text',
+                        'display' => __('qr-gen::texts.cp.label.text'),
+                        'instructions' => __('qr-gen::texts.cp.label.text.hint', [
+                            'max' => self::LABEL_TEXT_LIMIT,
+                        ]),
+                        'instructions_position' => 'above',
+                        'character_limit' => self::LABEL_TEXT_LIMIT,
+                        'width' => 50,
+                    ],
+                    'label_color' => [
+                        'type' => 'color',
+                        'display' => __('qr-gen::texts.cp.label.color'),
+                        'instructions' => __('qr-gen::texts.cp.label.color.hint'),
+                        'instructions_position' => 'above',
+                        'lock_opacity' => true,
+                        'width' => 50,
+                    ],
                 ],
             ],
             'defaults' => [

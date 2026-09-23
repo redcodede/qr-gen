@@ -168,6 +168,9 @@ return [
         . 'Das Einzige, was daneben je Stelle eingetragen wird, ist die Ziel-URL im Blueprint.',
 
     'cp.section.variants' => 'Was angeboten wird',
+    'cp.section.label' => 'Das Etikett',
+    'cp.section.label.hint' => 'Gilt für beide Etiketten. Die Maße kommen aus der gelieferten '
+        . 'Vorlage und sind nicht einstellbar.',
     'cp.section.texts' => 'Texte auf der Seite',
     'cp.section.texts.site' => 'Texte auf der Seite (:site)',
     'cp.section.defaults' => 'Rückfallwerte',
@@ -175,10 +178,26 @@ return [
 
     'cp.variants.plain' => 'Code ohne Bildmarke',
     'cp.variants.plain.hint' => 'Der schlichte Code. Ohne ihn bleibt nur die Variante mit '
-        . 'Bildmarke, und die gibt es nur, wo eine Bildmarke hinterlegt ist.',
+        . 'Bildmarke, und die gibt es nur, wenn eine Bildmarke hinterlegt ist.',
     'cp.variants.logo' => 'Code mit Bildmarke',
-    'cp.variants.logo.hint' => 'Erscheint nur, wo eine Bildmarke hinterlegt ist — global oder '
-        . 'an der Seite. Ohne Bildmarke entfällt er lautlos, das ist keine Fehlkonfiguration.',
+    'cp.variants.logo.hint' => 'Erscheint nur, wenn unten eine Bildmarke hinterlegt ist. Ohne '
+        . 'sie entfällt er lautlos, das ist keine Fehlkonfiguration.',
+    'cp.variants.label' => 'Etikett, dunkler Code',
+    'cp.variants.label.hint' => 'Code, Bildmarke daneben und Text in einem Bild, in den Maßen '
+        . 'der Vorlage. Der Code steht in der Schriftfarbe.',
+    'cp.variants.labelColor' => 'Etikett, farbiger Code',
+    'cp.variants.labelColor.hint' => 'Dasselbe Etikett mit dem Code in der Farbe unten. Ohne '
+        . 'gesetzte Farbe entfällt es lautlos, wie die Variante ohne Bildmarke.',
+
+    'cp.label.text' => 'Text auf dem Etikett',
+    'cp.label.text.hint' => 'Steht rechts neben dem Code. Höchstens :max Zeichen. Der Satz '
+        . 'bricht um und verkleinert sich, bis er in den Kasten passt; reicht das nicht, wird '
+        . 'das Etikett abgelehnt statt unleserlich gesetzt. Leer lassen heißt: Etikett ohne '
+        . 'Text.',
+    'cp.label.color' => 'Farbe des Codes',
+    'cp.label.color.hint' => 'Nur für das farbige Etikett. Der Wert ist RGB; welches CMYK im '
+        . 'Andruck daraus wird, entscheidet die Druckerei. Ohne Farbe gibt es das farbige '
+        . 'Etikett nicht.',
 
     'cp.downloads.svg' => 'SVG herunterladen',
     'cp.downloads.svg.hint' => 'Das Format für die Druckerei. Verlustfrei skalierbar.',
@@ -186,13 +205,14 @@ return [
     'cp.downloads.png.hint' => 'Die Beilage für Bildschirm, Office und E-Mail. Gerechnet aus '
         . 'der Druckgröße, nicht aus einer Pixelzahl.',
 
-    'cp.defaultLogo' => 'Default-Bildmarke',
-    'cp.defaultLogo.hint' => 'Gilt, wo eine Seite keine eigene angibt. SVG ist die bessere '
-        . 'Zulieferung, ein PNG geht auch. Leer lassen ist erlaubt: dann gibt es die Variante '
-        . 'mit Bildmarke nur dort, wo eine Seite selbst eine mitbringt.',
+    'cp.defaultLogo' => 'Bildmarke',
+    'cp.defaultLogo.hint' => 'Gilt überall gleich, im Code und auf dem Etikett. SVG ist die '
+        . 'bessere Zulieferung, ein PNG geht auch. Leer lassen ist erlaubt: dann entfällt die '
+        . 'Variante mit Bildmarke, und das Etikett bleibt ohne Marke.',
     'cp.defaultUrl' => 'Default-URL',
-    'cp.defaultUrl.hint' => 'Gilt, wo eine Seite keine eigene angibt. Eine volle Adresse mit '
-        . 'http oder https. Verarbeitet wird, was dasteht — kein Ergänzen oder Entfernen von www.',
+    'cp.defaultUrl.hint' => 'Gilt, wo an einer Stelle keine eigene eingetragen ist. Eine volle '
+        . 'Adresse mit http oder https. Verarbeitet wird, was dasteht — kein Ergänzen oder '
+        . 'Entfernen von www.',
 
     'cp.fixed.hint' => 'Diese Werte sind entschieden, nicht eingestellt. Ein freigegebener '
         . 'Andruck gilt für genau sie, und ein Feld, an dem jemand im Vorbeigehen dreht, würde '
@@ -235,4 +255,5 @@ return [
     'panel.failure' => 'Dieser Code ist nicht entstanden: :grund',
     'panel.alt' => 'QR-Code',
     'panel.alt.logo' => 'QR-Code mit Bildmarke',
+    'panel.alt.label' => 'Etikett mit QR-Code, Bildmarke und Text',
 ];

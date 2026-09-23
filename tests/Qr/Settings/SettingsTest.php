@@ -7,6 +7,7 @@ namespace Redcodede\QrGen\Tests\Qr\Settings;
 use PHPUnit\Framework\TestCase;
 use Redcodede\QrGen\Qr\Settings\EffectiveSettings;
 use Redcodede\QrGen\Qr\Settings\GlobalSettings;
+use Redcodede\QrGen\Qr\Settings\Variant;
 
 /**
  * Eine Ebene wird eingestellt, eine Angabe kommt je Stelle dazu.
@@ -117,11 +118,76 @@ final class SettingsTest extends TestCase
         self::assertFalse($effective->showsLogo());
     }
 
-    public function testBeideAbgeschaltetZeigtNichts(): void
+    public function testAlleAbgeschaltetZeigtNichts(): void
     {
-        $effective = EffectiveSettings::from(GlobalSettings::default()->withVariants(false, false));
+        $global = GlobalSettings::default()
+            ->withVariants(false, false)
+            ->withLabels(false, false);
 
-        self::assertFalse($effective->showsAnything());
+        self::assertFalse(EffectiveSettings::from($global)->showsAnything());
+    }
+
+    // ------------------------------------------------------------ Etikett ---
+
+    public function testDieEtikettenWerdenAngebotenWennEineFarbeSteht(): void
+    {
+        $global = GlobalSettings::default()
+            ->withLabelText('Rückgabe über das GVÖ-SYSTEM')
+            ->withCodeColor('#009877');
+
+        $effective = EffectiveSettings::from($global, 'https://stelle.example/');
+
+        self::assertTrue($effective->showsLabel());
+        self::assertTrue($effective->showsLabelColor());
+        self::assertSame('Rückgabe über das GVÖ-SYSTEM', $effective->labelText());
+        self::assertSame('#009877', $effective->codeColor());
+    }
+
+    /**
+     * Dieselbe Regel wie bei der Bildmarke: ohne Farbe kein farbiges Etikett.
+     * Sonst stuenden zwei Etiketten nebeneinander, die gleich aussehen, und
+     * niemand wuesste, warum es zwei sind.
+     */
+    public function testOhneFarbeEntfaelltDasFarbigeEtikett(): void
+    {
+        $effective = EffectiveSettings::from(GlobalSettings::default());
+
+        self::assertTrue($effective->showsLabel());
+        self::assertFalse($effective->showsLabelColor());
+        self::assertNull($effective->codeColor());
+    }
+
+    public function testEinAbgeschaltetesEtikettBleibtAusAuchMitFarbe(): void
+    {
+        $global = GlobalSettings::default()
+            ->withLabels(false, false)
+            ->withCodeColor('#009877');
+
+        $effective = EffectiveSettings::from($global);
+
+        self::assertFalse($effective->showsLabel());
+        self::assertFalse($effective->showsLabelColor());
+    }
+
+    /**
+     * Die Auskunft, ob ein Typ hier erscheint, liegt an einer Stelle. Vorher
+     * fragte der Tag anders als die Bild-Route, und die beiden haetten
+     * auseinanderlaufen koennen.
+     */
+    public function testShowsBeantwortetAlleVierTypen(): void
+    {
+        $global = GlobalSettings::default()
+            ->withVariants(true, false)
+            ->withLabels(true, true)
+            ->withCodeColor('#009877');
+
+        $effective = EffectiveSettings::from($global);
+
+        self::assertTrue($effective->shows(Variant::PLAIN));
+        self::assertFalse($effective->shows(Variant::LOGO), 'Abgeschaltet.');
+        self::assertTrue($effective->shows(Variant::LABEL));
+        self::assertTrue($effective->shows(Variant::LABEL_COLOR));
+        self::assertFalse($effective->shows('unsinn'));
     }
 
     /**
@@ -199,10 +265,18 @@ final class SettingsTest extends TestCase
 
     public function testOhneAngeboteneVarianteMeldetDasGlobaleObjektEs(): void
     {
-        self::assertFalse(GlobalSettings::default()->withVariants(false, false)->offersAnyVariant());
+        $nichts = GlobalSettings::default()->withVariants(false, false)->withLabels(false, false);
+
+        self::assertFalse($nichts->offersAnyVariant());
         self::assertFalse(GlobalSettings::default()->withDownloads(false, false)->offersAnyDownload());
         self::assertTrue(GlobalSettings::default()->offersAnyVariant());
         self::assertTrue(GlobalSettings::default()->offersAnyDownload());
+
+        // Ein einziger uebrig gebliebener Typ zaehlt auch.
+        self::assertTrue(
+            GlobalSettings::default()->withVariants(false, false)->offersAnyVariant(),
+            'Die Etiketten stehen noch.'
+        );
     }
 
     public function testDieObjekteSindUnveraenderlich(): void

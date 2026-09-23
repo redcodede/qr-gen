@@ -53,19 +53,20 @@ class ImageController
         abort_if($format === 'svg' && !$effective->offersSvg(), 404);
         abort_if($format === 'png' && !$effective->offersPng(), 404);
 
+        // Dasselbe Argument wie eine Zeile hoeher, fuer den Typ statt fuer das
+        // Format: ein abgeschalteter Typ ist auch ueber eine alte signierte
+        // Adresse nicht zu bekommen.
+        abort_unless($effective->shows($variant), 404);
+
         $logo = Artwork::load($request->query('logo'));
-        $mitMarke = $variant === Variant::LOGO && $logo !== null;
+        $mitMarke = Variant::isLabel($variant)
+            ? $logo !== null
+            : ($variant === Variant::LOGO && $logo !== null);
 
         abort_if($variant === Variant::LOGO && !$mitMarke, 404);
 
         try {
-            $matrix = Symbols::matrix($url, $mitMarke, $logo);
-
-            $renderer = $format === 'png'
-                ? Symbols::pngRenderer($mitMarke, $logo)
-                : Symbols::svgRenderer($mitMarke, $logo);
-
-            $bytes = $renderer->render($matrix);
+            [$bytes, $mime, $extension] = Symbols::image($url, $variant, $logo, $effective, $format);
         } catch (QrGenException $exception) {
             // Der Kern wirft mit Begruendung. Die gehoert ins Log, nicht als
             // 500er auf den Bildschirm.
@@ -87,11 +88,11 @@ class ImageController
         }
 
         $disposition = $request->boolean('download')
-            ? 'attachment; filename="' . self::filename($url, $mitMarke, $renderer->fileExtension()) . '"'
+            ? 'attachment; filename="' . self::filename($url, $variant, $mitMarke, $extension) . '"'
             : 'inline';
 
         return response($bytes, 200, [
-            'Content-Type' => $renderer->mimeType() . ($format === 'svg' ? '; charset=utf-8' : ''),
+            'Content-Type' => $mime . ($format === 'svg' ? '; charset=utf-8' : ''),
             'Content-Disposition' => $disposition,
             'Content-Length' => (string) strlen($bytes),
             'X-Content-Type-Options' => 'nosniff',
@@ -109,14 +110,23 @@ class ImageController
      * herunterlaedt, hat einen Ordner voll durchnummerierter Kopien, bei denen
      * niemand mehr sieht, welche zu wem gehoert.
      */
-    private static function filename(string $url, bool $mitMarke, string $extension): string
+    private static function filename(string $url, string $variant, bool $mitMarke, string $extension): string
     {
         $teile = (array) parse_url($url);
 
         $kennung = ($teile['host'] ?? '') . ' ' . ($teile['path'] ?? '');
         $slug = trim((string) preg_replace('/[^A-Za-z0-9]+/', '-', strtolower($kennung)), '-');
 
-        return 'qr-' . substr($slug === '' ? 'code' : $slug, 0, 60)
-            . ($mitMarke ? '-logo' : '') . '.' . $extension;
+        // Vier Typen, vier Dateinamen. Wer sie alle herunterlaedt, hat sie
+        // sonst viermal gleich benannt im Ordner liegen.
+        if ($variant === Variant::LABEL) {
+            $zusatz = '-etikett';
+        } elseif ($variant === Variant::LABEL_COLOR) {
+            $zusatz = '-etikett-farbig';
+        } else {
+            $zusatz = $mitMarke ? '-logo' : '';
+        }
+
+        return 'qr-' . substr($slug === '' ? 'code' : $slug, 0, 60) . $zusatz . '.' . $extension;
     }
 }

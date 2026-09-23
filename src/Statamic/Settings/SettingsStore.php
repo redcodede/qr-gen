@@ -151,6 +151,8 @@ final class SettingsStore
             'variants' => [
                 'plain' => (bool) ($values['variant_plain'] ?? false),
                 'logo' => (bool) ($values['variant_logo'] ?? false),
+                'label' => (bool) ($values['variant_label'] ?? false),
+                'label_color' => (bool) ($values['variant_label_color'] ?? false),
             ],
             'downloads' => [
                 'svg' => (bool) ($values['download_svg'] ?? false),
@@ -158,6 +160,8 @@ final class SettingsStore
             ],
             'logo' => self::firstAsset($values['default_logo'] ?? null),
             'url' => self::trimmedOrNull($values['default_url'] ?? null),
+            'label_text' => self::trimmedOrNull($values['label_text'] ?? null),
+            'code_color' => self::hexColor($values['label_color'] ?? null),
             'texts' => self::textsFromForm($values),
         ];
     }
@@ -213,10 +217,14 @@ final class SettingsStore
         $werte = [
             'variant_plain' => $settings->offersPlain(),
             'variant_logo' => $settings->offersLogo(),
+            'variant_label' => $settings->offersLabel(),
+            'variant_label_color' => $settings->offersLabelColor(),
             'download_svg' => $settings->offersSvg(),
             'download_png' => $settings->offersPng(),
             'default_logo' => $settings->defaultLogo(),
             'default_url' => $settings->defaultUrl(),
+            'label_text' => $settings->labelText(),
+            'label_color' => $settings->codeColor(),
         ];
 
         // Nur was tatsächlich gespeichert ist. Der mitgelieferte Text gehört
@@ -261,5 +269,36 @@ final class SettingsStore
         $trimmed = trim($value);
 
         return $trimmed === '' ? null : $trimmed;
+    }
+
+    /**
+     * Auf `#rrggbb` gebracht, oder null.
+     *
+     * Statamics Farbwaehler liefert je nach Modus drei, sechs oder acht
+     * Stellen. Der Rasterisierer des Etiketts nimmt nur sechs und lehnt alles
+     * andere ab, und eine Ablehnung beim Rendern waere die falsche Stelle: sie
+     * traefe den Besucher und nicht den, der die Farbe gesetzt hat. Also wird
+     * hier umgerechnet, bevor der Wert in die Datei geht.
+     *
+     * Ein Alphakanal wird abgeschnitten. Eine halbdurchsichtige Codefarbe gibt
+     * es im Druck nicht, und das Feld steht deshalb auf `lock_opacity`.
+     *
+     * @param mixed $value
+     */
+    private static function hexColor($value): ?string
+    {
+        $wert = self::trimmedOrNull($value);
+
+        if ($wert === null || preg_match('/^#?([0-9a-fA-F]{3,8})$/', $wert, $treffer) !== 1) {
+            return null;
+        }
+
+        $stellen = strtolower($treffer[1]);
+
+        if (strlen($stellen) === 3 || strlen($stellen) === 4) {
+            $stellen = $stellen[0] . $stellen[0] . $stellen[1] . $stellen[1] . $stellen[2] . $stellen[2];
+        }
+
+        return strlen($stellen) >= 6 ? '#' . substr($stellen, 0, 6) : null;
     }
 }
