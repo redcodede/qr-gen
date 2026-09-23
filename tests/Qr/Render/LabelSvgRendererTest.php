@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Redcodede\QrGen\Tests\Qr\Render;
 
+use DOMDocument;
 use PHPUnit\Framework\TestCase;
 use Redcodede\QrGen\Qr\Exception\TextRejected;
 use Redcodede\QrGen\Qr\Layout\LabelLayout;
+use Redcodede\QrGen\Qr\Logo\PngLogo;
+use Redcodede\QrGen\Qr\Logo\SvgLogo;
 use Redcodede\QrGen\Qr\ModuleMatrix;
 use Redcodede\QrGen\Qr\Render\LabelOptions;
 use Redcodede\QrGen\Qr\Render\LabelSvgRenderer;
@@ -157,6 +160,56 @@ final class LabelSvgRendererTest extends TestCase
         foreach (['<text', '<image', 'href', 'font-family', '@import', 'url('] as $needle) {
             self::assertStringNotContainsString($needle, $svg, sprintf('Found "%s".', $needle));
         }
+    }
+
+    /**
+     * **The case that got shipped broken.** Raster artwork comes in as
+     * `<image xlink:href="data:…">`, and without the namespace declared on the
+     * root the file is not well-formed XML.
+     *
+     * It is invisible in the one place a label is usually looked at: inside an
+     * HTML page the preview is read by the HTML parser, which does not care.
+     * Open the very same file on its own and the browser parses it as XML and
+     * shows an error instead of the label. So the assertion that matters is not
+     * "contains xmlns:xlink" but "parses", and that is what this does.
+     */
+    public function testALabelWithRasterArtworkIsWellFormedXml(): void
+    {
+        $logo = PngLogo::fromBinary(
+            (string) file_get_contents(__DIR__ . '/../../../demo/logos/qr-gen-demo.png')
+        );
+
+        $svg = self::renderer()->render(self::matrix(), self::ARTWORK_TEXT, $logo);
+
+        self::assertStringContainsString('xmlns:xlink="http://www.w3.org/1999/xlink"', $svg);
+        self::assertStringContainsString('xlink:href="data:image/png;base64,', $svg);
+
+        $document = new DOMDocument();
+        $previous = libxml_use_internal_errors(true);
+        $parsed = $document->loadXML($svg);
+        $errors = libxml_get_errors();
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        self::assertTrue($parsed, 'The label is not well-formed XML.');
+        self::assertSame([], array_map(static function ($error) {
+            return trim($error->message);
+        }, $errors));
+    }
+
+    /**
+     * Vector artwork needs no namespace, and declaring one nobody uses would be
+     * a line in every file for nothing.
+     */
+    public function testALabelWithVectorArtworkDeclaresNoXlink(): void
+    {
+        $logo = SvgLogo::fromMarkup(
+            (string) file_get_contents(__DIR__ . '/../../../demo/logos/qr-gen-demo.svg')
+        );
+
+        $svg = self::renderer()->render(self::matrix(), self::ARTWORK_TEXT, $logo);
+
+        self::assertStringNotContainsString('xmlns:xlink', $svg);
     }
 
     public function testEmptyTextLeavesTheLabelWithoutType(): void

@@ -17,6 +17,25 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 - Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
   ankommt
 
+## [2.1.1] - 2026-09-23
+
+### Behoben
+
+- **Ein Etikett mit einer Bildmarke aus Pixeln war kein gültiges XML.** Eine
+  solche Marke kommt als `<image xlink:href="data:…">` herein, und
+  `LabelSvgRenderer` hat den `xlink`-Namensraum nicht am Wurzelelement
+  deklariert. `SvgRenderer` tut das seit jeher; beim Etikett fehlte es.
+
+  Zu sehen war es nur an einer Stelle, und zwar der spätesten: **in einer Seite
+  eingebettet sah die Vorschau richtig aus**, weil der HTML-Parser das
+  hinnimmt, und **dieselbe Datei über „direkt öffnen" zeigte einen
+  Parserfehler** statt des Etiketts. Ein Etikett mit einer Vektormarke oder
+  ganz ohne Marke war nie betroffen, und die Tests rendern genau solche.
+
+  Neu ist deshalb ein Test, der ein Etikett mit einer Rastermarke erzeugt und
+  das Ergebnis durch einen XML-Parser schickt, statt nur nach der Deklaration
+  zu suchen.
+
 ## [2.1.0] - 2026-09-23
 
 **Das Etikett kommt in der Statamic-Hülle an.** `2.0.0` hat es in den Kern
@@ -850,7 +869,8 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v2.1.1...HEAD
+[2.1.1]: https://github.com/redcodede/qr-gen/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/redcodede/qr-gen/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/redcodede/qr-gen/compare/v1.0.1...v2.0.0
 [1.0.1]: https://github.com/redcodede/qr-gen/compare/v1.0.0...v1.0.1

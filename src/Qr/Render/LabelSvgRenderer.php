@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Redcodede\QrGen\Qr\Render;
 
 use Redcodede\QrGen\Qr\Contract\Logo;
+use Redcodede\QrGen\Qr\Contract\RasterArtwork;
 use Redcodede\QrGen\Qr\Exception\TextRejected;
 use Redcodede\QrGen\Qr\Layout\LabelLayout;
 use Redcodede\QrGen\Qr\Layout\LabelText;
@@ -38,6 +39,8 @@ final class LabelSvgRenderer
 {
     private const NS = 'http://www.w3.org/2000/svg';
 
+    private const XLINK_NS = 'http://www.w3.org/1999/xlink';
+
     /** @var LabelLayout */
     private $layout;
 
@@ -66,8 +69,9 @@ final class LabelSvgRenderer
         }
 
         $svg .= sprintf(
-            '<svg xmlns="%s" width="%smm" height="%smm" viewBox="0 0 %s %s" role="img">',
+            '<svg xmlns="%s"%s width="%smm" height="%smm" viewBox="0 0 %s %s" role="img">',
             self::NS,
+            $this->namespaces($logo),
             $this->number($this->layout->width()),
             $this->number($this->layout->height()),
             $this->number($this->layout->width()),
@@ -101,6 +105,24 @@ final class LabelSvgRenderer
     public function fileExtension(): string
     {
         return 'svg';
+    }
+
+    /**
+     * Der xlink-Namensraum, deklariert nur wenn ihn etwas benutzt.
+     *
+     * Eine Bildmarke, die schon Pixel ist, kommt als
+     * `<image xlink:href="data:…">` herein. Ohne die Deklaration am
+     * Wurzelelement ist die Datei **kein gültiges XML**, und das faellt genau
+     * dort auf, wo es am spaetesten stoert: im Browser sieht die Vorschau
+     * innerhalb einer Seite richtig aus, weil sie der HTML-Parser liest, und
+     * dieselbe Datei direkt geoeffnet zeigt einen Parserfehler. Dem SVG-Renderer
+     * des Symbols ist das bekannt, diesem hier war es das nicht.
+     */
+    private function namespaces(?Logo $logo): string
+    {
+        return $logo instanceof RasterArtwork
+            ? ' xmlns:xlink="' . self::XLINK_NS . '"'
+            : '';
     }
 
     private function background(): string

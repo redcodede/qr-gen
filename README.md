@@ -9,7 +9,7 @@ PNG**. Dazu die Statamic-Anbindung: ein Tag für die Seite, eine signierte
 Bild-Route, eine Einstellungsseite im Control Panel und ein Fieldset für
 Blueprints. Was hier unter „geplant" steht, existiert nicht.
 
-Geprüft am 23.09.2026 auf PHP 8.4: **495 Tests, 31692 Assertions, grün.**
+Geprüft am 23.09.2026 auf PHP 8.4: **497 Tests, 31697 Assertions, grün.**
 
 **`1.0` heißt: der Funktionsumfang der Erstfreigabe steht und die öffentliche
 API ist ab hier stabil.** Es heißt nicht, dass ein Andruck abgenommen wäre —
@@ -1292,6 +1292,7 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `1.0.1` | Veröffentlicht: Projektbezug raus, Installation über Packagist |
 | `2.0.0` | **Etikett mit Schrift und Bildmarke, Rückbau auf eine Konfigurationsebene.** Breaking: `PageSettings`, `qr_logo`, `qr_variants` und die Tag-Parameter `logo` und `variants` sind weg |
 | `2.1.0` | Das Etikett in der Statamic-Hülle: zwei neue Typen, Text und Farbe im Control Panel, Tag und Bild-Route |
+| `2.1.1` | Ein Etikett mit einer Bildmarke aus Pixeln war kein gültiges XML |
 | `2.2.0` | geplant: Code- und Token-Erzeugung |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):
