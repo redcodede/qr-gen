@@ -139,6 +139,40 @@ final class LabelLayout
         return new self();
     }
 
+    /**
+     * Das Etikett „Informationen zur Rückgabe", Vorlage vom 24.09.2026.
+     *
+     * Rahmen und Codefläche sind die der Standardfassung, aus der die Vorlage
+     * erkennbar entstanden ist. Ausgetauscht ist die rechte Hälfte: statt
+     * Bildmarke und eingegebenem Text eine feste Grafik aus Handy-Piktogramm
+     * und dem Satz „Informationen zur Rückgabe".
+     *
+     * Die Codefläche der Vorlage misst 28,75 x 28,80 bei x 3,82 und y 3,74,
+     * also bis zu 0,2 Millimeter neben der freigegebenen von 28,66 bei 3,90
+     * und 3,67. Gesetzt ist die freigegebene. Die Vorlage ist ein Rasterbild,
+     * und ihr Code ist ohnehin nicht der, der hier entsteht: wie viele Module
+     * er hat, hängt an der Adresse.
+     *
+     * Diese Grafik steht im Kasten der Bildmarke. Der Kasten hat **genau die
+     * Maße der mitgelieferten Datei**, damit sie unverkleinert und
+     * unverschoben dort landet, wo sie in der Vorlage steht; ein Test hält
+     * beides zusammen. Gemessen ist er an den Mitten der Rahmenlinien, siehe
+     * `resources/artwork/rueckgabe-information.svg`.
+     *
+     * Der Textkasten bleibt unbenutzt. Dieses Etikett nimmt keinen Text an.
+     */
+    public static function returnInfo(): self
+    {
+        $layout = new self();
+
+        $layout->logoX = 35.90;
+        $layout->logoY = 9.67;
+        $layout->logoWidth = 51.26;
+        $layout->logoHeight = 14.90;
+
+        return $layout;
+    }
+
     public function width(): float
     {
         return $this->width;
@@ -262,7 +296,11 @@ final class LabelLayout
         $left = $this->codeX - $this->frameInset;
         $top = $this->codeY - $this->frameInset;
         $bottom = ($this->height - $this->frameInset) - ($this->codeY + $this->codeSize);
-        $right = $this->textX - ($this->codeX + $this->codeSize);
+
+        // Rechts grenzt an, was näher liegt, Text oder Bildmarke. In der
+        // Standardfassung ist das der Text, beim Etikett „Informationen zur
+        // Rückgabe" die Grafik, deren Signallinien weiter nach links reichen.
+        $right = min($this->textX, $this->logoX) - ($this->codeX + $this->codeSize);
 
         return min($left, $top, $bottom, $right) / $moduleSize;
     }

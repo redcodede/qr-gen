@@ -22,6 +22,7 @@ use Redcodede\QrGen\Qr\Layout\LabelLayout;
 use Redcodede\QrGen\Qr\Logo\PngLogo;
 use Redcodede\QrGen\Qr\Preset;
 use Redcodede\QrGen\Qr\Render\LabelOptions;
+use Redcodede\QrGen\Qr\Settings\Variant;
 
 require __DIR__ . '/bootstrap.php';
 
@@ -59,6 +60,12 @@ $labelFailure = null;
 $labelColored = null;
 $labelColoredFailure = null;
 
+// Das Etikett „Informationen zur Rückgabe". Nimmt nichts aus der Adresszeile
+// außer der Adresse: Grafik, Text und Farben sind fest.
+$returnInfoLayout = LabelLayout::returnInfo();
+$returnInfo = null;
+$returnInfoFailure = null;
+
 if ($input['errors'] === []) {
     [$plain, $plainFailure] = tryRender($input['url'], $input['logo'], false, false);
     [$withLogo, $logoFailure] = tryRender($input['url'], $input['logo'], false, true);
@@ -75,6 +82,10 @@ if ($input['errors'] === []) {
         $labelText,
         $labelColor
     );
+
+    if ($effective->showsReturnInfo()) {
+        [$returnInfo, $returnInfoFailure] = tryReturnInfo($input['url']);
+    }
 
     if ($plain !== null) {
         $matrix = encode($input['url']);
@@ -435,6 +446,10 @@ function e(?string $value): string
                                 <input type="checkbox" name="g[variants][logo]" value="1"<?= $global->offersLogo() ? ' checked' : '' ?>>
                                 <?= e($texts->get('panel.logo')) ?>
                             </label>
+                            <label class="switch">
+                                <input type="checkbox" name="g[variants][<?= e(Variant::RETURN_INFO) ?>]" value="1"<?= $global->offersReturnInfo() ? ' checked' : '' ?>>
+                                <?= e($texts->get('panel.returnInfo')) ?>
+                            </label>
                         </div>
                     </div>
 
@@ -689,6 +704,48 @@ function e(?string $value): string
             <?php endif; ?>
         </div>
     </section>
+
+    <?php if ($effective->showsReturnInfo()): ?>
+    <?php
+    // Die Adresse ist das Einzige, was mitfährt. Bildmarke, Text und Farbe
+    // stünden sonst in der Adresse, ohne etwas zu tun.
+    $returnInfoQuery = ['url' => $input['url'], 'variant' => Variant::RETURN_INFO];
+
+    if ($texts->locale() !== 'de') {
+        $returnInfoQuery['lang'] = $texts->locale();
+    }
+    ?>
+    <section class="group group-label">
+        <header>
+            <h2><?= e($texts->get('group.returnInfo.heading')) ?></h2>
+            <p><?= e($texts->get('group.returnInfo.note', [
+                'width' => rtrim(rtrim(number_format($returnInfoLayout->width(), 2, ',', ''), '0'), ','),
+                'height' => rtrim(rtrim(number_format($returnInfoLayout->height(), 2, ',', ''), '0'), ','),
+            ])) ?></p>
+        </header>
+        <div class="group-body">
+            <div class="cols">
+                <div class="panel">
+                    <h2><?= e($texts->get('panel.returnInfo')) ?></h2>
+                    <?php if ($returnInfo !== null): ?>
+                        <div class="preview preview-label"><?= $returnInfo ?></div>
+                        <div class="actions">
+                            <?php if ($global->offersSvg()): ?>
+                                <a class="btn-link" href="<?= e('image.php?' . http_build_query($returnInfoQuery + ['download' => '1'])) ?>"><?= e($texts->get('panel.download.svg')) ?></a>
+                            <?php endif; ?>
+                            <?php if ($global->offersPng()): ?>
+                                <a class="btn-link" href="<?= e('image.php?' . http_build_query($returnInfoQuery + ['format' => 'png', 'download' => '1'])) ?>"><?= e($texts->get('panel.download.png')) ?></a>
+                            <?php endif; ?>
+                            <a class="btn-link btn-secondary" href="<?= e('image.php?' . http_build_query($returnInfoQuery)) ?>" target="_blank" rel="noopener"><?= e($texts->get('panel.raw')) ?></a>
+                        </div>
+                    <?php else: ?>
+                        <p class="failure"><?= e($returnInfoFailure ?? $texts->get('panel.nothing')) ?></p>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </section>
+    <?php endif; ?>
 
     <?php if ($matrix !== null): ?>
         <section class="group group-facts">

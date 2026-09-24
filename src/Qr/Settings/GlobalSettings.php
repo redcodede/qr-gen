@@ -42,6 +42,9 @@ final class GlobalSettings
     /** @var bool */
     private $labelColor = true;
 
+    /** @var bool */
+    private $returnInfo = true;
+
     /** @var string|null */
     private $defaultLogo;
 
@@ -89,6 +92,7 @@ final class GlobalSettings
         $settings->logo = self::boolean($values, 'variants.logo', $settings->logo);
         $settings->label = self::boolean($values, 'variants.label', $settings->label);
         $settings->labelColor = self::boolean($values, 'variants.label_color', $settings->labelColor);
+        $settings->returnInfo = self::boolean($values, 'variants.return_info', $settings->returnInfo);
         $settings->svg = self::boolean($values, 'downloads.svg', $settings->svg);
         $settings->png = self::boolean($values, 'downloads.png', $settings->png);
         $settings->defaultLogo = self::text($values, 'logo');
@@ -110,6 +114,7 @@ final class GlobalSettings
                 'logo' => $this->logo,
                 'label' => $this->label,
                 'label_color' => $this->labelColor,
+                'return_info' => $this->returnInfo,
             ],
             'downloads' => ['svg' => $this->svg, 'png' => $this->png],
             'logo' => $this->defaultLogo,
@@ -162,6 +167,14 @@ final class GlobalSettings
         return $clone;
     }
 
+    public function withReturnInfo(bool $returnInfo): self
+    {
+        $clone = clone $this;
+        $clone->returnInfo = $returnInfo;
+
+        return $clone;
+    }
+
     public function withLabelText(?string $text): self
     {
         $clone = clone $this;
@@ -196,6 +209,15 @@ final class GlobalSettings
     public function offersLabelColor(): bool
     {
         return $this->labelColor;
+    }
+
+    /**
+     * Das Etikett „Informationen zur Rückgabe". Es braucht nichts weiter als
+     * diesen Schalter: Grafik, Text und Farben sind fest.
+     */
+    public function offersReturnInfo(): bool
+    {
+        return $this->returnInfo;
     }
 
     public function labelText(): ?string
@@ -236,7 +258,7 @@ final class GlobalSettings
      */
     public function offersAnyVariant(): bool
     {
-        return $this->plain || $this->logo || $this->label || $this->labelColor;
+        return $this->plain || $this->logo || $this->label || $this->labelColor || $this->returnInfo;
     }
 
     public function offersAnyDownload(): bool

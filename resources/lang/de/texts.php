@@ -78,6 +78,12 @@ return [
     'label.facts' => 'Ruhezone :zone Module, ISO/IEC 18004 verlangt 4. Modulgröße :moduleSize '
         . 'Millimeter bei :moduleCount Modulen.',
 
+    'group.returnInfo.heading' => 'Etikett „Informationen zur Rückgabe"',
+    'group.returnInfo.note' => 'Ein Preset nach der Vorlage vom 24.09.2026, :width x :height '
+        . 'Millimeter. Rahmen, Piktogramm und Text sind fest, variabel ist allein der Code. Keine '
+        . 'Bildmarke und kein eigener Text: die Teilnahme am System steht erst hinter dem Code.',
+    'panel.returnInfo' => 'Etikett, Informationen zur Rückgabe',
+
     'resolution.url' => 'URL:',
     'resolution.logo' => 'Bildmarke:',
     'resolution.none' => 'keine',
@@ -169,8 +175,9 @@ return [
 
     'cp.section.variants' => 'Was angeboten wird',
     'cp.section.label' => 'Das Etikett',
-    'cp.section.label.hint' => 'Gilt für beide Etiketten. Die Maße kommen aus der gelieferten '
-        . 'Vorlage und sind nicht einstellbar.',
+    'cp.section.label.hint' => 'Gilt für die beiden Etiketten mit Bildmarke und Text, nicht für '
+        . 'das Etikett „Informationen zur Rückgabe". Die Maße kommen aus der gelieferten Vorlage und '
+        . 'sind nicht einstellbar.',
     'cp.section.texts' => 'Texte auf der Seite',
     'cp.section.texts.site' => 'Texte auf der Seite (:site)',
     'cp.section.defaults' => 'Rückfallwerte',
@@ -188,6 +195,11 @@ return [
     'cp.variants.labelColor' => 'Etikett, farbiger Code',
     'cp.variants.labelColor.hint' => 'Dasselbe Etikett mit dem Code in der Farbe unten. Ohne '
         . 'gesetzte Farbe entfällt es lautlos, wie die Variante ohne Bildmarke.',
+    'cp.variants.returnInfo' => 'Etikett „Informationen zur Rückgabe"',
+    'cp.variants.returnInfo.hint' => 'Code, Handy-Piktogramm und der Satz „Informationen zur '
+        . 'Rückgabe" in einem Bild, fest nach der Vorlage vom 24.09.2026. Ohne Bildmarke, ohne '
+        . 'eigenen Text, in Schwarz: variabel ist allein der Code. Die Felder unter „Das Etikett" '
+        . 'und die Bildmarke gelten hierfür nicht.',
 
     'cp.label.text' => 'Text auf dem Etikett',
     'cp.label.text.hint' => 'Steht rechts neben dem Code. Höchstens :max Zeichen. Der Satz '
@@ -256,4 +268,5 @@ return [
     'panel.alt' => 'QR-Code',
     'panel.alt.logo' => 'QR-Code mit Bildmarke',
     'panel.alt.label' => 'Etikett mit QR-Code, Bildmarke und Text',
+    'panel.alt.returnInfo' => 'Etikett mit QR-Code und dem Hinweis „Informationen zur Rückgabe"',
 ];

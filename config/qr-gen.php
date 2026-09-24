@@ -32,6 +32,10 @@ return [
         'logo' => true,
         'label' => true,
         'label_color' => true,
+
+        // Das Etikett „Informationen zur Rückgabe". Fest nach Vorlage, es
+        // liest keinen der Werte unten.
+        'return_info' => true,
     ],
 
     /*

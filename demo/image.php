@@ -12,6 +12,7 @@
  *   image.php?url=…&variant=logo                 SVG with artwork
  *   image.php?url=…&variant=label                the label, dark symbol
  *   image.php?url=…&variant=label-color          the label, symbol in label[color]
+ *   image.php?url=…&variant=return_info          das Etikett „Informationen zur Rückgabe"
  *   image.php?url=…&format=png&download=1        as a file
  *
  * Both formats carry artwork. Where the rasteriser cannot draw a particular
@@ -22,6 +23,8 @@
 declare(strict_types=1);
 
 namespace Redcodede\QrGen\Demo;
+
+use Redcodede\QrGen\Qr\Settings\Variant;
 
 require __DIR__ . '/bootstrap.php';
 
@@ -39,7 +42,16 @@ $variant = isset($_GET['variant']) && is_string($_GET['variant']) ? $_GET['varia
 $withLogo = $variant === 'logo';
 $wantsPng = isset($_GET['format']) && $_GET['format'] === 'png';
 
-if (isLabelVariant($variant)) {
+if ($variant === Variant::RETURN_INFO) {
+    // Fest nach Vorlage: keine Bildmarke, kein Text, keine Farbe aus der
+    // Adresszeile. Die Grafik ist ein Vektor aus Flächen, ein PNG gibt es
+    // deshalb immer.
+    $format = $wantsPng ? 'png' : 'svg';
+
+    [$image, $failure] = tryReturnInfo($input['url'], true, $format);
+    $renderer = returnInfoRendererFor($format, true);
+    $suffix = '-rueckgabeinformation';
+} elseif (isLabelVariant($variant)) {
     // Das Etikett trägt die Bildmarke immer, also entscheidet dieselbe Prüfung
     // wie bei der Variante mit Bildmarke, ob es davon ein PNG geben kann.
     $label = labelInput($_GET);

@@ -46,6 +46,7 @@ final class TagTest extends TestCase
         self::assertStringContainsString('qr-gen-panel--plain', $markup);
         self::assertStringContainsString('qr-gen-panel--label', $markup);
         self::assertStringContainsString('qr-gen-panel--label_color', $markup);
+        self::assertStringContainsString('qr-gen-panel--return_info', $markup);
 
         // Ohne hinterlegte Bildmarke entfaellt dieser eine, lautlos.
         self::assertStringNotContainsString('qr-gen-panel--logo', $markup);
@@ -54,6 +55,9 @@ final class TagTest extends TestCase
     /**
      * Die Etiketten tragen die Maße der Vorlage. Käme hier das nackte Symbol
      * heraus, sähe das Markup trotzdem vollständig aus.
+     *
+     * Das Etikett „Informationen zur Rückgabe" hat dieselben Außenmaße wie
+     * die beiden anderen und zählt deshalb mit.
      */
     public function testDieEtikettenHabenDieMasseDerVorlage(): void
     {
@@ -61,9 +65,9 @@ final class TagTest extends TestCase
         $markup = $this->render();
 
         self::assertSame(
-            2,
+            3,
             substr_count($markup, sprintf('viewBox="0 0 %s %s"', $layout->width(), $layout->height())),
-            'Es sollten genau zwei Etiketten im Markup stehen.'
+            'Es sollten genau drei Etiketten im Markup stehen.'
         );
     }
 
@@ -127,9 +131,64 @@ final class TagTest extends TestCase
     {
         $markup = $this->render();
 
-        // Drei Typen, je SVG, PNG und "direkt oeffnen".
-        self::assertSame(3, substr_count($markup, 'qr-gen-downloads'));
-        self::assertSame(9, substr_count($markup, '<a class='));
+        // Vier Typen, je SVG, PNG und "direkt oeffnen".
+        self::assertSame(4, substr_count($markup, 'qr-gen-downloads'));
+        self::assertSame(12, substr_count($markup, '<a class='));
+    }
+
+    // ---------------------------------------- Informationen zur Rückgabe ---
+
+    /**
+     * Die Vorschau im Panel des Etiketts „Informationen zur Rückgabe".
+     */
+    private function returnInfoPreview(): string
+    {
+        $markup = $this->render();
+
+        self::assertSame(1, preg_match(
+            '#qr-gen-panel--return_info.*?<div class="qr-gen-preview"[^>]*>(.*?)</div>#s',
+            $markup,
+            $treffer
+        ), 'Das Panel fehlt.');
+
+        return $treffer[1];
+    }
+
+    /**
+     * Variabel ist allein der Code. Text und Farbe der anderen Etiketten
+     * duerfen an diesem nichts aendern, auch nicht versehentlich.
+     */
+    public function testDasEtikettZurRueckgabeNimmtNichtsAusDenEinstellungen(): void
+    {
+        $mit = $this->returnInfoPreview();
+
+        config()->set('qr-gen.label_text', null);
+        config()->set('qr-gen.code_color', null);
+
+        self::assertSame($mit, $this->returnInfoPreview());
+        self::assertStringContainsString('<svg', $mit);
+    }
+
+    /**
+     * Die Vorlage ist reines Schwarz, nicht das `#1d1d1b` der anderen beiden.
+     */
+    public function testDasEtikettZurRueckgabeIstSchwarz(): void
+    {
+        $preview = $this->returnInfoPreview();
+
+        self::assertStringContainsString('#000000', $preview);
+        self::assertStringNotContainsString('#1d1d1b', $preview);
+        self::assertStringNotContainsString('#009877', $preview);
+    }
+
+    public function testDasEtikettZurRueckgabeLaesstSichAbschalten(): void
+    {
+        config()->set('qr-gen.variants.return_info', false);
+
+        $markup = $this->render();
+
+        self::assertStringNotContainsString('qr-gen-panel--return_info', $markup);
+        self::assertStringContainsString('qr-gen-panel--label', $markup);
     }
 
     public function testOhneAdresseKommtNichts(): void

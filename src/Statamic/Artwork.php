@@ -11,17 +11,46 @@ use Redcodede\QrGen\Qr\Logo\SvgLogo;
 use Statamic\Facades\Asset;
 
 /**
- * Holt eine Bildmarke aus einem Statamic-Asset.
+ * Holt eine Bildmarke aus einem Statamic-Asset, oder eine mitgelieferte Grafik.
  *
- * Das ist die einzige Stelle, an der das Paket ein Dateisystem anfasst, und sie
- * liegt bewusst in der Huelle. Der Kern nimmt Bytes, keinen Pfad: dieselbe
- * Bildmarke kann damit aus einem Asset, einer Testvorlage oder einem
- * Lieferordner kommen, ohne dass er den Unterschied kennt.
+ * Die Stelle liegt bewusst in der Huelle. Der Kern nimmt Bytes, keinen Pfad:
+ * dieselbe Bildmarke kann damit aus einem Asset, einer Testvorlage oder einem
+ * Lieferordner kommen, ohne dass er den Unterschied kennt. Dasselbe gilt fuer
+ * die Schrift, die {@see Fonts} oeffnet.
  */
 final class Artwork
 {
+    /** Der feste Teil des Etiketts „Informationen zur Rückgabe". */
+    private const RETURN_INFO = __DIR__ . '/../../resources/artwork/rueckgabe-information.svg';
+
+    /** @var Logo|null */
+    private static $returnInfo;
+
     private function __construct()
     {
+    }
+
+    /**
+     * Piktogramm und Text des Etiketts „Informationen zur Rückgabe".
+     *
+     * Kein Asset, sondern Teil des Pakets: die Grafik ist das Preset, und ein
+     * Redakteur soll sie nicht austauschen koennen. Einmal je Anfrage gelesen,
+     * wie die Schrift.
+     *
+     * Anders als {@see self::load()} faengt diese Methode nichts ab. Eine
+     * Bildmarke aus der Mediathek darf fehlen oder falsch sein, das ist eine
+     * Frage der Pflege. Lehnt der Kern die mitgelieferte Datei ab, ist das
+     * Paket kaputt, und das soll im Panel stehen statt still zu verschwinden.
+     *
+     * @throws QrGenException
+     */
+    public static function returnInfo(): Logo
+    {
+        if (self::$returnInfo === null) {
+            self::$returnInfo = SvgLogo::fromMarkup((string) file_get_contents(self::RETURN_INFO));
+        }
+
+        return self::$returnInfo;
     }
 
     /**

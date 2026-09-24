@@ -122,9 +122,60 @@ final class SettingsTest extends TestCase
     {
         $global = GlobalSettings::default()
             ->withVariants(false, false)
-            ->withLabels(false, false);
+            ->withLabels(false, false)
+            ->withReturnInfo(false);
 
         self::assertFalse(EffectiveSettings::from($global)->showsAnything());
+    }
+
+    // ---------------------------------------- Informationen zur Rückgabe ---
+
+    public function testDasEtikettZurRueckgabeIstEinEigenerTyp(): void
+    {
+        self::assertContains(Variant::RETURN_INFO, Variant::all());
+        self::assertTrue(Variant::isKnown(Variant::RETURN_INFO));
+
+        // Bildmarke und Text kommen hier nicht aus den Einstellungen, und
+        // genau das fragt isLabel().
+        self::assertFalse(Variant::isLabel(Variant::RETURN_INFO));
+    }
+
+    /**
+     * Es haengt an keinem anderen Wert. Ohne Bildmarke, ohne Text und ohne
+     * Farbe ist es trotzdem da, denn es bringt alles selbst mit.
+     */
+    public function testDasEtikettZurRueckgabeBrauchtNurSeinenSchalter(): void
+    {
+        $effective = EffectiveSettings::from(GlobalSettings::default(), 'https://stelle.example/');
+
+        self::assertNull($effective->logo());
+        self::assertNull($effective->labelText());
+        self::assertNull($effective->codeColor());
+        self::assertTrue($effective->showsReturnInfo());
+        self::assertTrue($effective->shows(Variant::RETURN_INFO));
+    }
+
+    public function testDasEtikettZurRueckgabeLaesstSichAbschalten(): void
+    {
+        $effective = EffectiveSettings::from(GlobalSettings::default()->withReturnInfo(false));
+
+        self::assertFalse($effective->showsReturnInfo());
+        self::assertFalse($effective->shows(Variant::RETURN_INFO));
+        self::assertTrue($effective->showsPlain(), 'Die anderen bleiben, wie sie sind.');
+    }
+
+    /**
+     * Eine gespeicherte Einstellung von vor diesem Typ kennt den Schluessel
+     * nicht. Er gilt dann als an, wie jeder fehlende Schalter.
+     */
+    public function testEineAeltereEinstellungOhneDenSchluesselBietetEsAn(): void
+    {
+        $global = GlobalSettings::fromArray([
+            'variants' => ['plain' => false, 'logo' => false, 'label' => true, 'label_color' => true],
+        ]);
+
+        self::assertTrue($global->offersReturnInfo());
+        self::assertFalse(GlobalSettings::fromArray(['variants' => ['return_info' => false]])->offersReturnInfo());
     }
 
     // ------------------------------------------------------------ Etikett ---
@@ -174,11 +225,12 @@ final class SettingsTest extends TestCase
      * fragte der Tag anders als die Bild-Route, und die beiden haetten
      * auseinanderlaufen koennen.
      */
-    public function testShowsBeantwortetAlleVierTypen(): void
+    public function testShowsBeantwortetAlleTypen(): void
     {
         $global = GlobalSettings::default()
             ->withVariants(true, false)
             ->withLabels(true, true)
+            ->withReturnInfo(true)
             ->withCodeColor('#009877');
 
         $effective = EffectiveSettings::from($global);
@@ -187,6 +239,7 @@ final class SettingsTest extends TestCase
         self::assertFalse($effective->shows(Variant::LOGO), 'Abgeschaltet.');
         self::assertTrue($effective->shows(Variant::LABEL));
         self::assertTrue($effective->shows(Variant::LABEL_COLOR));
+        self::assertTrue($effective->shows(Variant::RETURN_INFO));
         self::assertFalse($effective->shows('unsinn'));
     }
 
@@ -223,6 +276,7 @@ final class SettingsTest extends TestCase
     {
         $global = GlobalSettings::default()
             ->withVariants(true, false)
+            ->withReturnInfo(false)
             ->withDownloads(false, true)
             ->withDefaultLogo('marke.svg')
             ->withDefaultUrl('https://example.org/qr/7K4M2');
@@ -231,6 +285,7 @@ final class SettingsTest extends TestCase
 
         self::assertSame($global->toArray(), $again->toArray());
         self::assertFalse($again->offersLogo());
+        self::assertFalse($again->offersReturnInfo());
         self::assertTrue($again->offersPng());
         self::assertSame('marke.svg', $again->defaultLogo());
     }
@@ -255,6 +310,7 @@ final class SettingsTest extends TestCase
 
         self::assertTrue($global->offersPlain());
         self::assertTrue($global->offersLogo());
+        self::assertTrue($global->offersReturnInfo());
         self::assertTrue($global->offersSvg());
         self::assertTrue($global->offersPng());
         self::assertNull($global->defaultLogo());
@@ -265,7 +321,10 @@ final class SettingsTest extends TestCase
 
     public function testOhneAngeboteneVarianteMeldetDasGlobaleObjektEs(): void
     {
-        $nichts = GlobalSettings::default()->withVariants(false, false)->withLabels(false, false);
+        $nichts = GlobalSettings::default()
+            ->withVariants(false, false)
+            ->withLabels(false, false)
+            ->withReturnInfo(false);
 
         self::assertFalse($nichts->offersAnyVariant());
         self::assertFalse(GlobalSettings::default()->withDownloads(false, false)->offersAnyDownload());

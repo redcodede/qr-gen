@@ -131,7 +131,8 @@ function readInput(array $query, Translator $texts): array
             ->withDownloads(
                 checked($query, ['g', 'downloads', 'svg']),
                 checked($query, ['g', 'downloads', 'png'])
-            );
+            )
+            ->withReturnInfo(checked($query, ['g', 'variants', Variant::RETURN_INFO]));
     }
 
     // Das Einzige, was je Stelle verschieden sein darf. Seit dem 23.09.2026
@@ -560,6 +561,71 @@ function labelRendererFor(string $format, string $codeColor, bool $standalone)
     }
 
     return new LabelSvgRenderer($layout, labelFont(), $options->withXmlDeclaration($standalone));
+}
+
+/**
+ * Piktogramm und Text des Etiketts „Informationen zur Rückgabe", einmal je
+ * Anfrage gelesen.
+ *
+ * Dieselbe Datei, die `Statamic\Artwork::returnInfo()` öffnet. Die Demo liest
+ * sie selbst, weil der Kern keine Dateien anfasst und die Hülle hier nicht
+ * geladen ist.
+ *
+ * @throws QrGenException
+ */
+function returnInfoArtwork(): Logo
+{
+    static $artwork = null;
+
+    if ($artwork === null) {
+        $path = dirname(__DIR__) . '/resources/artwork/rueckgabe-information.svg';
+        $artwork = SvgLogo::fromMarkup((string) file_get_contents($path));
+    }
+
+    return $artwork;
+}
+
+/**
+ * Der Renderer des Etiketts „Informationen zur Rückgabe".
+ *
+ * Dieselben Werte wie `Statamic\Symbols::returnInfoRenderer()`: die feste
+ * Geometrie, reines Schwarz, und nichts aus der Adresszeile außer der Adresse.
+ *
+ * @return LabelSvgRenderer|LabelPngRenderer
+ */
+function returnInfoRendererFor(string $format, bool $standalone)
+{
+    $layout = LabelLayout::returnInfo();
+    $options = LabelOptions::default()
+        ->withCodeColor(Preset::DARK_COLOR)
+        ->withInkColor(Preset::DARK_COLOR)
+        ->withLightColor(Preset::LIGHT_COLOR);
+
+    if ($format === 'png') {
+        return new LabelPngRenderer($layout, labelFont(), $options);
+    }
+
+    return new LabelSvgRenderer($layout, labelFont(), $options->withXmlDeclaration($standalone));
+}
+
+/**
+ * Das Etikett „Informationen zur Rückgabe" für eine Adresse.
+ *
+ * **Fehlerkorrektur H wie im Plugin**, nicht die Stufe, die `encode()` für den
+ * Logokasten ausrechnet. Im Etikett liegt nichts im Symbol, und die Vorschau
+ * soll genau das Bild zeigen, das die Statamic-Installation liefert.
+ *
+ * @return array{0: string|null, 1: string|null} Das Bild, oder warum es keines gibt
+ */
+function tryReturnInfo(string $url, bool $standalone = false, string $format = 'svg'): array
+{
+    try {
+        $matrix = (new BaconQrEncoder())->encode($url, ErrorCorrection::high());
+
+        return [returnInfoRendererFor($format, $standalone)->render($matrix, '', returnInfoArtwork()), null];
+    } catch (QrGenException $exception) {
+        return [null, $exception->getMessage()];
+    }
 }
 
 /**

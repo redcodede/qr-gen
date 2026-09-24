@@ -117,12 +117,14 @@ class ImageController
         $kennung = ($teile['host'] ?? '') . ' ' . ($teile['path'] ?? '');
         $slug = trim((string) preg_replace('/[^A-Za-z0-9]+/', '-', strtolower($kennung)), '-');
 
-        // Vier Typen, vier Dateinamen. Wer sie alle herunterlaedt, hat sie
-        // sonst viermal gleich benannt im Ordner liegen.
+        // Ein Dateiname je Typ. Wer sie alle herunterlaedt, hat sie sonst
+        // mehrfach gleich benannt im Ordner liegen.
         if ($variant === Variant::LABEL) {
             $zusatz = '-etikett';
         } elseif ($variant === Variant::LABEL_COLOR) {
             $zusatz = '-etikett-farbig';
+        } elseif ($variant === Variant::RETURN_INFO) {
+            $zusatz = '-rueckgabeinformation';
         } else {
             $zusatz = $mitMarke ? '-logo' : '';
         }

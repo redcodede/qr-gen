@@ -73,6 +73,13 @@ return [
     'label.facts' => 'Quiet zone :zone modules, ISO/IEC 18004 asks for 4. Module size '
         . ':moduleSize millimetres at :moduleCount modules.',
 
+    'group.returnInfo.heading' => 'Label "Informationen zur Rückgabe"',
+    'group.returnInfo.note' => 'A preset after the artwork of 24 September 2026, :width x :height '
+        . 'millimetres. Frame, pictogram and type are fixed; the code is the only thing that '
+        . 'varies. No mark and no text of your own: taking part in the scheme is stated behind the '
+        . 'code, not on the pack.',
+    'panel.returnInfo' => 'Label, return information',
+
     'resolution.url' => 'URL:',
     'resolution.logo' => 'Artwork:',
     'resolution.none' => 'none',
@@ -163,8 +170,9 @@ return [
 
     'cp.section.variants' => 'What is offered',
     'cp.section.label' => 'The label',
-    'cp.section.label.hint' => 'Applies to both labels. The measurements come from the delivered '
-        . 'artwork and are not a setting.',
+    'cp.section.label.hint' => 'Applies to the two labels with artwork and type, not to the '
+        . '"Informationen zur Rückgabe" label. The measurements come from the delivered artwork and '
+        . 'are not a setting.',
     'cp.section.texts' => 'Text on the page',
     'cp.section.texts.site' => 'Text on the page (:site)',
     'cp.section.defaults' => 'Fallback values',
@@ -182,6 +190,11 @@ return [
     'cp.variants.labelColor' => 'Label, coloured symbol',
     'cp.variants.labelColor.hint' => 'The same label with the symbol in the colour set below. '
         . 'Without a colour it is silently dropped, like the artwork variant without artwork.',
+    'cp.variants.returnInfo' => 'Label "Informationen zur Rückgabe"',
+    'cp.variants.returnInfo.hint' => 'Symbol, phone pictogram and the words "Informationen zur '
+        . 'Rückgabe" in one image, fixed after the artwork of 24 September 2026. No mark, no text '
+        . 'of your own, in black: the code is the only thing that varies. The fields under "The '
+        . 'label" and the artwork do not apply to it.',
 
     'cp.label.text' => 'Text on the label',
     'cp.label.text.hint' => 'Sits to the right of the symbol. At most :max characters. The type '
@@ -246,4 +259,5 @@ return [
     'panel.alt' => 'QR code',
     'panel.alt.logo' => 'QR code with artwork',
     'panel.alt.label' => 'Label with QR code, artwork and type',
+    'panel.alt.returnInfo' => 'Label with QR code and the notice "Informationen zur Rückgabe"',
 ];

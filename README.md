@@ -3,13 +3,14 @@
 > Erzeugt aus einer URL einen QR-Code als SVG und als druckfertiges PNG. Zwei
 > Laufzeit-Abhängigkeiten, keine Bildextension, kein Framework im Kern.
 
-**Status: `1.0.0`, die erste Freigabe.** URL rein, zwei Codes raus — einer
-ohne, einer mit Bildmarke in der Mitte, **beide als SVG und als druckfertiges
-PNG**. Dazu die Statamic-Anbindung: ein Tag für die Seite, eine signierte
-Bild-Route, eine Einstellungsseite im Control Panel und ein Fieldset für
-Blueprints. Was hier unter „geplant" steht, existiert nicht.
+**Status: `2.2.0`, mit dem Etikett „Informationen zur Rückgabe".** URL rein,
+bis zu fünf Bilder raus — der Code ohne und mit Bildmarke in der Mitte, zwei
+Etiketten mit Bildmarke und Text und das Etikett „Informationen zur Rückgabe",
+**alle als SVG und als druckfertiges PNG**. Dazu die Statamic-Anbindung: ein Tag für die
+Seite, eine signierte Bild-Route, eine Einstellungsseite im Control Panel und
+ein Fieldset für Blueprints. Was hier unter „geplant" steht, existiert nicht.
 
-Geprüft am 23.09.2026 auf PHP 8.4: **497 Tests, 31697 Assertions, grün.**
+Geprüft am 24.09.2026 auf PHP 8.4: **516 Tests, 31785 Assertions, grün.**
 
 **`1.0` heißt: der Funktionsumfang der Erstfreigabe steht und die öffentliche
 API ist ab hier stabil.** Es heißt nicht, dass ein Andruck abgenommen wäre —
@@ -43,6 +44,9 @@ Zuschnitt in zwei Stufen.
 - [x] Matrix → SVG, ein einziger `<path>`, verlustfrei skalierbar
 - [x] **Das Etikett**: Code, Bildmarke daneben und zwei Zeilen Text in einem
       Bild, als SVG und als PNG. Siehe [Das Etikett](#das-etikett)
+- [x] **Das Etikett „Informationen zur Rückgabe"**: ein Preset ohne Bildmarke
+      und ohne Texteingabe, variabel ist allein der Code. Siehe
+      [Das Etikett „Informationen zur Rückgabe"](#das-etikett-informationen-zur-rückgabe)
 - [x] **Schrift als Umrisse**, aus einer mitgelieferten SVG-Schriftdatei. Kein
       `<text>`, keine Schriftinstallation beim Empfänger, kein TrueType-Parser
 - [x] **Logo in der Mitte**, mit Ruhezone darum, jedes Seitenverhältnis
@@ -89,9 +93,10 @@ Zuschnitt in zwei Stufen.
 ### Offen
 
 - [ ] Code- und Token-Erzeugung, `CodeRepository`-Interface
-- [ ] **Ein eigener Fieldtype für die Varianten.** Heute lässt sich eine Seite
-      auf „mit Bildmarke" stellen, während der Typ global abgeschaltet ist; es
-      kommt dann nichts, ohne dass im Formular stünde warum
+- [ ] **Das Etikett „Informationen zur Rückgabe" als Vektorvorlage.** Die
+      Vorlage kam als Rasterbild, Piktogramm und Text sind daraus nachgebaut.
+      Kommt sie als Vektordatei, wird nur
+      `resources/artwork/rueckgabe-information.svg` ersetzt
 - [ ] Elliptische Bögen (`A`) und Konturen im Rasterisierer. Bisher nicht
       gebraucht: keine der vorliegenden Zeichnungen benutzt beides
 - [ ] Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
@@ -398,6 +403,7 @@ Fremdpaket, der siebte ist unser.**
 | `resources/fonts/pt-sans-v18-latin/…-regular.svg` | **Die Schrift, aus der das Etikett gesetzt wird.** Eine SVG-Schriftdatei trägt jede Glyphe als Pfad und ihre Vorschubweite als Zahl. Das ist genau das, was ein TrueType-Parser ausrechnen müsste, nur schon hingeschrieben, und die Pfade versteht `PathFlattener` bereits. Deshalb liest `Qr\Text\SvgFont` diese Fassung und nicht die `ttf` |
 | `…-regular.ttf` | Die Quelle, aus der die SVG-Fassung erzeugt wurde. Vom Code nicht angefasst, liegt bei, damit sie sich neu erzeugen lässt |
 | `OFL.txt` | Der Lizenztext, siehe [Lizenz](#lizenz) |
+| `resources/artwork/rueckgabe-information.svg` | **Piktogramm und Text des Etiketts „Informationen zur Rückgabe"**, als eine Vektorgrafik in Millimetern. Nur Flächen, keine Konturen und keine Bögen, damit der Rasterisierer dieselbe Grafik ins PNG zeichnet. Der Text ist aus der Vorlage nachgezeichnet, nicht aus einer Schrift gesetzt, siehe [dort](#das-etikett-informationen-zur-rückgabe) |
 
 Die Webformate (`eot`, `woff`, `woff2`) liegen im Repository, sind aber per
 `export-ignore` aus dem Composer-Dist genommen: im Paket haben sie keine
@@ -848,6 +854,74 @@ Zwei Eigenheiten des PNG, die zu kennen sind:
   `pHYs`-Block trägt den tatsächlichen Wert. Die Datei druckt damit weiterhin
   in der Größe, die `LabelLayout` nennt
 
+#### Das Etikett „Informationen zur Rückgabe"
+
+Ein Preset nach der Vorlage vom 24.09.2026: derselbe Rahmen und dieselbe
+Codefläche, rechts daneben ein Handy-Piktogramm und der Satz „Informationen zur
+Rückgabe". **Variabel ist allein der Code.** Keine Bildmarke, kein
+eingegebener Text, keine Farbe.
+
+Das hat einen rechtlichen Grund: nach Art. 12 Abs. 9 PPWR darf die Teilnahme an
+einem System der erweiterten Herstellerverantwortung nur digital gekennzeichnet
+werden. Auf der Verpackung steht deshalb ein neutraler Hinweis, die Aussage
+selbst erst auf der Seite hinter dem Code.
+
+```php
+use Redcodede\QrGen\Qr\Layout\LabelLayout;
+use Redcodede\QrGen\Qr\Logo\SvgLogo;
+use Redcodede\QrGen\Qr\Preset;
+use Redcodede\QrGen\Qr\Render\LabelOptions;
+use Redcodede\QrGen\Qr\Render\LabelSvgRenderer;
+
+// Der feste Teil ist eine mitgelieferte Grafik. Der Kern öffnet keine
+// Dateien, also liest sie der Aufrufer, wie die Schrift ($font, siehe oben).
+$grafik = SvgLogo::fromMarkup(file_get_contents(
+    __DIR__ . '/resources/artwork/rueckgabe-information.svg'
+));
+
+$options = LabelOptions::default()
+    ->withCodeColor(Preset::DARK_COLOR)
+    ->withInkColor(Preset::DARK_COLOR);
+
+$svg = (new LabelSvgRenderer(LabelLayout::returnInfo(), $font, $options))
+    ->render($matrix, '', $grafik);
+```
+
+In der Statamic-Hülle steckt das in `Symbols::returnInfoRenderer()` und
+`Artwork::returnInfo()`; wer den Tag benutzt, braucht beides nicht.
+
+**Die Grafik sitzt im Kasten der Bildmarke, und der Kasten hat genau ihre
+Maße** (51,26 x 14,90 Millimeter bei x 35,90, y 9,67). Damit landet sie
+unverkleinert dort, wo sie in der Vorlage steht. Ein Test hält Datei und
+Kasten zusammen.
+
+**Die Vorlage ist ein Rasterbild** (1913 x 822 Pixel), und daraus folgt, wie die
+Grafik entstanden ist:
+
+- **Das Piktogramm ist aus Messwerten gebaut**: Gehäuse, zwei Striche, vier
+  Scan-Ecken, drei Signallinien, gemessen mit Subpixel-Genauigkeit und
+  übernommen, wie sie sind. Auch dort, wo die Vorlage nicht gleichmäßig ist:
+  der untere Strich ist 2,19 Millimeter breit, der obere 2,36, und die
+  senkrechten Gehäusekanten sind dicker als die waagerechten
+- **Der Text ist nachgezeichnet**, nicht aus einer Schrift gesetzt. Die Schrift
+  der Vorlage ist keine der geprüften freien Schriften; am nächsten kommen
+  Myriad und Frutiger, und die dürfen nicht ins Paket
+- **Abgeglichen gegen die Vorlage:** 97 % Deckung beim Text, 96 % beim
+  Piktogramm. Der Rest sind Kantenpixel, höchstens 0,05 Millimeter
+
+**Reines Schwarz, nicht `#1d1d1b`.** Die Vorlage vom 24.09.2026 ist
+`#000000`, die der beiden anderen Etiketten war das Illustrator-Schwarz. Für
+die Druckerei ist es dieselbe Anweisung: 100 % K.
+
+**Die Codefläche ist die freigegebene**, 28,66 Millimeter bei x 3,90, y 3,67.
+Die Vorlage misst 28,75 x 28,80 bei 3,82 und 3,74, liegt also bis zu 0,2
+Millimeter daneben. Ihr Code ist ohnehin nicht der, der hier entsteht.
+
+**Die Ruhezone rechts ist die schmalste.** Die Signallinien reichen näher an
+den Code als der Text der Standardfassung: 3,34 Millimeter statt 3,57. Bei 33
+Modulen sind das 3,8 Module, ISO/IEC 18004 verlangt 4. Das ist die Vorlage und
+eine Frage für den Andruck.
+
 ### Ausliefern
 
 Der Renderer gibt eine Zeichenkette zurück und schreibt nichts. Was daraus
@@ -920,18 +994,24 @@ Offen bleibt davon:
 
 ### In Statamic
 
-Der Tag baut beide Varianten, zeigt sie als Vorschau und verlinkt die
-Downloads:
+Der Tag baut jeden Typ, den die globalen Einstellungen anbieten, zeigt ihn als
+Vorschau und verlinkt die Downloads:
 
 ```antlers
 {{ qr_gen url="https://example.org/qr/7K4M2" }}
 ```
 
+| Typ | Panel-Klasse | Braucht |
+|---|---|---|
+| Code ohne Bildmarke | `qr-gen-panel--plain` | nichts |
+| Code mit Bildmarke | `qr-gen-panel--logo` | eine hinterlegte Bildmarke |
+| Etikett, dunkler Code | `qr-gen-panel--label` | nichts; Bildmarke und Text, wenn gesetzt |
+| Etikett, farbiger Code | `qr-gen-panel--label_color` | eine gesetzte Farbe |
+| Etikett „Informationen zur Rückgabe" | `qr-gen-panel--return_info` | nichts, es bringt alles mit |
+
 | Parameter | |
 |---|---|
 | `url` | die Adresse, die im Code steht. Ohne sie gibt der Tag nichts aus |
-| `logo` | Asset-Pfad der Bildmarke, mit oder ohne Container (`assets::pfad`) |
-| `variants` | `plain`, `logo` oder `plain\|logo`. Ohne Angabe beides, soweit global erlaubt |
 | `heading` | Ebene der Überschrift: `h1` bis `h5`, voreingestellt `h1`. Die Beschriftung der Codes rückt mit |
 | `button_class` | Klasse der Download-Knöpfe, voreingestellt `qr-gen-button` |
 | `button_class_secondary` | Klasse für „direkt öffnen" |
@@ -943,11 +1023,7 @@ einsetzen kann, ohne die Vorlage zu kopieren:
 {{ qr_gen :url="ziel_url" button_class="button" button_class_secondary="button outline" }}
 ```
 
-Aus einer Seite heraus mit Werten aus dem Eintrag:
-
-```antlers
-{{ qr_gen :url="ziel_url" :logo="logo_pfad" }}
-```
+Bildmarke und Typen sind seit `2.0.0` keine Parameter mehr, sie stehen global.
 
 Die **Vorschau steht als SVG direkt im Markup** und kostet keine zweite
 Anfrage. Nur Download und „direkt öffnen" laufen über die Bild-Route
@@ -1002,15 +1078,18 @@ maskiert — so ist an genau einer Stelle maskiert, und eine Vorlage, die sie
 ausgibt, kann nichts falsch machen.
 
 `Statamic\Artwork::load()` löst den Logo-Pfad zu einem Asset auf und
-entscheidet an der Dateiendung zwischen `PngLogo` und `SvgLogo`. Es ist die
-einzige Stelle im Paket, die ein Dateisystem anfasst, und sie liegt bewusst in
-der Hülle. Fehlt das Asset oder lehnt der Sanitizer es ab, gibt es **kein
-500er, sondern eine Warnung im Log und den Code ohne Bildmarke.**
+entscheidet an der Dateiendung zwischen `PngLogo` und `SvgLogo`. Datei-I/O
+liegt bewusst in der Hülle: hier, in `Artwork::returnInfo()` für die Grafik des
+Etiketts „Informationen zur Rückgabe" und in `Fonts` für die Schrift. Fehlt das
+Asset oder lehnt der Sanitizer es ab, gibt es **kein 500er, sondern eine
+Warnung im Log und den Code ohne Bildmarke.** Die mitgelieferte Grafik fängt
+nichts ab: lehnt der Kern sie ab, ist das Paket kaputt, und das steht dann im
+Panel.
 
 ### Im Control Panel
 
 Unter **Werkzeuge → QR-Codes** stehen die globalen Einstellungen: welche der
-vier Typen angeboten werden, welche Formate zum Herunterladen, Bildmarke und
+fünf Typen angeboten werden, welche Formate zum Herunterladen, Bildmarke und
 Default-URL, Text und Farbe des Etiketts, dazu Überschrift und Einleitung der
 Seite — **ein Block je Sprachfassung**, die Fassungen kommen aus Statamic und
 nicht aus einer Liste im Paket.
@@ -1021,12 +1100,18 @@ farbiger Code" nur, wenn eine Farbe gesetzt ist. Beides ist keine
 Fehlkonfiguration, sondern die Antwort auf „was soll ich sonst zeigen": zwei
 Etiketten in derselben Farbe wären keine zwei.
 
+**Das Etikett „Informationen zur Rückgabe" hat nur seinen Schalter.** Bildmarke,
+Text und Farbe darunter gelten dafür nicht; es ist fest nach Vorlage. Eine
+Einstellungsdatei von vor diesem Typ kennt den Schlüssel `variants.return_info`
+nicht, und wie jeder fehlende Schalter gilt er dann als an: nach dem Update
+erscheint das Etikett, bis es jemand abschaltet.
+
 Ein leeres Textfeld heißt „nimm den mitgelieferten Text" und nicht „zeig
 nichts". Deshalb steht der mitgelieferte Text auch nicht vorausgefüllt im
 Formular: wer ihn einmal speichert, hat ihn von da an als eigenen und bekommt
 eine spätere Verbesserung des Pakets nicht mehr mit.
 
-Die Beschriftung der vier Codes bleibt im Textkatalog und ist keine
+Die Beschriftung der Codes bleibt im Textkatalog und ist keine
 Einstellung: sie benennt, was das Paket erzeugt, und ändert sich mit ihm. Der
 **Text auf dem Etikett** ist etwas anderes und deshalb ein Feld: er steht im
 erzeugten Bild und geht auf eine Verpackung.
@@ -1108,8 +1193,8 @@ größere.
 
 | Datei | |
 |---|---|
-| `demo/index.php` | Formular, **beide Varianten nebeneinander**, Kennzahlen, Download-Knöpfe. Kein Text im Code, alles aus dem Katalog |
-| `demo/image.php` | liefert ein Bild allein; `?format=png`, `?variant=logo`, `?download=1` |
+| `demo/index.php` | Formular, **beide Codes nebeneinander**, die beiden Etiketten, das Etikett „Informationen zur Rückgabe" mit eigenem Schalter, Kennzahlen, Download-Knöpfe. Kein Text im Code, alles aus dem Katalog |
+| `demo/image.php` | liefert ein Bild allein; `?format=png`, `?variant=logo`, `?variant=return_info`, `?download=1` |
 | `demo/bootstrap.php` | Autoload, Eingabeprüfung, Objektaufbau |
 | `demo/logos/*.svg`, `*.png` | Testlogos, Vektor und Raster. Jedes SVG hier wird von `RealWorldLogoTest` durch die ganze Kette geschickt |
 
@@ -1144,14 +1229,15 @@ src/
     Settings/
       GlobalSettings.php   was angeboten wird, und die Rückfallwerte
       EffectiveSettings.php was mit der Adresse einer Stelle daraus gilt
-      Variant.php          die beiden Code-Arten, mit festen Namen
+      Variant.php          die Code-Arten, mit festen Namen
     Text/                  Schrift, ohne Schriftparser
       SvgFont.php          SVG-Schriftdatei → Glyphen mit Umriss und Vorschub
       Glyph.php            ein Zeichen: Vorschubweite und `d`
       TextLine.php         setzt und misst eine Zeile, verkleinert sie
       PlacedGlyph.php      eine gesetzte Glyphe mit ihrem Abstand
     Layout/                das Etikett, unabhängig vom Ausgabeformat
-      LabelLayout.php      die Maße: Fläche, Rahmen, Codeplatz, Logo, Textkasten
+      LabelLayout.php      die Maße: Fläche, Rahmen, Codeplatz, Logo, Textkasten;
+                           standard() und returnInfo()
       LabelText.php        Umbruch, Grad und Grundlinien, für beide Formate
     Render/
       SvgRenderer.php      Matrix → SVG, räumt den Logokasten frei
@@ -1178,7 +1264,8 @@ src/
     Translator.php         Oberflächentexte, außerhalb des Kerns
   Statamic/                dünne Hülle, alles Framework-Nahe liegt hier
     ServiceProvider.php    nur Verdrahtung, keine Fachlogik
-    Artwork.php            Asset-Pfad → Logo; die einzige Datei-I/O des Pakets
+    Artwork.php            Asset-Pfad → Logo, dazu die mitgelieferte Grafik
+    Fonts.php              öffnet die mitgelieferte Schrift
     Symbols.php            Encoder, LogoFit und Renderer zusammengesteckt
     Tags/QrGen.php         {{ qr_gen }}, die Frontend-Komponente
     Settings/
@@ -1198,8 +1285,11 @@ resources/views/
 resources/fieldsets/
   qr_code.yaml             die Felder für den Blueprint einer Seite
 resources/lang/            {sprache}/texts.php, von Laravels Übersetzer ladbar
+resources/fonts/           die Schrift der Etiketten mit Bildmarke und Text
+resources/artwork/
+  rueckgabe-information.svg der feste Teil des Etiketts „Informationen zur Rückgabe"
 demo/                      Demo-Seite und Testlogos, nicht im Dist
-tests/                     Qr/ und I18n/
+tests/                     Qr/, I18n/ und Statamic/
 ```
 
 `ModuleMatrix` ist die ganze Grenze zwischen Kodieren und Zeichnen. Alles, was
@@ -1293,7 +1383,8 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `2.0.0` | **Etikett mit Schrift und Bildmarke, Rückbau auf eine Konfigurationsebene.** Breaking: `PageSettings`, `qr_logo`, `qr_variants` und die Tag-Parameter `logo` und `variants` sind weg |
 | `2.1.0` | Das Etikett in der Statamic-Hülle: zwei neue Typen, Text und Farbe im Control Panel, Tag und Bild-Route |
 | `2.1.1` | Ein Etikett mit einer Bildmarke aus Pixeln war kein gültiges XML |
-| `2.2.0` | geplant: Code- und Token-Erzeugung |
+| `2.2.0` | Das Etikett „Informationen zur Rückgabe" als fünfter Typ, ohne Bildmarke und ohne Texteingabe |
+| später | geplant: Code- und Token-Erzeugung |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):
 `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`, `build:`. Ein `!`

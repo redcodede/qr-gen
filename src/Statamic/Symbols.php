@@ -53,7 +53,8 @@ final class Symbols
     ): array {
         // Ein Etikett traegt seine Bildmarke immer, ein Symbol nur als
         // Variante `logo`. Die Bild-Route muss dieselbe Antwort geben, deshalb
-        // steht die Regel hier und nicht zweimal.
+        // steht die Regel hier und nicht zweimal. Das Etikett „Informationen
+        // zur Rückgabe" bringt seine Grafik selbst mit und ist keins von beiden.
         $mitMarke = Variant::isLabel($variant)
             ? $logo !== null
             : ($variant === Variant::LOGO && $logo !== null);
@@ -97,6 +98,20 @@ final class Symbols
         EffectiveSettings $settings,
         string $format = 'svg'
     ): array {
+        if ($variant === Variant::RETURN_INFO) {
+            // Weder die eingestellte Bildmarke noch der eingestellte Text:
+            // variabel ist allein der Code. Fehlerkorrektur wie bei den
+            // anderen Etiketten, weil auch hier nichts im Symbol liegt.
+            $matrix = self::matrix($url, false, null);
+            $renderer = self::returnInfoRenderer($format);
+
+            return [
+                $renderer->render($matrix, '', Artwork::returnInfo()),
+                $renderer->mimeType(),
+                $renderer->fileExtension(),
+            ];
+        }
+
         if (Variant::isLabel($variant)) {
             // Das Etikett setzt die Bildmarke daneben, nicht hinein. Das Symbol
             // darin bleibt deshalb unangetastet und braucht keinen freien
@@ -135,6 +150,32 @@ final class Symbols
         }
 
         $layout = LabelLayout::standard();
+        $font = Fonts::label();
+
+        return $format === 'png'
+            ? new LabelPngRenderer($layout, $font, $options)
+            : new LabelSvgRenderer($layout, $font, $options);
+    }
+
+    /**
+     * Der Renderer des Etiketts „Informationen zur Rückgabe".
+     *
+     * Nichts davon kommt aus den Einstellungen. Code, Rahmen und Grafik sind
+     * reines Schwarz wie in der Vorlage, und damit dieselbe Anweisung an die
+     * Druckerei wie beim schlichten Code: 100 % K, siehe {@see Preset}. Die
+     * beiden anderen Etiketten benutzen das Illustrator-Schwarz `#1d1d1b` der
+     * Vorlage vom 18.09.2026; diese Vorlage hat reines Schwarz.
+     *
+     * @return LabelSvgRenderer|LabelPngRenderer
+     */
+    public static function returnInfoRenderer(string $format)
+    {
+        $options = LabelOptions::default()
+            ->withCodeColor(Preset::DARK_COLOR)
+            ->withInkColor(Preset::DARK_COLOR)
+            ->withLightColor(Preset::LIGHT_COLOR);
+
+        $layout = LabelLayout::returnInfo();
         $font = Fonts::label();
 
         return $format === 'png'

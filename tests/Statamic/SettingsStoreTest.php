@@ -132,6 +132,7 @@ final class SettingsStoreTest extends TestCase
             'variant_logo' => true,
             'variant_label' => true,
             'variant_label_color' => false,
+            'variant_return_info' => false,
             'download_svg' => false,
             'download_png' => true,
             'default_url' => 'https://beispiel.test',
@@ -171,6 +172,7 @@ final class SettingsStoreTest extends TestCase
             'variant_logo' => false,
             'variant_label' => true,
             'variant_label_color' => false,
+            'variant_return_info' => true,
             'download_svg' => true,
             'download_png' => true,
             'label_text' => 'Rückgabe über das GVÖ-SYSTEM',
@@ -178,7 +180,13 @@ final class SettingsStoreTest extends TestCase
         ]);
 
         self::assertSame([
-            'variants' => ['plain' => true, 'logo' => false, 'label' => true, 'label_color' => false],
+            'variants' => [
+                'plain' => true,
+                'logo' => false,
+                'label' => true,
+                'label_color' => false,
+                'return_info' => true,
+            ],
             'downloads' => ['svg' => true, 'png' => true],
             'logo' => null,
             'url' => null,

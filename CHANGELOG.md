@@ -16,6 +16,46 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
   sie je braucht. Bisher hat keine
 - Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
   ankommt
+- Das Etikett „Informationen zur Rückgabe" aus einer Vektorvorlage, sobald eine
+  kommt. Ersetzt wird dann nur `resources/artwork/rueckgabe-information.svg`
+
+## [2.2.0] - 2026-09-24
+
+**Das Etikett „Informationen zur Rückgabe"**, nach der Vorlage vom 24.09.2026.
+Ein Preset: Rahmen, Handy-Piktogramm und Text sind fest, variabel ist allein
+der Code. Keine Bildmarke und kein eingegebener Text, weil nach Art. 12 Abs. 9
+PPWR die Teilnahme an einem System nur digital gekennzeichnet werden darf.
+
+### Hinzugefügt
+
+- **Ein fünfter Typ**, `return_info`, in `Qr\Settings\Variant`. Der Tag gibt
+  dafür ein eigenes Panel mit SVG, PNG und „direkt öffnen" aus, die Bild-Route
+  liefert es mit dem Namenszusatz `-rueckgabeinformation`
+- **Ein Schalter im Control Panel** unter „Was angeboten wird", gespeichert als
+  `variants.return_info`. Sonst nichts: Bildmarke, Text und
+  Farbe gelten dafür nicht
+- `LabelLayout::returnInfo()`: Rahmen und Codefläche der Standardfassung, der
+  Kasten der Bildmarke auf den Maßen der mitgelieferten Grafik
+- `resources/artwork/rueckgabe-information.svg`: Piktogramm und Text als eine
+  Vektorgrafik aus Flächen. Die Vorlage kam als Rasterbild; das Piktogramm ist
+  aus Messwerten gebaut, der Text nachgezeichnet, weil die Schrift der Vorlage
+  nicht frei verfügbar ist
+- `Artwork::returnInfo()` öffnet die Grafik, `Symbols::returnInfoRenderer()`
+  baut den Renderer. Reines Schwarz wie in der Vorlage, nicht `#1d1d1b`
+- Die Demo-Seite zeigt das Etikett in einem eigenen Bereich, mit Schalter unter
+  den globalen Einstellungen. Sie rechnet mit Fehlerkorrektur H wie die Hülle,
+  damit Vorschau und Installation dasselbe Bild liefern
+- Tests für Geometrie, Grafik, SVG und PNG, den Tag und, zum ersten Mal, für die
+  Bild-Route
+
+### Geändert
+
+- `LabelLayout::quietZoneInModules()` misst rechts bis zu dem, was näher am Code
+  liegt, Text oder Bildmarke. Für die Standardfassung ändert sich nichts, dort
+  ist es der Text
+- Eine gespeicherte Einstellung ohne `variants.return_info` bietet das neue
+  Etikett an, wie jeder fehlende Schalter. Nach dem Update erscheint es also,
+  bis es jemand abschaltet
 
 ## [2.1.1] - 2026-09-23
 
@@ -869,7 +909,8 @@ Material und ein RGB-Logo.
 - Festlegung: Fachlogik in `src/Qr/` ohne Laravel- und Statamic-Bezug,
   Statamic-Anbindung in `src/Statamic/`
 
-[Unreleased]: https://github.com/redcodede/qr-gen/compare/v2.1.1...HEAD
+[Unreleased]: https://github.com/redcodede/qr-gen/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/redcodede/qr-gen/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/redcodede/qr-gen/compare/v2.1.0...v2.1.1
 [2.1.0]: https://github.com/redcodede/qr-gen/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/redcodede/qr-gen/compare/v1.0.1...v2.0.0
