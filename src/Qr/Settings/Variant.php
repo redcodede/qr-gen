@@ -69,6 +69,22 @@ final class Variant
         return $variant === self::RETURN_INFO || $variant === self::RETURN_INFO_EN;
     }
 
+    /**
+     * Die Sprache, in der dieser Typ beschriftet ist, als kurzer Code.
+     *
+     * Nur die beiden Etiketten „Informationen zur Rückgabe" haben eine: ihr Text
+     * ist fest. Die übrigen Typen tragen keinen oder den eingestellten Text und
+     * damit keine Sprache, die das Paket kennt.
+     */
+    public static function language(string $variant): ?string
+    {
+        if ($variant === self::RETURN_INFO) {
+            return 'de';
+        }
+
+        return $variant === self::RETURN_INFO_EN ? 'en' : null;
+    }
+
     public static function isKnown(string $variant): bool
     {
         return in_array($variant, self::all(), true);

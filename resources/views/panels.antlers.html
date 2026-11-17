@@ -54,6 +54,8 @@
         {{ else }}
           <div class="qr-gen-preview" role="img" aria-label="{{ if variant == 'return_info' }}{{ trans:qr-gen::texts.panel.alt.returnInfo }}{{ elseif variant == 'return_info_en' }}{{ trans:qr-gen::texts.panel.alt.returnInfoEn }}{{ elseif is_label }}{{ trans:qr-gen::texts.panel.alt.label }}{{ elseif with_logo }}{{ trans:qr-gen::texts.panel.alt.logo }}{{ else }}{{ trans:qr-gen::texts.panel.alt }}{{ /if }}">{{ preview }}</div>
 
+          {{ if target }}<p class="qr-gen-target">{{ target }}</p>{{ /if }}
+
           <div class="qr-gen-actions">
             <div class="qr-gen-downloads">
               {{ if svg }}<a class="{{ button_class }}" href="{{ svg }}">{{ trans:qr-gen::texts.panel.download.svg }}</a>{{ /if }}

@@ -84,6 +84,7 @@ return [
         . 'Bildmarke und kein eigener Text: die Teilnahme am System steht erst hinter dem Code.',
     'panel.returnInfo' => 'Etikett auf Deutsch',
     'panel.returnInfoEn' => 'Etikett auf Englisch',
+    'panel.target' => 'Dieser Code führt auf',
 
     'resolution.url' => 'URL:',
     'resolution.logo' => 'Bildmarke:',

@@ -3,8 +3,8 @@
 > Erzeugt aus einer URL einen QR-Code als SVG und als druckfertiges PNG. Zwei
 > Laufzeit-Abhängigkeiten, keine Bildextension, kein Framework im Kern.
 
-**Status: `2.3.0`, mit dem Etikett „Informationen zur Rückgabe" auf Deutsch und
-auf Englisch.** URL rein, bis zu sechs Bilder raus — der Code ohne und mit
+**Status: `2.4.0`, mit dem Etikett „Informationen zur Rückgabe" auf Deutsch und
+auf Englisch, jedes mit dem Code auf seine Sprachfassung.** URL rein, bis zu sechs Bilder raus — der Code ohne und mit
 Bildmarke in der Mitte, zwei Etiketten mit Bildmarke und Text und das Etikett
 „Informationen zur Rückgabe" in zwei Sprachen,
 **alle als SVG und als druckfertiges PNG**. Dazu die Statamic-Anbindung: ein Tag für die
@@ -50,7 +50,8 @@ Zuschnitt in zwei Stufen.
       [Das Etikett „Informationen zur Rückgabe"](#das-etikett-informationen-zur-rückgabe)
 - [x] **Dasselbe Etikett auf Englisch**, „Return information", als eigener
       Typ `return_info_en`. Aus, bis es eingeschaltet wird; sind beide an,
-      stehen sie nebeneinander
+      stehen sie nebeneinander. **Jedes führt auf die Statamic-Fassung seiner
+      Sprache**, siehe [Sprachfassung im Code](#sprachfassung-im-code)
 - [x] **Schrift als Umrisse**, aus einer mitgelieferten SVG-Schriftdatei. Kein
       `<text>`, keine Schriftinstallation beim Empfänger, kein TrueType-Parser
 - [x] **Logo in der Mitte**, mit Ruhezone darum, jedes Seitenverhältnis
@@ -910,6 +911,34 @@ dem R und dem u von „zur Rückgabe" und e, t, r, n von „Informationen",
 Kante und Abstände sind die der Vorlage. In Code:
 `Artwork::returnInfoEn()`, sonst wie oben.
 
+##### Sprachfassung im Code
+
+**Jedes der beiden Etiketten führt auf die Seite in seiner Sprache.** Ein
+kleines Multisite für genau diese beiden Typen, in `Statamic\LocalizedTarget`.
+Hat die Installation eine Fassung mit englischer Locale (`en_US`, `en_GB`, …),
+setzt das englische Etikett die Adresse dorthin um, das deutsche in die
+Fassung mit deutscher:
+
+| Fassungen | Adresse der Seite | Im englischen Etikett |
+|---|---|---|
+| `default` unter `/`, `en` unter `/en/` | `https://example.org/return/7K4M2` | `https://example.org/en/return/7K4M2` |
+| nur `default` | `https://example.org/return/7K4M2` | unverändert |
+| beliebig | `https://hersteller.example/x`, außerhalb jeder Fassung | unverändert |
+
+- **Umgesetzt wird über die Pfade der Fassungen**, der Rest des Pfads bleibt.
+  Ob die Seite in der anderen Sprache existiert, prüft das Paket nicht
+- **Der Host kommt aus der Adresse, nicht aus der Anfrage.** Statamic setzt vor
+  eine relative Fassung den Host der laufenden Anfrage. Wer die Download-Seite
+  über einen anderen Host aufruft, als im Code steht, fände sonst keine
+  Fassung, und das Etikett zeigte still auf die falsche Sprache
+- **Vorschau und Download** gehen beide durch `Symbols::image()`, dort wird
+  umgesetzt. Die signierten Bild-Adressen tragen weiter die Adresse der Seite
+- **Weicht die Adresse ab, nennt das Panel sie**, unter dem Bild: „Dieser Code
+  führt auf …" (`panel.target`), Klasse `qr-gen-target`. Sonst beschriebe die
+  Einleitung einen Code, den es so nicht gibt
+
+Die übrigen Typen haben keine Sprache und führen, wohin die Seite sagt.
+
 **Die Grafik sitzt im Kasten der Bildmarke, und der Kasten hat genau ihre
 Maße** (51,26 x 14,90 Millimeter bei x 35,90, y 9,67). Damit landet sie
 unverkleinert dort, wo sie in der Vorlage steht. Ein Test hält Datei und
@@ -1028,7 +1057,7 @@ Vorschau und verlinkt die Downloads:
 | Etikett, dunkler Code | `qr-gen-panel--label` | nichts; Bildmarke und Text, wenn gesetzt |
 | Etikett, farbiger Code | `qr-gen-panel--label_color` | eine gesetzte Farbe |
 | Etikett „Informationen zur Rückgabe" | `qr-gen-panel--return_info` | nichts, es bringt alles mit |
-| Etikett „Return information" | `qr-gen-panel--return_info_en` | seinen Schalter, der ist aus |
+| Etikett „Return information" | `qr-gen-panel--return_info_en` | seinen Schalter, der ist aus; führt auf die englische Fassung, wenn es eine gibt |
 
 | Parameter | |
 |---|---|
@@ -1293,6 +1322,7 @@ src/
     Artwork.php            Asset-Pfad → Logo, dazu die mitgelieferte Grafik
     Fonts.php              öffnet die mitgelieferte Schrift
     Symbols.php            Encoder, LogoFit und Renderer zusammengesteckt
+    LocalizedTarget.php    die Adresse im Code in der Sprachfassung des Etiketts
     Tags/QrGen.php         {{ qr_gen }}, die Frontend-Komponente
     Settings/
       SettingsStore.php    die YAML, mit der Config als Rückfall darunter
@@ -1412,6 +1442,7 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `2.1.1` | Ein Etikett mit einer Bildmarke aus Pixeln war kein gültiges XML |
 | `2.2.0` | Das Etikett „Informationen zur Rückgabe" als fünfter Typ, ohne Bildmarke und ohne Texteingabe |
 | `2.3.0` | Dasselbe Etikett auf Englisch, „Return information", als sechster Typ; Bildbeschreibungen ohne gerade Anführungszeichen |
+| `2.4.0` | Jedes der beiden Etiketten führt auf die Statamic-Fassung seiner Sprache |
 | später | geplant: Code- und Token-Erzeugung |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):

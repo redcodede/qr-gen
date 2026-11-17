@@ -67,15 +67,32 @@ final class Symbols
 
         $marke = $mitMarke ? $logoReference : null;
 
+        // Fuehrt der Code woandershin als die Adresse der Seite, steht das im
+        // Panel. Sonst beschriebe die Einleitung einen Code, den es so nicht
+        // gibt. Die Bild-Adressen tragen weiter die Adresse der Seite:
+        // umgesetzt wird in image(), fuer Vorschau und Download an derselben
+        // Stelle.
+        $ziel = LocalizedTarget::for($url, $variant);
+
         return [
             'variant' => $variant,
             'with_logo' => $mitMarke,
             'is_label' => Variant::isLabel($variant),
             'preview' => $svg,
+            'target' => $ziel !== $url ? self::targetMarkup($ziel) : null,
             'svg' => $settings->offersSvg() ? self::imageUrl($url, $variant, 'svg', true, $marke) : null,
             'png' => $settings->offersPng() ? self::imageUrl($url, $variant, 'png', true, $marke) : null,
             'raw' => self::imageUrl($url, $variant, 'svg', false, $marke),
         ];
+    }
+
+    /**
+     * „Dieser Code führt auf …" mit der Adresse als Link, fertig maskiert wie
+     * die Einleitung im Tag.
+     */
+    private static function targetMarkup(string $ziel): string
+    {
+        return e(__('qr-gen::texts.panel.target')) . ' <a href="' . e($ziel) . '">' . e($ziel) . '</a>';
     }
 
     /**
@@ -102,8 +119,9 @@ final class Symbols
             // Weder die eingestellte Bildmarke noch der eingestellte Text:
             // variabel ist allein der Code. Fehlerkorrektur wie bei den
             // anderen Etiketten, weil auch hier nichts im Symbol liegt. Die
-            // beiden Sprachen unterscheiden sich nur in der Grafik.
-            $matrix = self::matrix($url, false, null);
+            // beiden Sprachen unterscheiden sich in der Grafik und darin,
+            // auf welche Sprachfassung der Code fuehrt.
+            $matrix = self::matrix(LocalizedTarget::for($url, $variant), false, null);
             $renderer = self::returnInfoRenderer($format);
             $grafik = $variant === Variant::RETURN_INFO_EN ? Artwork::returnInfoEn() : Artwork::returnInfo();
 

@@ -20,6 +20,30 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
   kommt. Ersetzt wird dann `resources/artwork/rueckgabe-information.svg`, und
   die englische `return-information.svg` wird aus derselben Schrift neu gesetzt
 
+## [2.4.0] - 2026-11-17
+
+**Jedes Etikett „Informationen zur Rückgabe" führt auf die Seite in seiner
+Sprache.** Das englische zeigte bisher auf dieselbe Adresse wie das deutsche,
+und wer es scannte, bekam die Seite in der Sprache seines Browsers.
+
+### Hinzugefügt
+
+- `Statamic\LocalizedTarget::for()`: setzt die Adresse im Code in die
+  Statamic-Fassung um, deren Locale zur Sprache des Etiketts passt. Bei
+  `default` unter `/` und `en` unter `/en/` wird aus `…/return/7K4M2` für das
+  englische Etikett `…/en/return/7K4M2`. Ohne passende Fassung, für eine
+  Adresse außerhalb jeder Fassung und für alle anderen Typen bleibt sie, wie
+  sie ist
+- `Variant::language()`: `de` und `en` für die beiden Etiketten, sonst `null`
+- Weicht die Adresse ab, nennt das Panel sie unter dem Bild: „Dieser Code führt
+  auf …" (`panel.target`, Klasse `qr-gen-target`)
+
+### Geändert
+
+- `Symbols::image()` setzt die Adresse für beide Etiketten um, für Vorschau und
+  Download an derselben Stelle. Die signierten Bild-Adressen bleiben, wie sie
+  waren
+
 ## [2.3.0] - 2026-11-17
 
 **Das Etikett „Informationen zur Rückgabe" auf Englisch**, „Return

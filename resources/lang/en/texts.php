@@ -80,6 +80,7 @@ return [
         . 'code, not on the pack.',
     'panel.returnInfo' => 'Label in German',
     'panel.returnInfoEn' => 'Label in English',
+    'panel.target' => 'This code leads to',
 
     'resolution.url' => 'URL:',
     'resolution.logo' => 'Artwork:',
