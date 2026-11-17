@@ -38,6 +38,16 @@ final class Variant
      */
     public const RETURN_INFO = 'return_info';
 
+    /**
+     * Dasselbe Etikett auf Englisch, „Return information".
+     *
+     * Ein eigener Typ und keine Sprache von {@see self::RETURN_INFO}: auf die
+     * Verpackung kommt genau eine Grafik, und welche, entscheidet der Hersteller
+     * beim Herunterladen, nicht der Browser. Deshalb stehen beide nebeneinander,
+     * wenn beide eingeschaltet sind.
+     */
+    public const RETURN_INFO_EN = 'return_info_en';
+
     private function __construct()
     {
     }
@@ -47,7 +57,16 @@ final class Variant
      */
     public static function all(): array
     {
-        return [self::PLAIN, self::LOGO, self::LABEL, self::LABEL_COLOR, self::RETURN_INFO];
+        return [self::PLAIN, self::LOGO, self::LABEL, self::LABEL_COLOR, self::RETURN_INFO, self::RETURN_INFO_EN];
+    }
+
+    /**
+     * Ob dieser Typ eines der beiden Etiketten „Informationen zur Rückgabe"
+     * ist. Beide werden gleich gebaut, nur die Grafik unterscheidet sich.
+     */
+    public static function isReturnInfo(string $variant): bool
+    {
+        return $variant === self::RETURN_INFO || $variant === self::RETURN_INFO_EN;
     }
 
     public static function isKnown(string $variant): bool

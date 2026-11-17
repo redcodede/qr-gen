@@ -125,6 +125,8 @@ class ImageController
             $zusatz = '-etikett-farbig';
         } elseif ($variant === Variant::RETURN_INFO) {
             $zusatz = '-rueckgabeinformation';
+        } elseif ($variant === Variant::RETURN_INFO_EN) {
+            $zusatz = '-return-information';
         } else {
             $zusatz = $mitMarke ? '-logo' : '';
         }

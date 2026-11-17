@@ -111,6 +111,7 @@ final class SettingsBlueprint
                     'variant_label' => self::toggle('cp.variants.label'),
                     'variant_label_color' => self::toggle('cp.variants.labelColor'),
                     'variant_return_info' => self::toggle('cp.variants.returnInfo'),
+                    'variant_return_info_en' => self::toggle('cp.variants.returnInfoEn'),
                     'download_svg' => self::toggle('cp.downloads.svg'),
                     'download_png' => self::toggle('cp.downloads.png'),
                 ],

@@ -178,6 +178,54 @@ final class SettingsTest extends TestCase
         self::assertFalse(GlobalSettings::fromArray(['variants' => ['return_info' => false]])->offersReturnInfo());
     }
 
+    // ------------------------------------------- Return information, englisch ---
+
+    public function testDasEnglischeEtikettIstEinEigenerTyp(): void
+    {
+        self::assertContains(Variant::RETURN_INFO_EN, Variant::all());
+        self::assertTrue(Variant::isKnown(Variant::RETURN_INFO_EN));
+        self::assertFalse(Variant::isLabel(Variant::RETURN_INFO_EN));
+
+        self::assertTrue(Variant::isReturnInfo(Variant::RETURN_INFO));
+        self::assertTrue(Variant::isReturnInfo(Variant::RETURN_INFO_EN));
+        self::assertFalse(Variant::isReturnInfo(Variant::LABEL));
+    }
+
+    /**
+     * Anders als jeder andere Schalter ist dieser aus, bis jemand ihn setzt.
+     * Eine Installation, die vor ihm entstand, bekommt nach dem Update kein
+     * zweites Etikett, das niemand bestellt hat.
+     */
+    public function testDasEnglischeEtikettIstAusBisEsEingeschaltetWird(): void
+    {
+        self::assertFalse(GlobalSettings::default()->offersReturnInfoEn());
+        self::assertFalse(GlobalSettings::fromArray(['variants' => ['return_info' => true]])->offersReturnInfoEn());
+        self::assertFalse(EffectiveSettings::from(GlobalSettings::default())->shows(Variant::RETURN_INFO_EN));
+    }
+
+    public function testBeideSprachenNebeneinander(): void
+    {
+        $global = GlobalSettings::fromArray(['variants' => ['return_info' => true, 'return_info_en' => true]]);
+        $effective = EffectiveSettings::from($global);
+
+        self::assertTrue($effective->shows(Variant::RETURN_INFO));
+        self::assertTrue($effective->shows(Variant::RETURN_INFO_EN));
+        self::assertTrue($effective->showsReturnInfoEn());
+        self::assertSame(true, $global->toArray()['variants']['return_info_en']);
+    }
+
+    public function testNurDasEnglischeEtikettIstAuchEtwas(): void
+    {
+        $global = GlobalSettings::default()
+            ->withVariants(false, false)
+            ->withLabels(false, false)
+            ->withReturnInfo(false)
+            ->withReturnInfoEn(true);
+
+        self::assertTrue($global->offersAnyVariant());
+        self::assertTrue(EffectiveSettings::from($global)->showsAnything());
+    }
+
     // ------------------------------------------------------------ Etikett ---
 
     public function testDieEtikettenWerdenAngebotenWennEineFarbeSteht(): void

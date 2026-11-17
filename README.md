@@ -3,9 +3,10 @@
 > Erzeugt aus einer URL einen QR-Code als SVG und als druckfertiges PNG. Zwei
 > Laufzeit-Abhängigkeiten, keine Bildextension, kein Framework im Kern.
 
-**Status: `2.2.0`, mit dem Etikett „Informationen zur Rückgabe".** URL rein,
-bis zu fünf Bilder raus — der Code ohne und mit Bildmarke in der Mitte, zwei
-Etiketten mit Bildmarke und Text und das Etikett „Informationen zur Rückgabe",
+**Status: `2.3.0`, mit dem Etikett „Informationen zur Rückgabe" auf Deutsch und
+auf Englisch.** URL rein, bis zu sechs Bilder raus — der Code ohne und mit
+Bildmarke in der Mitte, zwei Etiketten mit Bildmarke und Text und das Etikett
+„Informationen zur Rückgabe" in zwei Sprachen,
 **alle als SVG und als druckfertiges PNG**. Dazu die Statamic-Anbindung: ein Tag für die
 Seite, eine signierte Bild-Route, eine Einstellungsseite im Control Panel und
 ein Fieldset für Blueprints. Was hier unter „geplant" steht, existiert nicht.
@@ -47,6 +48,9 @@ Zuschnitt in zwei Stufen.
 - [x] **Das Etikett „Informationen zur Rückgabe"**: ein Preset ohne Bildmarke
       und ohne Texteingabe, variabel ist allein der Code. Siehe
       [Das Etikett „Informationen zur Rückgabe"](#das-etikett-informationen-zur-rückgabe)
+- [x] **Dasselbe Etikett auf Englisch**, „Return information", als eigener
+      Typ `return_info_en`. Aus, bis es eingeschaltet wird; sind beide an,
+      stehen sie nebeneinander
 - [x] **Schrift als Umrisse**, aus einer mitgelieferten SVG-Schriftdatei. Kein
       `<text>`, keine Schriftinstallation beim Empfänger, kein TrueType-Parser
 - [x] **Logo in der Mitte**, mit Ruhezone darum, jedes Seitenverhältnis
@@ -95,8 +99,9 @@ Zuschnitt in zwei Stufen.
 - [ ] Code- und Token-Erzeugung, `CodeRepository`-Interface
 - [ ] **Das Etikett „Informationen zur Rückgabe" als Vektorvorlage.** Die
       Vorlage kam als Rasterbild, Piktogramm und Text sind daraus nachgebaut.
-      Kommt sie als Vektordatei, wird nur
-      `resources/artwork/rueckgabe-information.svg` ersetzt
+      Kommt sie als Vektordatei, wird
+      `resources/artwork/rueckgabe-information.svg` ersetzt und die englische
+      `return-information.svg` aus derselben Schrift neu gesetzt
 - [ ] Elliptische Bögen (`A`) und Konturen im Rasterisierer. Bisher nicht
       gebraucht: keine der vorliegenden Zeichnungen benutzt beides
 - [ ] Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
@@ -404,6 +409,7 @@ Fremdpaket, der siebte ist unser.**
 | `…-regular.ttf` | Die Quelle, aus der die SVG-Fassung erzeugt wurde. Vom Code nicht angefasst, liegt bei, damit sie sich neu erzeugen lässt |
 | `OFL.txt` | Der Lizenztext, siehe [Lizenz](#lizenz) |
 | `resources/artwork/rueckgabe-information.svg` | **Piktogramm und Text des Etiketts „Informationen zur Rückgabe"**, als eine Vektorgrafik in Millimetern. Nur Flächen, keine Konturen und keine Bögen, damit der Rasterisierer dieselbe Grafik ins PNG zeichnet. Der Text ist aus der Vorlage nachgezeichnet, nicht aus einer Schrift gesetzt, siehe [dort](#das-etikett-informationen-zur-rückgabe) |
+| `resources/artwork/return-information.svg` | **Dasselbe auf Englisch, „Return information“.** Piktogramm wie oben, der Text aus den nachgezeichneten Glyphen der deutschen Datei zusammengesetzt, weil die Schrift der Vorlage nicht bekannt ist. Gleiche Maße, gleiche Grundlinien |
 
 Die Webformate (`eot`, `woff`, `woff2`) liegen im Repository, sind aber per
 `export-ignore` aus dem Composer-Dist genommen: im Paket haben sie keine
@@ -890,6 +896,20 @@ $svg = (new LabelSvgRenderer(LabelLayout::returnInfo(), $font, $options))
 In der Statamic-Hülle steckt das in `Symbols::returnInfoRenderer()` und
 `Artwork::returnInfo()`; wer den Tag benutzt, braucht beides nicht.
 
+**Auf Englisch heißt das Etikett „Return information"**, Typ `return_info_en`,
+Grafik `resources/artwork/return-information.svg`. Alles andere ist gleich:
+dieselbe Geometrie, derselbe Renderer, dasselbe Piktogramm. Ein eigener Typ und
+keine Sprache des ersten, weil auf die Verpackung genau eine Grafik kommt und
+der Hersteller sie beim Herunterladen wählt, nicht sein Browser. Sind beide
+eingeschaltet, stehen sie nebeneinander, das deutsche zuerst.
+
+Der englische Text ist **aus den nachgezeichneten Glyphen der deutschen Grafik
+zusammengesetzt**, weil die Schrift der Vorlage nicht bekannt ist: „Return" aus
+dem R und dem u von „zur Rückgabe" und e, t, r, n von „Informationen",
+„information" aus dem kleinen i und „nformation" am Stück. Grundlinien, linke
+Kante und Abstände sind die der Vorlage. In Code:
+`Artwork::returnInfoEn()`, sonst wie oben.
+
 **Die Grafik sitzt im Kasten der Bildmarke, und der Kasten hat genau ihre
 Maße** (51,26 x 14,90 Millimeter bei x 35,90, y 9,67). Damit landet sie
 unverkleinert dort, wo sie in der Vorlage steht. Ein Test hält Datei und
@@ -1008,6 +1028,7 @@ Vorschau und verlinkt die Downloads:
 | Etikett, dunkler Code | `qr-gen-panel--label` | nichts; Bildmarke und Text, wenn gesetzt |
 | Etikett, farbiger Code | `qr-gen-panel--label_color` | eine gesetzte Farbe |
 | Etikett „Informationen zur Rückgabe" | `qr-gen-panel--return_info` | nichts, es bringt alles mit |
+| Etikett „Return information" | `qr-gen-panel--return_info_en` | seinen Schalter, der ist aus |
 
 | Parameter | |
 |---|---|
@@ -1106,6 +1127,11 @@ Einstellungsdatei von vor diesem Typ kennt den Schlüssel `variants.return_info`
 nicht, und wie jeder fehlende Schalter gilt er dann als an: nach dem Update
 erscheint das Etikett, bis es jemand abschaltet.
 
+**Die englische Fassung ist die eine Ausnahme: ihr Schalter
+`variants.return_info_en` ist aus, bis ihn jemand setzt.** Eine Installation,
+die vor ihr entstand, bekommt nach dem Update kein zweites Etikett, das niemand
+bestellt hat.
+
 Ein leeres Textfeld heißt „nimm den mitgelieferten Text" und nicht „zeig
 nichts". Deshalb steht der mitgelieferte Text auch nicht vorausgefüllt im
 Formular: wer ihn einmal speichert, hat ihn von da an als eigenen und bekommt
@@ -1193,8 +1219,8 @@ größere.
 
 | Datei | |
 |---|---|
-| `demo/index.php` | Formular, **beide Codes nebeneinander**, die beiden Etiketten, das Etikett „Informationen zur Rückgabe" mit eigenem Schalter, Kennzahlen, Download-Knöpfe. Kein Text im Code, alles aus dem Katalog |
-| `demo/image.php` | liefert ein Bild allein; `?format=png`, `?variant=logo`, `?variant=return_info`, `?download=1` |
+| `demo/index.php` | Formular, **beide Codes nebeneinander**, die beiden Etiketten, das Etikett „Informationen zur Rückgabe" auf Deutsch und auf Englisch mit je eigenem Schalter, Kennzahlen, Download-Knöpfe. Kein Text im Code, alles aus dem Katalog |
+| `demo/image.php` | liefert ein Bild allein; `?format=png`, `?variant=logo`, `?variant=return_info`, `?variant=return_info_en`, `?download=1` |
 | `demo/bootstrap.php` | Autoload, Eingabeprüfung, Objektaufbau |
 | `demo/logos/*.svg`, `*.png` | Testlogos, Vektor und Raster. Jedes SVG hier wird von `RealWorldLogoTest` durch die ganze Kette geschickt |
 
@@ -1288,6 +1314,7 @@ resources/lang/            {sprache}/texts.php, von Laravels Übersetzer ladbar
 resources/fonts/           die Schrift der Etiketten mit Bildmarke und Text
 resources/artwork/
   rueckgabe-information.svg der feste Teil des Etiketts „Informationen zur Rückgabe"
+  return-information.svg    dasselbe auf Englisch, „Return information"
 demo/                      Demo-Seite und Testlogos, nicht im Dist
 tests/                     Qr/, I18n/ und Statamic/
 ```
@@ -1384,6 +1411,7 @@ sind bis dahin in Minor-Schritten erlaubt.
 | `2.1.0` | Das Etikett in der Statamic-Hülle: zwei neue Typen, Text und Farbe im Control Panel, Tag und Bild-Route |
 | `2.1.1` | Ein Etikett mit einer Bildmarke aus Pixeln war kein gültiges XML |
 | `2.2.0` | Das Etikett „Informationen zur Rückgabe" als fünfter Typ, ohne Bildmarke und ohne Texteingabe |
+| `2.3.0` | Dasselbe Etikett auf Englisch, „Return information", als sechster Typ; Bildbeschreibungen ohne gerade Anführungszeichen |
 | später | geplant: Code- und Token-Erzeugung |
 
 Commits folgen [Conventional Commits](https://www.conventionalcommits.org/de/v1.0.0/):

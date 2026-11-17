@@ -132,7 +132,8 @@ function readInput(array $query, Translator $texts): array
                 checked($query, ['g', 'downloads', 'svg']),
                 checked($query, ['g', 'downloads', 'png'])
             )
-            ->withReturnInfo(checked($query, ['g', 'variants', Variant::RETURN_INFO]));
+            ->withReturnInfo(checked($query, ['g', 'variants', Variant::RETURN_INFO]))
+            ->withReturnInfoEn(checked($query, ['g', 'variants', Variant::RETURN_INFO_EN]));
     }
 
     // Das Einzige, was je Stelle verschieden sein darf. Seit dem 23.09.2026
@@ -564,25 +565,25 @@ function labelRendererFor(string $format, string $codeColor, bool $standalone)
 }
 
 /**
- * Piktogramm und Text des Etiketts „Informationen zur Rückgabe", einmal je
- * Anfrage gelesen.
+ * Piktogramm und Text des Etiketts „Informationen zur Rückgabe", deutsch oder
+ * englisch, einmal je Anfrage gelesen.
  *
- * Dieselbe Datei, die `Statamic\Artwork::returnInfo()` öffnet. Die Demo liest
- * sie selbst, weil der Kern keine Dateien anfasst und die Hülle hier nicht
- * geladen ist.
+ * Dieselben Dateien, die `Statamic\Artwork::returnInfo()` und
+ * `returnInfoEn()` öffnen. Die Demo liest sie selbst, weil der Kern keine
+ * Dateien anfasst und die Hülle hier nicht geladen ist.
  *
  * @throws QrGenException
  */
-function returnInfoArtwork(): Logo
+function returnInfoArtwork(string $variant = Variant::RETURN_INFO): Logo
 {
-    static $artwork = null;
+    static $artwork = [];
 
-    if ($artwork === null) {
-        $path = dirname(__DIR__) . '/resources/artwork/rueckgabe-information.svg';
-        $artwork = SvgLogo::fromMarkup((string) file_get_contents($path));
+    if (!isset($artwork[$variant])) {
+        $file = $variant === Variant::RETURN_INFO_EN ? 'return-information.svg' : 'rueckgabe-information.svg';
+        $artwork[$variant] = SvgLogo::fromMarkup((string) file_get_contents(dirname(__DIR__) . '/resources/artwork/' . $file));
     }
 
-    return $artwork;
+    return $artwork[$variant];
 }
 
 /**
@@ -617,12 +618,16 @@ function returnInfoRendererFor(string $format, bool $standalone)
  *
  * @return array{0: string|null, 1: string|null} Das Bild, oder warum es keines gibt
  */
-function tryReturnInfo(string $url, bool $standalone = false, string $format = 'svg'): array
-{
+function tryReturnInfo(
+    string $url,
+    bool $standalone = false,
+    string $format = 'svg',
+    string $variant = Variant::RETURN_INFO
+): array {
     try {
         $matrix = (new BaconQrEncoder())->encode($url, ErrorCorrection::high());
 
-        return [returnInfoRendererFor($format, $standalone)->render($matrix, '', returnInfoArtwork()), null];
+        return [returnInfoRendererFor($format, $standalone)->render($matrix, '', returnInfoArtwork($variant)), null];
     } catch (QrGenException $exception) {
         return [null, $exception->getMessage()];
     }

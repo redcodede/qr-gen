@@ -23,8 +23,14 @@ final class Artwork
     /** Der feste Teil des Etiketts „Informationen zur Rückgabe". */
     private const RETURN_INFO = __DIR__ . '/../../resources/artwork/rueckgabe-information.svg';
 
+    /** Dasselbe auf Englisch, „Return information". */
+    private const RETURN_INFO_EN = __DIR__ . '/../../resources/artwork/return-information.svg';
+
     /** @var Logo|null */
     private static $returnInfo;
+
+    /** @var Logo|null */
+    private static $returnInfoEn;
 
     private function __construct()
     {
@@ -51,6 +57,21 @@ final class Artwork
         }
 
         return self::$returnInfo;
+    }
+
+    /**
+     * Piktogramm und Text des Etiketts „Return information", sonst wie
+     * {@see self::returnInfo()}.
+     *
+     * @throws QrGenException
+     */
+    public static function returnInfoEn(): Logo
+    {
+        if (self::$returnInfoEn === null) {
+            self::$returnInfoEn = SvgLogo::fromMarkup((string) file_get_contents(self::RETURN_INFO_EN));
+        }
+
+        return self::$returnInfoEn;
     }
 
     /**

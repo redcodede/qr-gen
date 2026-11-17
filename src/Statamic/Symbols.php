@@ -98,15 +98,17 @@ final class Symbols
         EffectiveSettings $settings,
         string $format = 'svg'
     ): array {
-        if ($variant === Variant::RETURN_INFO) {
+        if (Variant::isReturnInfo($variant)) {
             // Weder die eingestellte Bildmarke noch der eingestellte Text:
             // variabel ist allein der Code. Fehlerkorrektur wie bei den
-            // anderen Etiketten, weil auch hier nichts im Symbol liegt.
+            // anderen Etiketten, weil auch hier nichts im Symbol liegt. Die
+            // beiden Sprachen unterscheiden sich nur in der Grafik.
             $matrix = self::matrix($url, false, null);
             $renderer = self::returnInfoRenderer($format);
+            $grafik = $variant === Variant::RETURN_INFO_EN ? Artwork::returnInfoEn() : Artwork::returnInfo();
 
             return [
-                $renderer->render($matrix, '', Artwork::returnInfo()),
+                $renderer->render($matrix, '', $grafik),
                 $renderer->mimeType(),
                 $renderer->fileExtension(),
             ];

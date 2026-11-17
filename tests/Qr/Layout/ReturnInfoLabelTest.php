@@ -36,11 +36,79 @@ final class ReturnInfoLabelTest extends TestCase
 {
     private const ARTWORK = __DIR__ . '/../../../resources/artwork/rueckgabe-information.svg';
 
+    /** Dasselbe Etikett auf Englisch, „Return information". */
+    private const ARTWORK_EN = __DIR__ . '/../../../resources/artwork/return-information.svg';
+
     private const FONT = __DIR__ . '/../../../resources/fonts/pt-sans-v18-latin/pt-sans-v18-latin-regular.svg';
 
     private static function artwork(): SvgLogo
     {
         return SvgLogo::fromMarkup((string) file_get_contents(self::ARTWORK));
+    }
+
+    private static function artworkEn(): SvgLogo
+    {
+        return SvgLogo::fromMarkup((string) file_get_contents(self::ARTWORK_EN));
+    }
+
+    /**
+     * Die englische Grafik sitzt im selben Kasten. Sie muss deshalb dieselben
+     * Maße haben, sonst würde sie eingepasst und verschoben.
+     */
+    public function testDieEnglischeGrafikHatDieMasseDerDeutschen(): void
+    {
+        $layout = LabelLayout::returnInfo();
+        $artwork = self::artworkEn();
+
+        self::assertEqualsWithDelta($layout->logoWidth(), $artwork->width(), 1e-9);
+        self::assertEqualsWithDelta($layout->logoHeight(), $artwork->height(), 1e-9);
+        self::assertNull(LogoRaster::rejectionFor($artwork));
+    }
+
+    /**
+     * Piktogramm und Rahmen sind dieselben, nur der Text ist ein anderer.
+     * Die ersten beiden Pfade sind Gehäuse und Striche des Handys.
+     */
+    public function testDieEnglischeGrafikHatDasPiktogrammDerDeutschen(): void
+    {
+        $pfade = static function (string $datei): array {
+            preg_match_all('#<path [^>]*/>#', (string) file_get_contents($datei), $treffer);
+
+            return $treffer[0];
+        };
+
+        $de = $pfade(self::ARTWORK);
+        $en = $pfade(self::ARTWORK_EN);
+
+        self::assertCount(3, $en);
+        self::assertSame(array_slice($de, 0, 2), array_slice($en, 0, 2));
+        self::assertNotSame($de[2], $en[2]);
+    }
+
+    /**
+     * Der Text bleibt in der Fläche, die der deutsche einnimmt: dieselbe linke
+     * Kante, nicht höher und nicht tiefer.
+     */
+    public function testDerEnglischeTextBleibtInDerFlaecheDesDeutschen(): void
+    {
+        $flaeche = static function (string $datei): array {
+            preg_match_all('#<path [^>]*/>#', (string) file_get_contents($datei), $treffer);
+            preg_match('#d="([^"]*)"#', $treffer[0][2], $d);
+            preg_match_all('#-?\d*\.?\d+#', $d[1], $zahlen);
+            $werte = array_map('floatval', $zahlen[0]);
+            $xs = array_values(array_filter($werte, static fn ($i) => $i % 2 === 0, ARRAY_FILTER_USE_KEY));
+            $ys = array_values(array_filter($werte, static fn ($i) => $i % 2 === 1, ARRAY_FILTER_USE_KEY));
+
+            return [min($xs), min($ys), max($xs), max($ys)];
+        };
+
+        [$deLinks, $deOben, $deRechts, $deUnten] = $flaeche(self::ARTWORK);
+        [$enLinks, $enOben, $enRechts, $enUnten] = $flaeche(self::ARTWORK_EN);
+
+        self::assertEqualsWithDelta($deLinks, $enLinks, 0.05);
+        self::assertGreaterThanOrEqual($deOben - 0.05, $enOben);
+        self::assertLessThanOrEqual($deUnten + 0.05, $enUnten);
+        self::assertLessThan($deRechts, $enRechts);
     }
 
     private static function font(): SvgFont

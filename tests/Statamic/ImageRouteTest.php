@@ -87,4 +87,29 @@ final class ImageRouteTest extends TestCase
     {
         $this->get('/!/qr-gen/image?url=' . urlencode(self::ZIEL) . '&variant=return_info')->assertForbidden();
     }
+
+    /**
+     * Das englische Etikett heisst anders. Wer beide herunterlaedt, hat zwei
+     * Dateien im Ordner und nicht eine mit angehaengter Nummer.
+     */
+    public function testDasEnglischeEtikettKommtMitEigenemNamen(): void
+    {
+        config()->set('qr-gen.variants.return_info_en', true);
+
+        foreach (['svg' => 'image/svg+xml; charset=utf-8', 'png' => 'image/png'] as $format => $typ) {
+            $antwort = $this->get(self::adresse($format, ['variant' => Variant::RETURN_INFO_EN]));
+
+            $antwort->assertOk();
+            self::assertSame($typ, $antwort->headers->get('Content-Type'));
+            self::assertSame(
+                'attachment; filename="qr-gvoe-de-return-q7k3m-return-information.' . $format . '"',
+                $antwort->headers->get('Content-Disposition')
+            );
+        }
+    }
+
+    public function testDasEnglischeEtikettGibtEsNurEingeschaltet(): void
+    {
+        $this->get(self::adresse('svg', ['variant' => Variant::RETURN_INFO_EN]))->assertNotFound();
+    }
 }

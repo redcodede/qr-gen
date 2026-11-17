@@ -60,11 +60,11 @@ $labelFailure = null;
 $labelColored = null;
 $labelColoredFailure = null;
 
-// Das Etikett „Informationen zur Rückgabe". Nimmt nichts aus der Adresszeile
-// außer der Adresse: Grafik, Text und Farben sind fest.
+// Das Etikett „Informationen zur Rückgabe", auf Deutsch und auf Englisch. Nimmt
+// nichts aus der Adresszeile außer der Adresse: Grafik, Text und Farben sind
+// fest. Je eingeschalteter Sprache ein Eintrag: [Bild, Grund, wenn keins].
 $returnInfoLayout = LabelLayout::returnInfo();
-$returnInfo = null;
-$returnInfoFailure = null;
+$returnInfos = [];
 
 if ($input['errors'] === []) {
     [$plain, $plainFailure] = tryRender($input['url'], $input['logo'], false, false);
@@ -83,8 +83,10 @@ if ($input['errors'] === []) {
         $labelColor
     );
 
-    if ($effective->showsReturnInfo()) {
-        [$returnInfo, $returnInfoFailure] = tryReturnInfo($input['url']);
+    foreach ([Variant::RETURN_INFO, Variant::RETURN_INFO_EN] as $returnInfoVariant) {
+        if ($effective->shows($returnInfoVariant)) {
+            $returnInfos[$returnInfoVariant] = tryReturnInfo($input['url'], false, 'svg', $returnInfoVariant);
+        }
     }
 
     if ($plain !== null) {
@@ -450,6 +452,10 @@ function e(?string $value): string
                                 <input type="checkbox" name="g[variants][<?= e(Variant::RETURN_INFO) ?>]" value="1"<?= $global->offersReturnInfo() ? ' checked' : '' ?>>
                                 <?= e($texts->get('panel.returnInfo')) ?>
                             </label>
+                            <label class="switch">
+                                <input type="checkbox" name="g[variants][<?= e(Variant::RETURN_INFO_EN) ?>]" value="1"<?= $global->offersReturnInfoEn() ? ' checked' : '' ?>>
+                                <?= e($texts->get('panel.returnInfoEn')) ?>
+                            </label>
                         </div>
                     </div>
 
@@ -705,16 +711,7 @@ function e(?string $value): string
         </div>
     </section>
 
-    <?php if ($effective->showsReturnInfo()): ?>
-    <?php
-    // Die Adresse ist das Einzige, was mitfährt. Bildmarke, Text und Farbe
-    // stünden sonst in der Adresse, ohne etwas zu tun.
-    $returnInfoQuery = ['url' => $input['url'], 'variant' => Variant::RETURN_INFO];
-
-    if ($texts->locale() !== 'de') {
-        $returnInfoQuery['lang'] = $texts->locale();
-    }
-    ?>
+    <?php if ($returnInfos !== []): ?>
     <section class="group group-label">
         <header>
             <h2><?= e($texts->get('group.returnInfo.heading')) ?></h2>
@@ -725,8 +722,18 @@ function e(?string $value): string
         </header>
         <div class="group-body">
             <div class="cols">
+                <?php foreach ($returnInfos as $returnInfoVariant => [$returnInfo, $returnInfoFailure]): ?>
+                <?php
+                // Die Adresse ist das Einzige, was mitfährt. Bildmarke, Text und
+                // Farbe stünden sonst in der Adresse, ohne etwas zu tun.
+                $returnInfoQuery = ['url' => $input['url'], 'variant' => $returnInfoVariant];
+
+                if ($texts->locale() !== 'de') {
+                    $returnInfoQuery['lang'] = $texts->locale();
+                }
+                ?>
                 <div class="panel">
-                    <h2><?= e($texts->get('panel.returnInfo')) ?></h2>
+                    <h2><?= e($texts->get($returnInfoVariant === Variant::RETURN_INFO_EN ? 'panel.returnInfoEn' : 'panel.returnInfo')) ?></h2>
                     <?php if ($returnInfo !== null): ?>
                         <div class="preview preview-label"><?= $returnInfo ?></div>
                         <div class="actions">
@@ -742,6 +749,7 @@ function e(?string $value): string
                         <p class="failure"><?= e($returnInfoFailure ?? $texts->get('panel.nothing')) ?></p>
                     <?php endif; ?>
                 </div>
+                <?php endforeach; ?>
             </div>
         </div>
     </section>

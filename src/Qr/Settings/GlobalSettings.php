@@ -45,6 +45,15 @@ final class GlobalSettings
     /** @var bool */
     private $returnInfo = true;
 
+    /**
+     * Die englische Fassung ist aus, bis jemand sie einschaltet. Eine
+     * Installation, die vor ihr entstand, soll nach dem Update nicht
+     * ungefragt ein zweites Etikett anbieten.
+     *
+     * @var bool
+     */
+    private $returnInfoEn = false;
+
     /** @var string|null */
     private $defaultLogo;
 
@@ -93,6 +102,7 @@ final class GlobalSettings
         $settings->label = self::boolean($values, 'variants.label', $settings->label);
         $settings->labelColor = self::boolean($values, 'variants.label_color', $settings->labelColor);
         $settings->returnInfo = self::boolean($values, 'variants.return_info', $settings->returnInfo);
+        $settings->returnInfoEn = self::boolean($values, 'variants.return_info_en', $settings->returnInfoEn);
         $settings->svg = self::boolean($values, 'downloads.svg', $settings->svg);
         $settings->png = self::boolean($values, 'downloads.png', $settings->png);
         $settings->defaultLogo = self::text($values, 'logo');
@@ -115,6 +125,7 @@ final class GlobalSettings
                 'label' => $this->label,
                 'label_color' => $this->labelColor,
                 'return_info' => $this->returnInfo,
+                'return_info_en' => $this->returnInfoEn,
             ],
             'downloads' => ['svg' => $this->svg, 'png' => $this->png],
             'logo' => $this->defaultLogo,
@@ -175,6 +186,14 @@ final class GlobalSettings
         return $clone;
     }
 
+    public function withReturnInfoEn(bool $returnInfoEn): self
+    {
+        $clone = clone $this;
+        $clone->returnInfoEn = $returnInfoEn;
+
+        return $clone;
+    }
+
     public function withLabelText(?string $text): self
     {
         $clone = clone $this;
@@ -220,6 +239,12 @@ final class GlobalSettings
         return $this->returnInfo;
     }
 
+    /** Dasselbe Etikett auf Englisch, „Return information". */
+    public function offersReturnInfoEn(): bool
+    {
+        return $this->returnInfoEn;
+    }
+
     public function labelText(): ?string
     {
         return $this->labelText;
@@ -258,7 +283,7 @@ final class GlobalSettings
      */
     public function offersAnyVariant(): bool
     {
-        return $this->plain || $this->logo || $this->label || $this->labelColor || $this->returnInfo;
+        return $this->plain || $this->logo || $this->label || $this->labelColor || $this->returnInfo || $this->returnInfoEn;
     }
 
     public function offersAnyDownload(): bool

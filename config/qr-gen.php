@@ -36,6 +36,11 @@ return [
         // Das Etikett „Informationen zur Rückgabe". Fest nach Vorlage, es
         // liest keinen der Werte unten.
         'return_info' => true,
+
+        // Dasselbe Etikett auf Englisch, „Return information". Aus, damit eine
+        // bestehende Installation nach dem Update nicht ungefragt ein zweites
+        // Etikett anbietet. Sind beide an, stehen sie nebeneinander.
+        'return_info_en' => false,
     ],
 
     /*

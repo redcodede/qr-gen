@@ -62,6 +62,9 @@ final class EffectiveSettings
     /** @var bool */
     private $returnInfo;
 
+    /** @var bool */
+    private $returnInfoEn;
+
     /** @var string|null */
     private $labelText;
 
@@ -122,6 +125,7 @@ final class EffectiveSettings
         // Keine Bedingung ausser dem Schalter. Das Etikett bringt alles mit,
         // was es braucht, und haengt an keinem anderen Wert.
         $effective->returnInfo = $global->offersReturnInfo();
+        $effective->returnInfoEn = $global->offersReturnInfoEn();
 
         $effective->svg = $global->offersSvg();
         $effective->png = $global->offersPng();
@@ -174,6 +178,11 @@ final class EffectiveSettings
         return $this->returnInfo;
     }
 
+    public function showsReturnInfoEn(): bool
+    {
+        return $this->returnInfoEn;
+    }
+
     /** Der Aufdruck des Etiketts. Leer heisst: Etikett ohne Text. */
     public function labelText(): ?string
     {
@@ -207,12 +216,16 @@ final class EffectiveSettings
             return $this->labelColor;
         }
 
-        return $variant === Variant::RETURN_INFO && $this->returnInfo;
+        if ($variant === Variant::RETURN_INFO) {
+            return $this->returnInfo;
+        }
+
+        return $variant === Variant::RETURN_INFO_EN && $this->returnInfoEn;
     }
 
     public function showsAnything(): bool
     {
-        return $this->plain || $this->logoVariant || $this->label || $this->labelColor || $this->returnInfo;
+        return $this->plain || $this->logoVariant || $this->label || $this->labelColor || $this->returnInfo || $this->returnInfoEn;
     }
 
     public function offersSvg(): bool

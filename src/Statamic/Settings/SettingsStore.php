@@ -154,6 +154,7 @@ final class SettingsStore
                 'label' => (bool) ($values['variant_label'] ?? false),
                 'label_color' => (bool) ($values['variant_label_color'] ?? false),
                 'return_info' => (bool) ($values['variant_return_info'] ?? false),
+                'return_info_en' => (bool) ($values['variant_return_info_en'] ?? false),
             ],
             'downloads' => [
                 'svg' => (bool) ($values['download_svg'] ?? false),
@@ -221,6 +222,7 @@ final class SettingsStore
             'variant_label' => $settings->offersLabel(),
             'variant_label_color' => $settings->offersLabelColor(),
             'variant_return_info' => $settings->offersReturnInfo(),
+            'variant_return_info_en' => $settings->offersReturnInfoEn(),
             'download_svg' => $settings->offersSvg(),
             'download_png' => $settings->offersPng(),
             'default_logo' => $settings->defaultLogo(),

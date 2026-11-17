@@ -78,7 +78,8 @@ return [
         . 'millimetres. Frame, pictogram and type are fixed; the code is the only thing that '
         . 'varies. No mark and no text of your own: taking part in the scheme is stated behind the '
         . 'code, not on the pack.',
-    'panel.returnInfo' => 'Label, return information',
+    'panel.returnInfo' => 'Label in German',
+    'panel.returnInfoEn' => 'Label in English',
 
     'resolution.url' => 'URL:',
     'resolution.logo' => 'Artwork:',
@@ -195,6 +196,9 @@ return [
         . 'Rückgabe" in one image, fixed after the artwork of 24 September 2026. No mark, no text '
         . 'of your own, in black: the code is the only thing that varies. The fields under "The '
         . 'label" and the artwork do not apply to it.',
+    'cp.variants.returnInfoEn' => 'Label "Return information"',
+    'cp.variants.returnInfoEn.hint' => 'The same label in English, otherwise identical. With both '
+        . 'switched on they sit side by side, and the manufacturer picks one when downloading.',
 
     'cp.label.text' => 'Text on the label',
     'cp.label.text.hint' => 'Sits to the right of the symbol. At most :max characters. The type '
@@ -259,5 +263,6 @@ return [
     'panel.alt' => 'QR code',
     'panel.alt.logo' => 'QR code with artwork',
     'panel.alt.label' => 'Label with QR code, artwork and type',
-    'panel.alt.returnInfo' => 'Label with QR code and the notice "Informationen zur Rückgabe"',
+    'panel.alt.returnInfo' => 'Label with QR code and the German notice “Informationen zur Rückgabe”',
+    'panel.alt.returnInfoEn' => 'Label with QR code and the notice “Return information”',
 ];

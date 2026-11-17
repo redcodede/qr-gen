@@ -191,6 +191,62 @@ final class TagTest extends TestCase
         self::assertStringContainsString('qr-gen-panel--label', $markup);
     }
 
+    /**
+     * Die Beschreibungen stehen unmaskiert in einem Attribut. Ein gerades
+     * Anführungszeichen darin beendet das Attribut mitten im Satz, und das ist
+     * bis 2.2.0 auch passiert: „Informationen zur Rückgabe" endete mit einem.
+     */
+    public function testDieBildbeschreibungenEnthaltenKeinGeradesAnfuehrungszeichen(): void
+    {
+        foreach (['de', 'en'] as $sprache) {
+            $texte = require __DIR__ . '/../../resources/lang/' . $sprache . '/texts.php';
+
+            foreach ($texte as $schluessel => $text) {
+                if (strpos($schluessel, 'panel.alt') === 0) {
+                    self::assertStringNotContainsString('"', $text, "$sprache: $schluessel");
+                }
+            }
+        }
+    }
+
+    /**
+     * Das englische Etikett ist aus, bis jemand es einschaltet.
+     */
+    public function testDasEnglischeEtikettFehltOhneSeinenSchalter(): void
+    {
+        self::assertStringNotContainsString('qr-gen-panel--return_info_en', $this->render());
+    }
+
+    /**
+     * Beide eingeschaltet: zwei Panels nebeneinander, das deutsche zuerst, mit
+     * je eigener Grafik und eigener Beschriftung.
+     */
+    public function testBeideSprachenStehenNebeneinander(): void
+    {
+        config()->set('qr-gen.variants.return_info_en', true);
+
+        $markup = $this->render();
+
+        $de = strpos($markup, 'qr-gen-panel--return_info"');
+        $en = strpos($markup, 'qr-gen-panel--return_info_en"');
+
+        self::assertNotFalse($de, 'Das deutsche Panel fehlt.');
+        self::assertNotFalse($en, 'Das englische Panel fehlt.');
+        self::assertLessThan($en, $de);
+
+        self::assertStringContainsString(__('qr-gen::texts.panel.returnInfo'), $markup);
+        self::assertStringContainsString(__('qr-gen::texts.panel.returnInfoEn'), $markup);
+        self::assertStringContainsString('aria-label="' . __('qr-gen::texts.panel.alt.returnInfoEn') . '"', $markup);
+
+        self::assertSame(1, preg_match(
+            '#qr-gen-panel--return_info_en.*?<div class="qr-gen-preview"[^>]*>(.*?)</div>#s',
+            $markup,
+            $treffer
+        ));
+        self::assertStringContainsString('<svg', $treffer[1]);
+        self::assertNotSame($this->returnInfoPreview(), $treffer[1], 'Beide zeigen dieselbe Grafik.');
+    }
+
     public function testOhneAdresseKommtNichts(): void
     {
         self::assertSame('', trim($this->render('{{ qr_gen }}')));

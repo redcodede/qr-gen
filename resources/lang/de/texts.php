@@ -82,7 +82,8 @@ return [
     'group.returnInfo.note' => 'Ein Preset nach der Vorlage vom 24.09.2026, :width x :height '
         . 'Millimeter. Rahmen, Piktogramm und Text sind fest, variabel ist allein der Code. Keine '
         . 'Bildmarke und kein eigener Text: die Teilnahme am System steht erst hinter dem Code.',
-    'panel.returnInfo' => 'Etikett, Informationen zur Rückgabe',
+    'panel.returnInfo' => 'Etikett auf Deutsch',
+    'panel.returnInfoEn' => 'Etikett auf Englisch',
 
     'resolution.url' => 'URL:',
     'resolution.logo' => 'Bildmarke:',
@@ -200,6 +201,9 @@ return [
         . 'Rückgabe" in einem Bild, fest nach der Vorlage vom 24.09.2026. Ohne Bildmarke, ohne '
         . 'eigenen Text, in Schwarz: variabel ist allein der Code. Die Felder unter „Das Etikett" '
         . 'und die Bildmarke gelten hierfür nicht.',
+    'cp.variants.returnInfoEn' => 'Etikett „Return information"',
+    'cp.variants.returnInfoEn.hint' => 'Dasselbe Etikett auf Englisch, sonst gleich. Sind beide '
+        . 'eingeschaltet, stehen sie nebeneinander, und der Hersteller wählt beim Herunterladen.',
 
     'cp.label.text' => 'Text auf dem Etikett',
     'cp.label.text.hint' => 'Steht rechts neben dem Code. Höchstens :max Zeichen. Der Satz '
@@ -268,5 +272,6 @@ return [
     'panel.alt' => 'QR-Code',
     'panel.alt.logo' => 'QR-Code mit Bildmarke',
     'panel.alt.label' => 'Etikett mit QR-Code, Bildmarke und Text',
-    'panel.alt.returnInfo' => 'Etikett mit QR-Code und dem Hinweis „Informationen zur Rückgabe"',
+    'panel.alt.returnInfo' => 'Etikett mit QR-Code und dem Hinweis „Informationen zur Rückgabe“',
+    'panel.alt.returnInfoEn' => 'Etikett mit QR-Code und dem englischen Hinweis „Return information“',
 ];

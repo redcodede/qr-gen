@@ -17,7 +17,47 @@ Alle nennenswerten Änderungen an diesem Projekt stehen hier. Format nach
 - Interlacing (Adam7) im PNG-Dekoder, falls je eine so gespeicherte Datei
   ankommt
 - Das Etikett „Informationen zur Rückgabe" aus einer Vektorvorlage, sobald eine
-  kommt. Ersetzt wird dann nur `resources/artwork/rueckgabe-information.svg`
+  kommt. Ersetzt wird dann `resources/artwork/rueckgabe-information.svg`, und
+  die englische `return-information.svg` wird aus derselben Schrift neu gesetzt
+
+## [2.3.0] - 2026-11-17
+
+**Das Etikett „Informationen zur Rückgabe" auf Englisch**, „Return
+information". Für Hersteller, die ihre Verpackung auf Englisch beschriften.
+Sind beide Sprachen eingeschaltet, stehen sie nebeneinander, und der Hersteller
+wählt beim Herunterladen.
+
+### Hinzugefügt
+
+- **Ein sechster Typ**, `return_info_en`, in `Qr\Settings\Variant`, dazu
+  `Variant::isReturnInfo()` für beide Sprachen. Der Tag gibt dafür ein eigenes
+  Panel aus, nach dem deutschen; die Bild-Route liefert es mit dem
+  Namenszusatz `-return-information`
+- **Ein Schalter im Control Panel** unter „Was angeboten wird", gespeichert als
+  `variants.return_info_en`. **Anders als jeder andere Schalter ist er aus**,
+  bis ihn jemand setzt, auch in einer Einstellungsdatei ohne den Schlüssel.
+  Eine bestehende Installation bekommt nach dem Update kein zweites Etikett
+- `resources/artwork/return-information.svg`: dasselbe Piktogramm, der Text aus
+  den nachgezeichneten Glyphen der deutschen Grafik zusammengesetzt. Gleiche
+  Maße, gleiche Grundlinien, gleiche linke Kante
+- `Artwork::returnInfoEn()`; `Symbols::image()` wählt die Grafik nach dem Typ,
+  Geometrie und Renderer sind dieselben
+- Die Demo-Seite zeigt beide Sprachen nebeneinander, mit je eigenem Schalter;
+  `demo/image.php` kennt `?variant=return_info_en`
+
+### Geändert
+
+- Die Panels heißen jetzt nach der Sprache: „Etikett auf Deutsch" und „Etikett
+  auf Englisch" („Label in German", „Label in English"). Vorher hieß das eine
+  „Etikett, Informationen zur Rückgabe", und im Englischen klang es schon wie
+  das zweite
+
+### Behoben
+
+- **Die Bildbeschreibung des Etiketts beendete ihr Attribut mitten im Satz.**
+  Sie steht unmaskiert in `aria-label="…"` und endete mit einem geraden
+  Anführungszeichen. Alle vier Beschreibungen haben jetzt typografische, und ein
+  Test prüft, dass in keiner `panel.alt.*` ein gerades steht
 
 ## [2.2.0] - 2026-09-24
 
